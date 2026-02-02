@@ -1,0 +1,254 @@
+{% extends 'base.html.twig' %}
+{% block title %}Aidora | Accueil{% endblock %}
+
+{% block body %}
+<div class="bg-orbs"></div>
+
+<header class="nav">
+  <div class="container nav__inner">
+    <nav class="nav__links">
+      <a class="nav__link is-active" href="{{ path('app_home') }}">Accueil</a>
+      <a class="nav__link" href="#why">Pourquoi</a>
+      <a class="nav__link" href="#how">Comment ça marche</a>
+      <a class="nav__link" href="#modes">Modes</a>
+      <a class="nav__link" href="#trust">Confiance</a>
+    </nav>
+
+    <div class="nav__actions">
+      {% if app.user %}
+        <a class="btn btn--ghost" href="#">Mon compte</a>
+        <a class="btn btn--dark" href="{{ path('app_logout') }}">Déconnexion</a>
+      {% else %}
+        <a class="btn btn--ghost" href="{{ path('app_login') }}">Connexion</a>
+        <a class="btn btn--primary" href="{{ path('app_register') }}">Inscription</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero__grid">
+      <div class="hero__content">
+        <div class="hero__kicker">
+          <span class="hero__kicker-dot"></span>
+          Plateforme de soins à domicile
+        </div>
+
+        <h1>
+          Les soins à domicile,
+          <span class="accent">sans stress</span>
+        </h1>
+
+        <p class="hero__subtitle">
+          Aidora aide les familles à trouver rapidement la bonne personne:
+          aide-soignant(e) qualifié(e) ou volontaire, selon l’urgence, la distance et le budget.
+        </p>
+
+        <div class="hero__cta">
+          <a class="btn btn--primary" href="#">Créer une demande</a>
+          <a class="btn btn--ghost" href="#how">Voir comment ça marche</a>
+        </div>
+
+        <div class="hero__stats">
+          <div class="stat">
+            <div class="stat__top">
+              <div class="stat__label">Temps moyen</div>
+              <div class="stat__value">5 min</div>
+            </div>
+            <div class="stat__hint">pour créer une demande claire</div>
+          </div>
+
+          <div class="stat">
+            <div class="stat__top">
+              <div class="stat__label">Matching</div>
+              <div class="stat__value">IA</div>
+            </div>
+            <div class="stat__hint">compatibilité + disponibilité</div>
+          </div>
+
+          <div class="stat">
+            <div class="stat__top">
+              <div class="stat__label">Satisfaction</div>
+              <div class="stat__value">4.8/5</div>
+            </div>
+            <div class="stat__hint">selon les avis utilisateurs</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero__media">
+        <img class="hero__img" src="{{ asset('assets/images/hero.png') }}" alt="Aidora soins à domicile">
+        <div class="hero__overlay"></div>
+
+        <div class="hero__chip">Matching IA • Temps réel</div>
+
+        <div class="hero__panel">
+          <div class="panel">
+            <div class="panel__row"><span>Mode</span><strong>Normal</strong></div>
+            <div class="panel__row"><span>Compatibilité</span><strong>92%</strong></div>
+            <div class="panel__row"><span>Distance</span><strong>2.1 km</strong></div>
+          </div>
+          <a class="btn btn--primary" href="#modes">Voir les modes</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POURQUOI -->
+  <section id="why" class="cards">
+    <div class="container">
+      <div class="section-title">
+        <div>
+          <h2>Pourquoi Aidora</h2>
+          <p>Une solution pensée pour la vraie vie des familles</p>
+        </div>
+      </div>
+
+      <div class="cards__grid">
+        <article class="card">
+          <div class="card__icon">⚡</div>
+          <h3>Rapide quand c’est urgent</h3>
+          <p>Besoin immédiat? Aidora propose des profils disponibles et proches en priorité.</p>
+          <div class="card__footer">
+            <span class="pill">Urgence</span>
+            <span class="pill">Proximité</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__icon">🧠</div>
+          <h3>Matching intelligent</h3>
+          <p>L’IA score la compatibilité: compétences, horaires, distance, budget, avis.</p>
+          <div class="card__footer">
+            <span class="pill">IA</span>
+            <span class="pill">Compatibilité</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__icon">🤝</div>
+          <h3>Option solidaire</h3>
+          <p>Un mode Économie pour connecter les familles avec volontaires et associations.</p>
+          <div class="card__footer">
+            <span class="pill">Économie</span>
+            <span class="pill">Associations</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__icon">🔒</div>
+          <h3>Fiable et traçable</h3>
+          <p>Historique des missions, rapports, évaluations, et suivi transparent.</p>
+          <div class="card__footer">
+            <span class="pill">Sécurité</span>
+            <span class="pill">Suivi</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMENT ÇA MARCHE -->
+  <section id="how" class="cta">
+    <div class="container">
+      <div class="cta__inner">
+        <div>
+          <h2>Comment ça marche</h2>
+          <p>3 étapes simples, puis Aidora s’occupe du reste.</p>
+          <div class="how-steps" style="margin-top:14px;display:grid;gap:10px">
+            <div class="bullet"><span class="bullet__dot"></span><div><strong>1.</strong> Décris le besoin (patient, horaires, type d’aide).</div></div>
+            <div class="bullet"><span class="bullet__dot"></span><div><strong>2.</strong> Aidora propose une shortlist de profils compatibles.</div></div>
+            <div class="bullet"><span class="bullet__dot"></span><div><strong>3.</strong> Tu choisis, tu confirmes, et tu suis la mission en temps réel.</div></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+          <a class="btn btn--primary" href="#">Créer une demande</a>
+          {% if not app.user %}
+            <a class="btn btn--ghost" href="{{ path('app_register') }}">Créer un compte</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODES -->
+  <section id="modes" class="cards">
+    <div class="container">
+      <div class="section-title">
+        <div>
+          <h2>3 modes selon ta situation</h2>
+          <p>Le même service, adapté à ton urgence et ton budget</p>
+        </div>
+      </div>
+
+      <div class="cards__grid">
+        <article class="card">
+          <div class="card__icon">🚑</div>
+          <h3>Urgent</h3>
+          <p>Besoin immédiat. Priorité aux profils proches et disponibles maintenant.</p>
+          <div class="card__footer">
+            <span class="pill">Rapide</span>
+            <span class="pill">Prioritaire</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__icon">📅</div>
+          <h3>Normal</h3>
+          <p>Planifie 24h à 72h à l’avance avec plus de choix et un prix équilibré.</p>
+          <div class="card__footer">
+            <span class="pill">Planification</span>
+            <span class="pill">Équilibré</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__icon">💚</div>
+          <h3>Économie</h3>
+          <p>Budget limité. Mise en relation avec volontaires et partenaires solidaires.</p>
+          <div class="card__footer">
+            <span class="pill">Solidaire</span>
+            <span class="pill">Associations</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__icon">📊</div>
+          <h3>Suivi</h3>
+          <p>Un espace clair: missions, horaires, notes, rapports, évaluations.</p>
+          <div class="card__footer">
+            <span class="pill">Traçabilité</span>
+            <span class="pill">Historique</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONFIANCE -->
+  <section id="trust" class="cta">
+    <div class="container">
+      <div class="cta__inner" id="contact">
+        <div>
+          <h2>Confiance & sécurité</h2>
+          <p>Profils vérifiés, évaluations, historique des missions et support réactif.</p>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a class="btn btn--primary" href="#">Contacter</a>
+          <a class="btn btn--ghost" href="#why">En savoir plus</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span>© {{ "now"|date("Y") }} Aidora</span>
+      <span>Soins à domicile • Matching IA</span>
+    </div>
+  </footer>
+</main>
+{% endblock %}

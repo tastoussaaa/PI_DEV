@@ -1,0 +1,157 @@
+{% extends 'base.html.twig' %}
+{% block title %}Aidora | Espace{% endblock %}
+
+{% block body %}
+<div class="dash">
+  <aside class="dash__side">
+    <a class="dash__brand" href="{{ path('app_home') }}">
+      <img src="{{ asset('assets/images/logo_mini.png') }}" alt="Aidora" class="dash__logo">
+      <span class="dash__name">Aidora</span>
+    </a>
+
+    <div class="dash__user">
+      <div class="dash__avatar">{{ app.user.userIdentifier|slice(0,1)|upper }}</div>
+      <div class="dash__userText">
+        <div class="dash__userName">{{ app.user.userIdentifier }}</div>
+        <div class="dash__userRole">Connecté</div>
+      </div>
+    </div>
+
+    <nav class="dash__menu">
+      <a class="dash__item {{ activeModule == 'utilisateurs' ? 'is-active' : '' }}"
+         href="{{ path('app_module', {module:'utilisateurs'}) }}">
+        <span class="dash__icon">👥</span> Utilisateurs
+      </a>
+
+      <a class="dash__item {{ activeModule == 'formations' ? 'is-active' : '' }}"
+         href="{{ path('app_module', {module:'formations'}) }}">
+        <span class="dash__icon">🎓</span> Formations
+      </a>
+
+      <a class="dash__item {{ activeModule == 'consultations' ? 'is-active' : '' }}"
+         href="{{ path('app_module', {module:'consultations'}) }}">
+        <span class="dash__icon">🩺</span> Consultations
+      </a>
+
+      <a class="dash__item {{ activeModule == 'demandes' ? 'is-active' : '' }}"
+         href="{{ path('app_module', {module:'demandes'}) }}">
+        <span class="dash__icon">📝</span> Demandes
+      </a>
+
+      <a class="dash__item {{ activeModule == 'suivi' ? 'is-active' : '' }}"
+         href="{{ path('app_module', {module:'suivi'}) }}">
+        <span class="dash__icon">📍</span> Suivi
+      </a>
+
+      <a class="dash__item {{ activeModule == 'produits' ? 'is-active' : '' }}"
+         href="{{ path('app_module', {module:'produits'}) }}">
+        <span class="dash__icon">🛒</span> Produits
+      </a>
+    </nav>
+
+    <div class="dash__bottom">
+      <a class="dash__logout" href="{{ path('app_logout') }}">Déconnexion</a>
+    </div>
+  </aside>
+
+  <main class="dash__main">
+    <div class="dash__top">
+      <div>
+        <h1 class="dash__title">
+          {% if activeModule == 'utilisateurs' %}Gestion Utilisateurs{% endif %}
+          {% if activeModule == 'formations' %}Gestion Formations{% endif %}
+          {% if activeModule == 'consultations' %}Gestion Consultations{% endif %}
+          {% if activeModule == 'demandes' %}Demandes d’assistance{% endif %}
+          {% if activeModule == 'suivi' %}Suivi des missions{% endif %}
+          {% if activeModule == 'produits' %}Gestion Produits{% endif %}
+        </h1>
+        <p class="dash__subtitle">Espace connecté Aidora</p>
+      </div>
+
+      <div class="dash__actions">
+        <a class="btn btn--ghost" href="{{ path('app_home') }}">Accueil</a>
+      </div>
+    </div>
+
+    <section class="dash__content">
+      {% if activeModule == 'utilisateurs' %}
+        <div class="panelCard">
+          <h2>Utilisateurs</h2>
+          <p>Liste, rôles, activation, recherche, détails profil.</p>
+          <div class="grid2">
+            <div class="miniCard">Créer utilisateur</div>
+            <div class="miniCard">Gérer rôles</div>
+            <div class="miniCard">Vérification comptes</div>
+            <div class="miniCard">Historique activité</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'formations' %}
+        <div class="panelCard">
+          <h2>Formations</h2>
+          <p>Ajouter formation, modules, avis, validation compétences.</p>
+          <div class="grid2">
+            <div class="miniCard">Catalogue formations</div>
+            <div class="miniCard">Ajouter session</div>
+            <div class="miniCard">Gérer avis</div>
+            <div class="miniCard">Certifications</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'consultations' %}
+        <div class="panelCard">
+          <h2>Consultations</h2>
+          <p>Consultations, rapports, fichiers, suivi médical.</p>
+          <div class="grid2">
+            <div class="miniCard">Créer consultation</div>
+            <div class="miniCard">Rapports</div>
+            <div class="miniCard">Pièces jointes</div>
+            <div class="miniCard">Historique patient</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'demandes' %}
+        <div class="panelCard">
+          <h2>Demandes</h2>
+          <p>Créer une demande, mode, budget, urgence, matching.</p>
+          <div class="grid2">
+            <div class="miniCard">Nouvelle demande</div>
+            <div class="miniCard">En attente</div>
+            <div class="miniCard">Matching IA</div>
+            <div class="miniCard">Affectation</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'suivi' %}
+        <div class="panelCard">
+          <h2>Suivi</h2>
+          <p>Suivi des missions, statut, check-in, évaluations.</p>
+          <div class="grid2">
+            <div class="miniCard">Missions actives</div>
+            <div class="miniCard">Timeline</div>
+            <div class="miniCard">Incidents</div>
+            <div class="miniCard">Évaluations</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'produits' %}
+        <div class="panelCard">
+          <h2>Produits</h2>
+          <p>Catalogue, commandes, stock, suivi livraison.</p>
+          <div class="grid2">
+            <div class="miniCard">Catalogue</div>
+            <div class="miniCard">Créer produit</div>
+            <div class="miniCard">Commandes</div>
+            <div class="miniCard">Stock</div>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

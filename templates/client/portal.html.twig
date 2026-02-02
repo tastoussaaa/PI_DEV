@@ -1,0 +1,204 @@
+{% extends 'base.html.twig' %}
+{% block title %}Aidora | Espace client{% endblock %}
+
+{% block body %}
+<div class="portal">
+  <aside class="portal__side">
+    <a class="portal__brand" href="{{ path('app_home') }}">
+      <img class="portal__logo" src="{{ asset('assets/images/logo_mini.png') }}" alt="Aidora">
+      <div>
+        <div class="portal__name">Aidora</div>
+        <div class="portal__tag">Espace client</div>
+      </div>
+    </a>
+
+    <div class="portal__hello">
+      <div class="portal__avatar">{{ app.user.userIdentifier|slice(0,1)|upper }}</div>
+      <div>
+        <div class="portal__hi">Bonjour,</div>
+        <div class="portal__mail">{{ {{ app.user ? app.user.userIdentifier : 'Invité' }}
+}}</div>
+      </div>
+    </div>
+
+    <nav class="portal__menu">
+      <a class="portal__item {{ activeModule == 'profil' ? 'is-active' : '' }}"
+         href="{{ path('app_client_module', {module:'profil'}) }}">
+        <span class="portal__icon">👤</span> Mon profil
+      </a>
+
+      <a class="portal__item {{ activeModule == 'demandes' ? 'is-active' : '' }}"
+         href="{{ path('app_client_module', {module:'demandes'}) }}">
+        <span class="portal__icon">📝</span> Mes demandes
+      </a>
+
+      <a class="portal__item {{ activeModule == 'suivi' ? 'is-active' : '' }}"
+         href="{{ path('app_client_module', {module:'suivi'}) }}">
+        <span class="portal__icon">📍</span> Suivi
+      </a>
+
+      <a class="portal__item {{ activeModule == 'consultations' ? 'is-active' : '' }}"
+         href="{{ path('app_client_module', {module:'consultations'}) }}">
+        <span class="portal__icon">🩺</span> Consultations
+      </a>
+
+      <a class="portal__item {{ activeModule == 'formations' ? 'is-active' : '' }}"
+         href="{{ path('app_client_module', {module:'formations'}) }}">
+        <span class="portal__icon">🎓</span> Formations
+      </a>
+
+      <a class="portal__item {{ activeModule == 'produits' ? 'is-active' : '' }}"
+         href="{{ path('app_client_module', {module:'produits'}) }}">
+        <span class="portal__icon">🛒</span> Produits
+      </a>
+    </nav>
+
+    <div class="portal__bottom">
+      <a class="portal__logout" href="{{ path('app_logout') }}">Déconnexion</a>
+    </div>
+  </aside>
+
+  <main class="portal__main">
+    <div class="portal__top">
+      <div>
+        <h1 class="portal__title">
+          {% if activeModule == 'profil' %}Mon profil{% endif %}
+          {% if activeModule == 'demandes' %}Mes demandes{% endif %}
+          {% if activeModule == 'suivi' %}Suivi{% endif %}
+          {% if activeModule == 'consultations' %}Consultations{% endif %}
+          {% if activeModule == 'formations' %}Formations{% endif %}
+          {% if activeModule == 'produits' %}Produits{% endif %}
+        </h1>
+        <p class="portal__subtitle">Tout ce dont vous avez besoin pour gérer vos soins à domicile.</p>
+      </div>
+
+      <a class="btn btn--ghost" href="{{ path('app_home') }}">Retour site</a>
+    </div>
+
+    <section class="portal__content">
+      {% if activeModule == 'profil' %}
+        <div class="box">
+          <h2>Informations du compte</h2>
+          <p>Vous pouvez modifier vos infos personnelles et gérer vos préférences.</p>
+
+          <div class="boxGrid">
+            <div class="mini">
+              <div class="mini__title">Email</div>
+              <div class="mini__value">{{ {{ app.user ? app.user.userIdentifier : 'Invité' }}
+ }}</div>
+            </div>
+            <div class="mini">
+              <div class="mini__title">Sécurité</div>
+              <div class="mini__value">Mot de passe protégé</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn--primary" href="#">Modifier profil</a>
+            <a class="btn btn--ghost" href="#">Changer mot de passe</a>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'demandes' %}
+        <div class="box">
+          <h2>Mes demandes</h2>
+          <p>Créez une demande et suivez son traitement (urgent, normal, économie).</p>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+            <a class="btn btn--primary" href="#">Nouvelle demande</a>
+            <a class="btn btn--ghost" href="#">Historique</a>
+          </div>
+
+          <div class="list" style="margin-top:14px">
+            <div class="rowItem">
+              <div>
+                <div class="rowItem__title">Demande: Mode normal</div>
+                <div class="rowItem__meta">En attente de matching</div>
+              </div>
+              <span class="badge">En cours</span>
+            </div>
+            <div class="rowItem">
+              <div>
+                <div class="rowItem__title">Demande: Mode économie</div>
+                <div class="rowItem__meta">Volontaire trouvé</div>
+              </div>
+              <span class="badge badge--ok">Confirmée</span>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'suivi' %}
+        <div class="box">
+          <h2>Suivi</h2>
+          <p>Suivez vos missions actives et vos rendez-vous.</p>
+
+          <div class="boxGrid">
+            <div class="mini">
+              <div class="mini__title">Mission active</div>
+              <div class="mini__value">Aujourd’hui 14:00</div>
+            </div>
+            <div class="mini">
+              <div class="mini__title">Statut</div>
+              <div class="mini__value">Confirmée</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn--primary" href="#">Voir timeline</a>
+            <a class="btn btn--ghost" href="#">Contacter l’aide</a>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'consultations' %}
+        <div class="box">
+          <h2>Consultations</h2>
+          <p>Accédez aux consultations et rapports liés au patient.</p>
+
+          <div class="list" style="margin-top:14px">
+            <div class="rowItem">
+              <div>
+                <div class="rowItem__title">Consultation à domicile</div>
+                <div class="rowItem__meta">Rapport disponible</div>
+              </div>
+              <a class="btn btn--ghost" href="#">Voir</a>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'formations' %}
+        <div class="box">
+          <h2>Formations</h2>
+          <p>Découvrez les formations recommandées et les avis.</p>
+
+          <div class="boxGrid">
+            <div class="mini">
+              <div class="mini__title">Recommandée</div>
+              <div class="mini__value">Premiers soins</div>
+            </div>
+            <div class="mini">
+              <div class="mini__title">Durée</div>
+              <div class="mini__value">2h</div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if activeModule == 'produits' %}
+        <div class="box">
+          <h2>Produits</h2>
+          <p>Commandez du matériel utile pour les soins à domicile.</p>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+            <a class="btn btn--primary" href="#">Voir catalogue</a>
+            <a class="btn btn--ghost" href="#">Mes commandes</a>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

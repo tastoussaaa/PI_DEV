@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+{% block title %}Inscription{% endblock %}
+
+{% block body %}
+<div class="bg-orbs"></div>
+
+<div class="container" style="padding:60px 0">
+  <div class="card" style="max-width:520px;margin:0 auto;padding:24px">
+  <div style="text-align:center;margin-bottom:16px">
+  <a href="{{ path('app_home') }}">
+    <img 
+      src="{{ asset('assets/images/logo_mini.png') }}" 
+      alt="Aidora"
+      style="height:56px;margin-bottom:8px"
+    >
+  </a>
+</div>
+
+    <h2 style="margin-bottom:8px">Créer un compte</h2>
+    <p style="color:#6b7280;margin-bottom:16px">
+      Rejoignez la plateforme Aidora
+    </p>
+
+    {% if error %}
+      <div class="pill" style="margin-bottom:12px;color:#b91c1c">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post">
+      <label>Nom complet</label>
+      <input type="text" name="fullName" required
+             style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+
+      <label>Email</label>
+      <input type="email" name="email" required
+             style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+
+      <label>Mot de passe</label>
+      <input type="password" name="password" minlength="6" required
+             style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+
+      <div style="display:flex;gap:10px">
+        <button class="btn btn--primary" type="submit">Créer le compte</button>
+        <a class="btn btn--ghost" href="{{ path('app_login') }}">J’ai déjà un compte</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

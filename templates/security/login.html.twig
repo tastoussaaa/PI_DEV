@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+{% block title %}Connexion{% endblock %}
+
+{% block body %}
+<div class="bg-orbs"></div>
+
+<div class="container" style="padding:60px 0">
+  <div class="card" style="max-width:520px;margin:0 auto;padding:24px">
+  <div style="text-align:center;margin-bottom:16px">
+  <a href="{{ path('app_home') }}">
+    <img 
+      src="{{ asset('assets/images/logo_mini.png') }}" 
+      alt="Aidora"
+      style="height:56px;margin-bottom:8px"
+    >
+  </a>
+</div>
+
+    <h2 style="margin-bottom:8px">Connexion</h2>
+    <p style="color:#6b7280;margin-bottom:16px">
+      Connectez-vous à votre compte Aidora
+    </p>
+
+    {% if error %}
+      <div class="pill" style="margin-bottom:12px;color:#b91c1c">
+        Identifiants incorrects
+      </div>
+    {% endif %}
+
+    <form method="post">
+      <label>Email</label>
+      <input type="email" name="_username" value="{{ last_username }}" required
+             style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+
+      <label>Mot de passe</label>
+      <input type="password" name="_password" required
+             style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+      <div style="display:flex;gap:10px">
+        <button class="btn btn--primary" type="submit">Connexion</button>
+        <a class="btn btn--ghost" href="{{ path('app_register') }}">Inscription</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

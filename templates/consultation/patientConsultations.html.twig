@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard Médecin{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+{% endblock %}
+
+{% block body %}
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+
+   
+] %}
+
+<div class="portal">
+
+    <!-- SIDEBAR -->
+    <aside class="portal__side">
+
+        <a href="#" class="portal__brand">
+            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
+            <div>
+                <div class="portal__name">MediPortal</div>
+                <div class="portal__tag">Espace Patient</div>
+            </div>
+        </a>
+
+        <div class="portal__hello">
+            <div class="portal__avatar">
+                <img src="{{ asset('assets/images/avatar.png') }}" class="portal__logo" alt="">
+
+            </div>
+            <div>
+                <div class="portal__hi">Bienvenue</div>
+                <div class="portal__mail">
+                    {{ app.user.name ?? 'Patient' }}
+                </div>
+            </div>
+        </div>
+
+        <nav class="portal__menu">
+            {% for item in navigation %}
+                <a href="{{ item.path }}"
+                   class="portal__item {% if app.request.pathinfo == item.path %}is-active{% endif %}">
+                    <span class="portal__icon">{{ item.icon }}</span>
+                    <span>{{ item.name }}</span>
+                </a>
+            {% endfor %}
+        </nav>
+
+        <div class="portal__bottom">
+            <a href="#" class="portal__logout">Déconnexion</a>
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="portal__main">
+
+        
+        <div class="portal__content">   
+            <h1>Consultations Patient</h1>
+            <!-- Contenu des consultations du patient -->
+        </div>
+    </main>
+
+</div>
+
+{% endblock %}
+
+
+
+
+

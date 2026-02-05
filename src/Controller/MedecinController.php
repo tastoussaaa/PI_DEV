@@ -4,6 +4,10 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\Request;
+use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\Formation;
+use App\Form\FormationType;
 
 class MedecinController extends AbstractController
 {
@@ -24,4 +28,27 @@ class MedecinController extends AbstractController
     {
         return $this->render('consultation/consultations.html.twig');
     }
+
+
+    #[Route('/medecin/formations/new', name: 'medecin_formation_new')]
+public function newFormation(
+    Request $request,
+    EntityManagerInterface $em
+) {
+    $formation = new Formation();
+
+    $form = $this->createForm(FormationType::class, $formation);
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $em->persist($formation);
+        $em->flush();
+
+        return $this->redirectToRoute('medecin_formations');
+    }
+
+    return $this->render('formation/formation_new.html.twig', [
+        'form' => $form->createView()
+    ]);
+}
 }

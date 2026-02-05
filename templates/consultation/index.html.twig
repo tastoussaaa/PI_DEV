@@ -1,20 +1,45 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello ConsultationController!{% endblock %}
+{% block title %}Consultations{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
+<h1>All Consultations</h1>
 
-<div class="example-wrapper">
-    <h1>Hello {{ controller_name }}! ✅</h1>
+<a href="{{ path('consultation_new') }}">Create New Consultation</a>
 
-    This friendly message is coming from:
-    <ul>
-        <li>Your controller at <code>C:/Users/firas/Desktop/PI_DEV-main/src/Controller/ConsultationController.php</code></li>
-        <li>Your template at <code>C:/Users/firas/Desktop/PI_DEV-main/templates/consultation/index.html.twig</code></li>
-    </ul>
-</div>
+<table border="1" cellpadding="5">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Motif</th>
+            <th>Diagnostic</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for consultation in consultations %}
+            <tr>
+                <td>{{ consultation.id }}</td>
+                <td>{{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d H:i') : '' }}</td>
+                <td>{{ consultation.motif }}</td>
+                <td>{{ consultation.diagnostic }}</td>
+                <td>{{ consultation.status }}</td>
+                <td>
+                    <a href="{{ path('consultation_show', {id: consultation.id}) }}">Show</a> |
+                    <a href="{{ path('consultation_edit', {id: consultation.id}) }}">Edit</a> |
+                    <form action="{{ path('consultation_delete', {id: consultation.id}) }}" method="post" style="display:inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ consultation.id) }}">
+                        <button type="submit" onclick="return confirm('Delete this consultation?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6">No consultations yet.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

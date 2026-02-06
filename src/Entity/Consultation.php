@@ -22,11 +22,8 @@ class Consultation
     #[ORM\Column(length: 255)]
     private ?string $motif = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $diagnostic = null;
-
-    #[ORM\Column(length: 255)]
-    private ?string $status = null;
+  #[ORM\Column(length: 20)]
+    private ?string $status = 'pending';
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -71,16 +68,7 @@ class Consultation
         return $this;
     }
 
-    public function getDiagnostic(): ?string
-    {
-        return $this->diagnostic;
-    }
-
-    public function setDiagnostic(string $diagnostic): static
-    {
-        $this->diagnostic = $diagnostic;
-        return $this;
-    }
+    
 
     public function getStatus(): ?string
     {

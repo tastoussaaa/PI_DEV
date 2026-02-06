@@ -1,12 +1,17 @@
 <?php
 
 namespace App\Controller;
-
+use App\Entity\Consultation;
+use App\Repository\ConsultationRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 
 class MedecinController extends AbstractController
 {
+    
     #[Route('/medecin/dashboard', name: 'medecin_dashboard')]
     public function dashboard()
     {
@@ -19,9 +24,42 @@ class MedecinController extends AbstractController
         return $this->render('formation/formations.html.twig');
     }
 
-    #[Route('/medecin/consultations', name: 'medecin_consultations')]
-    public function consultations()
-    {
-        return $this->render('consultation/consultations.html.twig');
-    }
+   #[Route('/medecin/consultations', name: 'medecin_consultations')]
+public function consultations(ConsultationRepository $repository): Response
+{
+    $consultations = $repository->findAll(); // fetch all consultations
+
+    return $this->render('medecin/index.html.twig', [
+        'consultations' => $consultations,
+    ]);
 }
+#[Route('/medecin/consultation/{id}/accept', name: 'consultation_accept', methods: ['POST'])]
+public function accept(Consultation $consultation, EntityManagerInterface $em): Response
+{
+    $consultation->setStatus('accepted');
+    $em->flush();
+
+    return $this->redirectToRoute('medecin_consultations');
+}
+
+#[Route('/medecin/consultation/{id}/decline', name: 'consultation_decline', methods: ['POST'])]
+public function decline(Consultation $consultation, EntityManagerInterface $em): Response
+{
+    $consultation->setStatus('declined');
+    $em->flush();
+
+    return $this->redirectToRoute('medecin_consultations');
+}
+#[Route('/medecin/consultation/{id}/delete', name: 'consultation_delete', methods: ['POST'])]
+public function delete(Request $request, Consultation $consultation, EntityManagerInterface $em): Response
+{
+    if ($this->isCsrfTokenValid('delete'.$consultation->getId(), $request->request->get('_token'))) {
+        $em->remove($consultation);
+        $em->flush();
+    }
+
+    return $this->redirectToRoute('medecin_consultations');
+}
+
+}
+

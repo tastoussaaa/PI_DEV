@@ -4,16 +4,11 @@
 
 {% block body %}
 <h1>All Consultations</h1>
-
-<a href="{{ path('consultation_new') }}">Create New Consultation</a>
-
 <table border="1" cellpadding="5">
     <thead>
         <tr>
-            <th>ID</th>
             <th>Date</th>
             <th>Motif</th>
-            <th>Diagnostic</th>
             <th>Status</th>
             <th>Actions</th>
         </tr>
@@ -21,10 +16,8 @@
     <tbody>
         {% for consultation in consultations %}
             <tr>
-                <td>{{ consultation.id }}</td>
                 <td>{{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d H:i') : '' }}</td>
                 <td>{{ consultation.motif }}</td>
-                <td>{{ consultation.diagnostic }}</td>
                 <td>{{ consultation.status }}</td>
                 <td>
                     <a href="{{ path('consultation_show', {id: consultation.id}) }}">Show</a> |

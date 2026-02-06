@@ -1,15 +1,84 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}New Consultation{% endblock %}
+{% block title %}Dashboard Médecin{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+{% endblock %}
 
 {% block body %}
-<h1>Create New Consultation</h1>
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'}
+] %}
 
-{{ form_start(form) }}
-    {{ form_widget(form) }}
-    {# Custom submit button #}
-    <button type="submit">Save Consultation</button>
-{{ form_end(form, {'render_rest': false}) }}
+<div class="portal">
 
-<a href="{{ path('consultation_index') }}">Back to list</a>
+    <!-- SIDEBAR -->
+    <aside class="portal__side">
+        <a href="#" class="portal__brand">
+            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
+            <div>
+                <div class="portal__name">MediPortal</div>
+                <div class="portal__tag">Espace Patient</div>
+            </div>
+        </a>
+
+        <div class="portal__hello">
+            <img src="{{ asset('assets/images/avatar.png') }}" class="portal__avatar" alt="">
+            <div>
+                <div class="portal__hi">Bienvenue</div>
+                <div class="portal__mail">{{ app.user.name ?? 'Patient' }}</div>
+            </div>
+        </div>
+
+        <nav class="portal__menu">
+            {% for item in navigation %}
+                <a href="{{ item.path }}"
+                   class="portal__item {% if app.request.pathinfo == item.path %}is-active{% endif %}">
+                    <span class="portal__icon">{{ item.icon }}</span>
+                    <span>{{ item.name }}</span>
+                </a>
+            {% endfor %}
+        </nav>
+
+        <div class="portal__bottom">
+            <a href="{{ path('app_logout') }}" class="portal__logout">Déconnexion</a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="portal__main">
+
+        <header class="portal__header">
+            <h1 class="portal__title">New Consultation</h1>
+            <p class="portal__subtitle">
+                Fill in the consultation details carefully.
+            </p>
+        </header>
+
+        <section class="portal__content portal__card">
+
+            {{ form_start(form, {'attr': {'class': 'form'}}) }}
+
+                <div class="form__fields">
+                    {{ form_widget(form) }}
+                </div>
+
+                <div class="form__actions">
+                    <a href="{{ path('consultation_index') }}" class="btn btn--ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn--primary">
+                        Save Consultation
+                    </button>
+                </div>
+
+            {{ form_end(form) }}
+
+        </section>
+
+    </main>
+
+</div>
 {% endblock %}

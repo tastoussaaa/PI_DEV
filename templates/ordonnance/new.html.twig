@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Add Ordonnance{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <h2>Add Ordonnance</h2>
+
+    {{ form_start(form) }}
+
+        <div class="mb-3">
+            {{ form_label(form.medicament) }}
+            {{ form_widget(form.medicament, {'attr': {'class': 'form-control'}}) }}
+        </div>
+
+        <div class="mb-3">
+            {{ form_label(form.dosage) }}
+            {{ form_widget(form.dosage, {'attr': {'class': 'form-control'}}) }}
+        </div>
+
+        <div class="mb-3">
+            {{ form_label(form.duree) }}
+            {{ form_widget(form.duree, {'attr': {'class': 'form-control'}}) }}
+        </div>
+
+        <div class="mb-3">
+            {{ form_label(form.instructions) }}
+            {{ form_widget(form.instructions, {'attr': {'class': 'form-control'}}) }}
+        </div>
+        <div class="mb-3">
+            {{ form_label(form.consultation) }}
+            {{ form_widget(form.consultation, {'attr': {'class': 'form-control'}}) }}
+        </div>
+
+        <button class="btn btn-primary">Save</button>
+
+    {{ form_end(form) }}
+</div>
+{% endblock %}

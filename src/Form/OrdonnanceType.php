@@ -3,28 +3,32 @@
 namespace App\Form;
 
 use App\Entity\Consultation;
+use App\Entity\Ordonnance;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 
-class ConsultationType extends AbstractType
+class OrdonnanceType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('dateConsultation', DateTimeType::class, [
-                'widget' => 'single_text',
+            ->add('medicament')
+            ->add('dosage')
+            ->add('duree')
+            ->add('instructions')
+            ->add('consultation', EntityType::class, [
+                'class' => Consultation::class,
+                'choice_label' => 'id',
             ])
-            ->add('motif', TextType::class); 
-            
+        ;
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => Consultation::class,
+            'data_class' => Ordonnance::class,
         ]);
     }
 }

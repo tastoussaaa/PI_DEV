@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Consultation Details{% endblock %}
+
+{% block body %}
+<h1>Consultation #{{ consultation.id }}</h1>
+
+<ul>
+    <li><strong>Date:</strong> {{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d H:i') : '' }}</li>
+    <li><strong>Motif:</strong> {{ consultation.motif }}</li>
+    <li><strong>Diagnostic:</strong> {{ consultation.diagnostic }}</li>
+    <li><strong>Status:</strong> {{ consultation.status }}</li>
+    <li><strong>Created At:</strong> {{ consultation.createdAt ? consultation.createdAt|date('Y-m-d H:i') : '' }}</li>
+</ul>
+
+<a href="{{ path('consultation_edit', {id: consultation.id}) }}">Edit</a> |
+<a href="{{ path('consultation_index') }}">Back to list</a>
+{% endblock %}

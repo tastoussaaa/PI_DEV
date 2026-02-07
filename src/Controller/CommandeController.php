@@ -48,7 +48,21 @@ class CommandeController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $commande->setMontantTotal($commande->getProduit()->getPrix() * $commande->getQuantite());
+            $produit = $commande->getProduit();
+            $quantite = $commande->getQuantite();
+            
+            // Check if enough stock available
+            if ($produit->getStock() < $quantite) {
+                $this->addFlash('error', 'Stock insuffisant. Stock disponible: ' . $produit->getStock());
+                return $this->render('commande/new.html.twig', [
+                    'commande' => $commande,
+                    'form' => $form->createView(),
+                ]);
+            }
+            
+            // Decrease stock
+            $produit->setStock($produit->getStock() - $quantite);
+            $commande->setMontantTotal($produit->getPrix() * $quantite);
             $em->persist($commande);
             $em->flush();
             $this->addFlash('success', 'Commande enregistrée.');
@@ -72,11 +86,29 @@ class CommandeController extends AbstractController
     #[Route('/{id}/edit', name: 'commande_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Commande $commande, EntityManagerInterface $em): Response
     {
+        // Store original quantity for stock adjustment
+        $originalQuantite = $commande->getQuantite();
+        
         $form = $this->createForm(CommandeType::class, $commande);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $commande->setMontantTotal($commande->getProduit()->getPrix() * $commande->getQuantite());
+            $produit = $commande->getProduit();
+            $newQuantite = $commande->getQuantite();
+            $quantiteDifference = $newQuantite - $originalQuantite;
+            
+            // Check if enough stock available for the difference
+            if ($quantiteDifference > 0 && $produit->getStock() < $quantiteDifference) {
+                $this->addFlash('error', 'Stock insuffisant. Stock disponible: ' . $produit->getStock());
+                return $this->render('commande/edit.html.twig', [
+                    'commande' => $commande,
+                    'form' => $form->createView(),
+                ]);
+            }
+            
+            // Adjust stock based on quantity change
+            $produit->setStock($produit->getStock() - $quantiteDifference);
+            $commande->setMontantTotal($produit->getPrix() * $newQuantite);
             $em->flush();
             $this->addFlash('success', 'Commande mise à jour.');
             return $this->redirectToRoute('commande_index');
@@ -93,6 +125,10 @@ class CommandeController extends AbstractController
     {
         $token = $request->request->get('_token');
         if ($this->isCsrfTokenValid('delete' . $commande->getId(), $token)) {
+            // Restore stock when command is deleted
+            $produit = $commande->getProduit();
+            $produit->setStock($produit->getStock() + $commande->getQuantite());
+            
             $em->remove($commande);
             $em->flush();
             $this->addFlash('success', 'Commande supprimée.');

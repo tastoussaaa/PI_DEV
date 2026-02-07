@@ -18,12 +18,16 @@ class ProduitController extends AbstractController
     #[Route('/produit', name: 'produit_list', methods: ['GET'])]
     public function list(Request $request, ProduitRepository $produitRepo): Response
     {
-        $categorie = $request->query->get('categorie');
+        $categorie = $request->query->get('categorie', '');
         $tri = $request->query->get('tri', 'nom');
         $ordre = $request->query->get('ordre', 'ASC');
-        $recherche = $request->query->get('recherche');
+        $recherche = $request->query->get('recherche', '');
 
-        $produits = $produitRepo->findForShop($categorie, $tri, $ordre);
+        // Ensure valid sort and order values
+        $tri = in_array($tri, ['nom', 'prix', 'categorie']) ? $tri : 'nom';
+        $ordre = in_array($ordre, ['ASC', 'DESC']) ? $ordre : 'ASC';
+
+        $produits = $produitRepo->findForShop($categorie ?: null, $tri, $ordre);
 
         if ($recherche !== null && $recherche !== '') {
             $recherche = trim($recherche);

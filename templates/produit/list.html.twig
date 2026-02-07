@@ -44,7 +44,7 @@
         <form method="get" action="{{ path('produit_list') }}" class="produit-filters">
             <div style="display:flex; align-items:center; gap:8px;">
                 <label for="recherche">Recherche</label>
-                <input type="text" id="recherche" name="recherche" value="{{ recherche|default('') }}" placeholder="Nom ou catégorie...">
+                <input type="text" id="recherche" name="recherche" value="{{ recherche }}" placeholder="Nom ou catégorie...">
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
                 <label for="categorie">Catégorie</label>

@@ -22,15 +22,21 @@ class ProduitRepository extends ServiceEntityRepository
     public function findForShop(?string $categorie = null, ?string $tri = 'nom', ?string $ordre = 'ASC'): array
     {
         $qb = $this->createQueryBuilder('p');
+        
         if ($categorie !== null && $categorie !== '') {
             $qb->andWhere('p.categorie = :cat')
                 ->setParameter('cat', $categorie);
         }
-        $allowedSort = ['nom', 'prix', 'categorie'];
-        if (!in_array($tri, $allowedSort, true)) {
-            $tri = 'nom';
-        }
-        $qb->orderBy('p.' . $tri, $ordre === 'DESC' ? 'DESC' : 'ASC');
+        
+        // Validate sort field
+        $allowedSort = ['nom', 'prix', 'categorie', 'stock'];
+        $sortField = in_array($tri, $allowedSort, true) ? $tri : 'nom';
+        
+        // Validate sort order
+        $sortOrder = ($ordre === 'DESC') ? 'DESC' : 'ASC';
+        
+        $qb->orderBy('p.' . $sortField, $sortOrder);
+        
         return $qb->getQuery()->getResult();
     }
 

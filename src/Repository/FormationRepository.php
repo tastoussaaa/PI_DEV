@@ -40,4 +40,19 @@ class FormationRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+
+
+      public function findValidated(): array
+    {
+        return $this->createQueryBuilder('f')
+            ->andWhere('f.statut = :statut')
+            ->setParameter('statut', Formation::STATUT_VALIDE)
+            ->orderBy('f.startDate', 'DESC')
+            ->andWhere('f.startDate >= :today')
+            ->setParameter('today', new \DateTime())
+
+            ->getQuery()
+            ->getResult();
+    }
 }

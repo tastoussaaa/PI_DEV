@@ -1,21 +1,29 @@
-
-
 <aside class="portal__side">
 
-    <a href="{{ path('medecin_dashboard') }}" class="portal__brand">
+    <a href="#" class="portal__brand">
         <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
         <div>
             <div class="portal__name">MediPortal</div>
-            <div class="portal__tag">Espace Médecin</div>
+            <div class="portal__tag">
+                {% if is_granted('ROLE_ADMIN') %}
+                    Espace Admin
+                {% elseif is_granted('ROLE_MEDECIN') %}
+                    Espace Médecin
+                {% elseif is_granted('ROLE_PATIENT') %}
+                    Espace Patient
+                {% endif %}
+            </div>
         </div>
     </a>
 
     <div class="portal__hello">
-        <div class="portal__avatar">M</div>
+        <div class="portal__avatar">
+            {{  'U' }}
+        </div>
         <div>
             <div class="portal__hi">Bienvenue</div>
             <div class="portal__mail">
-                {{ app.user.name ?? 'Médecin' }}
+                {{ app.user.name ?? 'Utilisateur' }}
             </div>
         </div>
     </div>
@@ -23,7 +31,7 @@
     <nav class="portal__menu">
         {% for item in navigation %}
             <a href="{{ item.path }}"
-               class="portal__item {% if app.request.pathinfo == item.path %}is-active{% endif %}">
+               class="portal__item {% if app.request.pathinfo starts with item.path %}is-active{% endif %}">
                 <span class="portal__icon">{{ item.icon }}</span>
                 <span>{{ item.name }}</span>
             </a>
@@ -31,6 +39,7 @@
     </nav>
 
     <div class="portal__bottom">
-        <a href="#" class="portal__logout">Déconnexion</a>
+        <a href="{{ path('app_logout') }}" class="portal__logout">Déconnexion</a>
     </div>
+
 </aside>

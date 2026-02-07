@@ -33,9 +33,23 @@ class Medecin
     #[ORM\OneToMany(targetEntity: Consultation::class, mappedBy: 'medecin')]
     private Collection $consultations;
 
+    /**
+     * @var Collection<int, Formation>
+     */
+    #[ORM\OneToMany(targetEntity: Formation::class, mappedBy: 'medecin')]
+    private Collection $formations;
+
+    /**
+     * @var Collection<int, AideSoignant>
+     */
+    #[ORM\OneToMany(targetEntity: AideSoignant::class, mappedBy: 'medecin')]
+    private Collection $aideSoignants;
+
     public function __construct()
     {
         $this->consultations = new ArrayCollection();
+        $this->formations = new ArrayCollection();
+        $this->aideSoignants = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -115,6 +129,66 @@ class Medecin
             // set the owning side to null (unless already changed)
             if ($consultation->getMedecin() === $this) {
                 $consultation->setMedecin(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Formation>
+     */
+    public function getFormations(): Collection
+    {
+        return $this->formations;
+    }
+
+    public function addFormation(Formation $formation): static
+    {
+        if (!$this->formations->contains($formation)) {
+            $this->formations->add($formation);
+            $formation->setMedecin($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFormation(Formation $formation): static
+    {
+        if ($this->formations->removeElement($formation)) {
+            // set the owning side to null (unless already changed)
+            if ($formation->getMedecin() === $this) {
+                $formation->setMedecin(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, AideSoignant>
+     */
+    public function getAideSoignants(): Collection
+    {
+        return $this->aideSoignants;
+    }
+
+    public function addAideSoignant(AideSoignant $aideSoignant): static
+    {
+        if (!$this->aideSoignants->contains($aideSoignant)) {
+            $this->aideSoignants->add($aideSoignant);
+            $aideSoignant->setMedecin($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAideSoignant(AideSoignant $aideSoignant): static
+    {
+        if ($this->aideSoignants->removeElement($aideSoignant)) {
+            // set the owning side to null (unless already changed)
+            if ($aideSoignant->getMedecin() === $this) {
+                $aideSoignant->setMedecin(null);
             }
         }
 

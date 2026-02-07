@@ -32,36 +32,45 @@ class OrdonnanceController extends AbstractController
         ]);
     }
 
-    #[Route('/show', name: 'Ordonnance_show_all', methods: ['GET'])]
-    public function showAll(Request $request, OrdonnanceRepository $repository): Response
-    {
-        $search = $request->query->get('search', '');
-        $sort = $request->query->get('sort', 'date');
-        
-        $ordonnances = $repository->findAll();
-        
-        // Filter by search term
-        if ($search) {
-            $ordonnances = array_filter($ordonnances, function($o) use ($search) {
-                return stripos($o->getMedicament(), $search) !== false || 
-                       stripos($o->getDosage(), $search) !== false;
-            });
-        }
-        
-        // Sort
-        if ($sort === 'medicament') {
-            usort($ordonnances, fn($a, $b) => strcmp($a->getMedicament(), $b->getMedicament()));
-        } elseif ($sort === 'date') {
-            usort($ordonnances, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
-        }
+ #[Route('/show', name: 'Ordonnance_show_all', methods: ['GET'])]
+public function showAll(Request $request, OrdonnanceRepository $repository): Response
+{
+    $search = $request->query->get('search', '');
+    $sort = $request->query->get('sort', 'date');
+    
+    $ordonnances = $repository->findAll();
+    
+    // Filter by search term (medicament, consultation name, createdAt)
+    if ($search) {
+        $ordonnances = array_filter($ordonnances, function($o) use ($search) {
+            $consultation = $o->getConsultation();
+            $consultationName = $consultation ? ($consultation->getName() . ' ' . $consultation->getFamilyName()) : '';
+            $createdAt = $o->getCreatedAt() ? $o->getCreatedAt()->format('Y-m-d') : '';
 
-        return $this->render('ordonnance/show.html.twig', [
-            'ordonnances' => $ordonnances,
-            'search' => $search,
-            'sort' => $sort,
-        ]);
+            return stripos($o->getMedicament(), $search) !== false ||
+                   stripos($consultationName, $search) !== false ||
+                   stripos($createdAt, $search) !== false;
+        });
+    }
+    
+    // Sort
+    if ($sort === 'medicament') {
+        usort($ordonnances, fn($a, $b) => strcmp($a->getMedicament(), $b->getMedicament()));
+    } elseif ($sort === 'consultation') {
+        usort($ordonnances, fn($a, $b) => strcmp(
+            $a->getConsultation() ? ($a->getConsultation()->getName() . ' ' . $a->getConsultation()->getFamilyName()) : '',
+            $b->getConsultation() ? ($b->getConsultation()->getName() . ' ' . $b->getConsultation()->getFamilyName()) : ''
+        ));
+    } elseif ($sort === 'date') {
+        usort($ordonnances, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
     }
 
+    return $this->render('ordonnance/show.html.twig', [
+        'ordonnances' => $ordonnances,
+        'search' => $search,
+        'sort' => $sort,
+    ]);
+}
     #[Route('/new', name: 'Ordonnance_new', methods: ['GET','POST'])]
     public function new(Request $request, EntityManagerInterface $em): Response
     {

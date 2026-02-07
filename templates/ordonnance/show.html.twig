@@ -36,10 +36,11 @@
         <section class="portal__content">
             <div style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-end">
                 <form method="get" style="display:flex;gap:8px;flex:1">
-                    <input type="text" name="search" placeholder="Search by medicament or dosage..." value="{{ search }}" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;flex:1;font-size:14px">
+                    <input type="text" name="search" placeholder="Search by medicament, consultation, or date..." value="{{ search }}" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;flex:1;font-size:14px">
                     <select name="sort" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;font-size:14px">
                         <option value="date" {% if sort == 'date' %}selected{% endif %}>Newest First</option>
                         <option value="medicament" {% if sort == 'medicament' %}selected{% endif %}>Medicament A-Z</option>
+                        <option value="consultation" {% if sort == 'consultation' %}selected{% endif %}>Consultation Name</option>
                     </select>
                     <button type="submit" class="btn btn--primary">Search</button>
                     {% if search or sort != 'date' %}
@@ -47,6 +48,7 @@
                     {% endif %}
                 </form>
             </div>
+
             <div class="portal__card">
                 <div class="box">
                     {% if ordonnances is empty %}

@@ -10,6 +10,7 @@
 {% set navigation = [
     {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Nouvelle consultation', 'path': path('consultation_new'), 'icon': '➕'},
 
    
 ] %}
@@ -22,7 +23,7 @@
         <a href="#" class="portal__brand">
             <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
             <div>
-                <div class="portal__name">MediPortal</div>
+                <div class="portal__name">Aidora</div>
                 <div class="portal__tag">Espace Patient</div>
             </div>
         </a>
@@ -63,7 +64,41 @@
         
         <div class="portal__content">   
             <h1>Consultations Patient</h1>
-            <!-- Contenu des consultations du patient -->
+            <div class="consultations">
+                {% if consultations is empty %}
+                    <p>Aucune consultation trouvée.</p>
+                {% else %}
+                    <div class="consultations__list">
+                        {% for c in consultations %}
+                            <article class="card">
+                                <div class="card__header">
+                                    <strong>{{ c.name }} {{ c.familyName }}</strong>
+                                    <small>{{ c.dateConsultation ? c.dateConsultation|date('d/m/Y H:i') : '' }}</small>
+                                </div>
+                                <div class="card__body">
+                                    <p>{{ c.motif }}</p>
+                                </div>
+                                <div class="card__footer">
+                                    <span class="status">
+                                        {% if c.status == 'pending' %}
+                                            <span style="color:var(--muted)">⏳ En attente</span>
+                                        {% elseif c.status == 'accepted' %}
+                                            <span style="color:rgb(19,184,194)">✅ Acceptée</span>
+                                        {% else %}
+                                            <span style="color:rgb(255,107,107)">❌ Refusée</span>
+                                        {% endif %}
+                                    </span>
+                                    <a class="btn" href="{{ path('consultation_show', {'id': c.id}) }}">Détails</a>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="consultations__actions">
+                    <a class="btn btn-primary" href="{{ path('consultation_new') }}">Nouvelle consultation</a>
+                </div>
+            </div>
         </div>
     </main>
 

@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ordonnances{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
+{% endblock %}
+
+{% block body %}
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
+    {'name': 'Ordonnances', 'path': path('medecin_ordonnances'), 'icon': '💊'}
+] %}
+
+<div class="portal">
+
+    <aside class="portal__side">
+        <a href="#" class="portal__brand">
+            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
+            <div>
+                <div class="portal__name">Aidora</div>
+                <div class="portal__tag">Espace Médecin</div>
+            </div>
+        </a>
+    </aside>
+
+    <main class="portal__main">
+
+        <header class="portal__header">
+            <h1 class="portal__title">All Ordonnances</h1>
+            <p class="portal__subtitle">List of prescriptions with actions.</p>
+        </header>
+
+        <section class="portal__content">
+            <div style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-end">
+                <form method="get" style="display:flex;gap:8px;flex:1">
+                    <input type="text" name="search" placeholder="Search by medicament or dosage..." value="{{ search }}" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;flex:1;font-size:14px">
+                    <select name="sort" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;font-size:14px">
+                        <option value="date" {% if sort == 'date' %}selected{% endif %}>Newest First</option>
+                        <option value="medicament" {% if sort == 'medicament' %}selected{% endif %}>Medicament A-Z</option>
+                    </select>
+                    <button type="submit" class="btn btn--primary">Search</button>
+                    {% if search or sort != 'date' %}
+                        <a href="{{ path('Ordonnance_show_all') }}" class="btn btn--ghost">Reset</a>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="portal__card">
+                <div class="box">
+                    {% if ordonnances is empty %}
+                        <p>No ordonnances available.</p>
+                    {% else %}
+                        <table style="width:100%; border-collapse:collapse">
+                            <thead>
+                                <tr style="text-align:left; border-bottom:1px solid rgba(7,19,31,.08)">
+                                    <th>Medicament</th>
+                                    <th>Dosage</th>
+                                    <th>Duration</th>
+                                    <th>Consultation</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for o in ordonnances %}
+                                    <tr style="border-bottom:1px solid rgba(7,19,31,.06)">
+                                        <td>{{ o.medicament }}</td>
+                                        <td>{{ o.dosage }}</td>
+                                        <td>{{ o.duree }}</td>
+                                        <td>
+                                            {% if o.consultation %}
+                                                {{ o.consultation.name }} {{ o.consultation.familyName }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ o.createdAt ? o.createdAt|date('Y-m-d') : '—' }}</td>
+                                        <td>
+                                            <a href="{{ path('Ordonnance_show', {'id': o.id}) }}" class="btn btn--ghost">Details</a>
+                                            <a href="{{ path('Ordonnance_edit', {'id': o.id}) }}" class="btn btn--primary">Update</a>
+                                            <form method="post" action="{{ path('Ordonnance_delete', {'id': o.id}) }}" style="display:inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ o.id) }}">
+                                                <button type="submit" class="btn btn--ghost" onclick="return confirm('Delete this ordonnance?')">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+</div>
+{% endblock %}

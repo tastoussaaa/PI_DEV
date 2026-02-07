@@ -25,12 +25,33 @@ class MedecinController extends AbstractController
     }
 
    #[Route('/medecin/consultations', name: 'medecin_consultations')]
-public function consultations(ConsultationRepository $repository): Response
+public function consultations(Request $request, ConsultationRepository $repository): Response
 {
-    $consultations = $repository->findAll(); // fetch all consultations
+    $search = $request->query->get('search', '');
+    $sort = $request->query->get('sort', 'date');
+    
+    $consultations = $repository->findAll();
+    
+    // Filter by search term
+    if ($search) {
+        $consultations = array_filter($consultations, function($c) use ($search) {
+            return stripos($c->getMotif(), $search) !== false || 
+                   stripos($c->getName(), $search) !== false ||
+                   stripos($c->getFamilyName(), $search) !== false;
+        });
+    }
+    
+    // Sort
+    if ($sort === 'motif') {
+        usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
+    } elseif ($sort === 'date') {
+        usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
+    }
 
     return $this->render('medecin/index.html.twig', [
         'consultations' => $consultations,
+        'search' => $search,
+        'sort' => $sort,
     ]);
 }
 #[Route('/medecin/consultation/{id}/accept', name: 'consultation_accept', methods: ['POST'])]

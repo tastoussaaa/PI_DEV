@@ -1,70 +1,102 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}medecin – Consultations{% endblock %}
+{% block title %}Medecin – Consultations{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
+{% endblock %}
 
 {% block body %}
-<h1>Consultations (medecin)</h1>
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
+    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
+    {'name': 'Ordonnances', 'path': path('Ordonnance_new'), 'icon': '💊'}
+] %}
 
-<table border="1" cellpadding="5">
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Motif</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for consultation in consultations %}
-            <tr>
-                <td>{{ consultation.dateConsultation|date('Y-m-d H:i') }}</td>
-                <td>{{ consultation.motif }}</td>
+<div class="portal">
 
-                <td>
-                    {% if consultation.status == 'pending' %}
-                        ⏳ Pending
-                    {% elseif consultation.status == 'accepted' %}
-                        ✅ Accepted
-                    {% else %}
-                        ❌ Declined
-                    {% endif %}
-                </td>
+    <aside class="portal__side">
+        <a href="#" class="portal__brand">
+            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
+            <div>
+                <div class="portal__name">Aidora</div>
+                <div class="portal__tag">Espace Médecin</div>
+            </div>
+        </a>
+    </aside>
 
-                <td>
-                    <a href="{{ path('consultation_show', {id: consultation.id}) }}">Show</a>
+    <main class="portal__main">
 
-                    {% if consultation.status == 'pending' %}
-                        |
-                        <form method="post"
-                              action="{{ path('consultation_accept', {id: consultation.id}) }}"
-                              style="display:inline">
-                            <button type="submit">Accept</button>
-                        </form>
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Consultations</h1>
+                <p class="portal__subtitle">Manage patient consultations — review, accept or decline.</p>
+            </div>
 
-                        <form method="post"
-                              action="{{ path('consultation_decline', {id: consultation.id}) }}"
-                              style="display:inline">
-                            <button type="submit">Decline</button>
-                        </form>
-                    {% endif %}
+            <a href="{{ path('consultation_new') }}" class="btn btn--primary">New Consultation</a>
+        </div>
 
-                    |
-                    <form method="post"
-                          action="{{ path('consultation_delete', {id: consultation.id}) }}"
-                          style="display:inline">
-                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ consultation.id) }}">
-                        <button type="submit"
-                                onclick="return confirm('Delete this consultation?')">
-                            Delete
-                        </button>
+        <div class="portal__content">
+
+            <div class="portal__card">
+                <div style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-end">
+                    <form method="get" style="display:flex;gap:8px;flex:1">
+                        <input type="text" name="search" placeholder="Search by motif or patient..." value="{{ search }}" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;flex:1;font-size:14px">
+                        <select name="sort" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;font-size:14px">
+                            <option value="date" {% if sort == 'date' %}selected{% endif %}>Newest First</option>
+                            <option value="motif" {% if sort == 'motif' %}selected{% endif %}>Motif A-Z</option>
+                        </select>
+                        <button type="submit" class="btn btn--primary">Search</button>
+                        {% if search or sort != 'date' %}
+                            <a href="{{ path('medecin_consultations') }}" class="btn btn--ghost">Reset</a>
+                        {% endif %}
                     </form>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="4">No consultations found.</td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
+                </div>
+                {% if consultations is empty %}
+                    <p>No consultations found.</p>
+                {% else %}
+                    <div class="list">
+                        {% for consultation in consultations %}
+                            <div class="rowItem">
+                                <div>
+                                    <div class="rowItem__title">{{ consultation.motif }} — {{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d H:i') : 'TBD' }}</div>
+                                    <div class="rowItem__meta">
+                                        Patient: {{ consultation.name }} {{ consultation.familyName }} · 
+                                        Status: 
+                                        {% if consultation.status == 'pending' %}
+                                            <span style="color:var(--muted)">⏳ Pending</span>
+                                        {% elseif consultation.status == 'accepted' %}
+                                            <span style="color:rgb(19,184,194)">✅ Accepted</span>
+                                        {% else %}
+                                            <span style="color:rgb(255,107,107)">❌ Declined</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <a href="{{ path('consultation_show', {'id': consultation.id}) }}" class="btn btn--ghost">Details</a>
+                                    {% if consultation.status == 'pending' %}
+                                        <div style="display:flex;gap:6px">
+                                            <form method="post" action="{{ path('consultation_accept', {'id': consultation.id}) }}">
+                                                <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(19,184,194,.22),rgba(45,230,215,.22));border:1px solid rgba(19,184,194,.30);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✓ Accept</button>
+                                            </form>
+                                            <form method="post" action="{{ path('consultation_decline', {'id': consultation.id}) }}">
+                                                <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(255,107,107,.16),rgba(255,150,107,.16));border:1px solid rgba(255,107,107,.25);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✕ Decline</button>
+                                            </form>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+</div>
 {% endblock %}

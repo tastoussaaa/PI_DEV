@@ -4,12 +4,14 @@
 
 {% block stylesheets %}
     <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
 {% endblock %}
 
 {% block body %}
 {% set navigation = [
     {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'}
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Nouvelle consultation', 'path': path('consultation_new'), 'icon': '➕'}
 ] %}
 
 <div class="portal">
@@ -19,7 +21,7 @@
         <a href="#" class="portal__brand">
             <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
             <div>
-                <div class="portal__name">MediPortal</div>
+                <div class="portal__name">Aidora</div>
                 <div class="portal__tag">Espace Patient</div>
             </div>
         </a>
@@ -62,15 +64,21 @@
             {{ form_start(form, {'attr': {'class': 'form'}}) }}
 
                 <div class="form__fields">
-                    {{ form_widget(form) }}
+                    {{ form_row(form.dateConsultation) }}
+                    {{ form_row(form.motif) }}
+                    {{ form_row(form.name) }}
+                    {{ form_row(form.familyName) }}
+                    {{ form_row(form.email) }}
+                    {{ form_row(form.sex) }}
+                    {{ form_row(form.age) }}
                 </div>
 
                 <div class="form__actions">
-                    <a href="{{ path('consultation_index') }}" class="btn btn--ghost">
-                        Cancel
+                    <a href="{{ path('patient_consultations') }}" class="btn btn--ghost" role="button" aria-label="Cancel and go back">
+                        Annuler
                     </a>
-                    <button type="submit" class="btn btn--primary">
-                        Save Consultation
+                    <button type="submit" class="btn btn--primary" title="Save consultation">
+                        Créer
                     </button>
                 </div>
 

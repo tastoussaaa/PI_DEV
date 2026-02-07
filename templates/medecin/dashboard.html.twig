@@ -10,7 +10,8 @@
 {% set navigation = [
     {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
-    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'}
+    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
+    {'name': 'Ordonnances', 'path': path('Ordonnance_new'), 'icon': '💊'}
 ] %}
 
 <div class="portal">
@@ -21,7 +22,7 @@
         <a href="#" class="portal__brand">
             <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
             <div>
-                <div class="portal__name">MediPortal</div>
+                <div class="portal__name">Aidora</div>
                 <div class="portal__tag">Espace Médecin</div>
             </div>
         </a>

@@ -17,8 +17,48 @@ class OrdonnanceController extends AbstractController
     #[Route('/', name: 'Ordonnance_index', methods: ['GET'])]
     public function index(OrdonnanceRepository $repository): Response
     {
-        return $this->render('Ordonnance/index.html.twig', [
+        return $this->render('ordonnance/index.html.twig', [
             'Ordonnances' => $repository->findAll(),
+        ]);
+    }
+
+    #[Route('/medecin', name: 'medecin_ordonnances', methods: ['GET'])]
+    public function medecinOrdonnances(OrdonnanceRepository $repository): Response
+    {
+        $ordonnances = $repository->findAll();
+
+        return $this->render('ordonnance/medecinOrdonnance.html.twig', [
+            'ordonnances' => $ordonnances,
+        ]);
+    }
+
+    #[Route('/show', name: 'Ordonnance_show_all', methods: ['GET'])]
+    public function showAll(Request $request, OrdonnanceRepository $repository): Response
+    {
+        $search = $request->query->get('search', '');
+        $sort = $request->query->get('sort', 'date');
+        
+        $ordonnances = $repository->findAll();
+        
+        // Filter by search term
+        if ($search) {
+            $ordonnances = array_filter($ordonnances, function($o) use ($search) {
+                return stripos($o->getMedicament(), $search) !== false || 
+                       stripos($o->getDosage(), $search) !== false;
+            });
+        }
+        
+        // Sort
+        if ($sort === 'medicament') {
+            usort($ordonnances, fn($a, $b) => strcmp($a->getMedicament(), $b->getMedicament()));
+        } elseif ($sort === 'date') {
+            usort($ordonnances, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
+        }
+
+        return $this->render('ordonnance/show.html.twig', [
+            'ordonnances' => $ordonnances,
+            'search' => $search,
+            'sort' => $sort,
         ]);
     }
 
@@ -33,10 +73,10 @@ class OrdonnanceController extends AbstractController
             $em->persist($Ordonnance);
             $em->flush();
 
-            return $this->redirectToRoute('Ordonnance_index');
+            return $this->redirectToRoute('Ordonnance_show_all');
         }
 
-        return $this->render('Ordonnance/new.html.twig', [
+        return $this->render('ordonnance/new.html.twig', [
             'form' => $form->createView(),
         ]);
     }
@@ -50,7 +90,7 @@ class OrdonnanceController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->flush();
 
-            return $this->redirectToRoute('Ordonnance_index');
+            return $this->redirectToRoute('Ordonnance_show_all');
         }
 
         return $this->render('Ordonnance/edit.html.twig', [
@@ -66,14 +106,14 @@ class OrdonnanceController extends AbstractController
             $em->flush();
         }
 
-        return $this->redirectToRoute('Ordonnance_index');
+        return $this->redirectToRoute('Ordonnance_show_all');
     }
 
     #[Route('/{id}', name: 'Ordonnance_show', methods: ['GET'])]
     public function show(Ordonnance $Ordonnance): Response
     {
-        return $this->render('Ordonnance/show.html.twig', [
-            'Ordonnance' => $Ordonnance,
+        return $this->render('ordonnance/detail.html.twig', [
+            'ordonnance' => $Ordonnance,
         ]);
     }
 }

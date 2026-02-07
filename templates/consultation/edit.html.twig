@@ -2,13 +2,30 @@
 
 {% block title %}Edit Consultation{% endblock %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
+{% endblock %}
+
 {% block body %}
-<h1>Edit Consultation</h1>
+<div class="portal__content portal__card">
 
-{{ form_start(form) }}
-    {{ form_widget(form) }}
-    <button type="submit">Update</button>
-{{ form_end(form) }}
+    <header class="portal__header">
+        <h1 class="portal__title">Edit Consultation</h1>
+        <p class="portal__subtitle">Update the consultation details.</p>
+    </header>
 
-<a href="{{ path('consultation_index') }}">Back to list</a>
+    {{ form_start(form, {'attr': {'class': 'form'}}) }}
+
+        <div class="form__fields">
+            {{ form_widget(form) }}
+        </div>
+
+        <div class="form__actions">
+            <a href="{{ path('consultation_index') }}" class="btn btn--ghost">Cancel</a>
+            <button type="submit" class="btn btn--primary">Update Consultation</button>
+        </div>
+
+    {{ form_end(form) }}
+
+</div>
 {% endblock %}

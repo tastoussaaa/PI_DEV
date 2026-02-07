@@ -8,10 +8,8 @@
 
 {% block body %}
 {% set navigation = [
-    {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
-    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
-    {'name': 'Nouvelle Formation', 'path': path('medecin_formation_new'), 'icon': '➕'}
+    {'name': 'Dashboard', 'path': path('admin_dashboard'), 'icon': '🏠'},
+    {'name': 'Formations', 'path': path('admin_formations'), 'icon': '📚'},
 ] %}
 
 <div class="portal">

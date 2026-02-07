@@ -8,6 +8,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Formation;
 use App\Form\FormationType;
+use App\Repository\FormationRepository;
+use Symfony\Component\HttpFoundation\Response;
+
+
+
 
 class MedecinController extends AbstractController
 {
@@ -18,10 +23,16 @@ class MedecinController extends AbstractController
     }
 
     #[Route('/medecin/formations', name: 'medecin_formations')]
-    public function formations()
+    public function formations(FormationRepository $formationRepository): Response
     {
-        return $this->render('formation/formations.html.twig');
+        $formations = $formationRepository->findAll(); // récupère toutes les formations
+
+        return $this->render('formation/formations.html.twig', [
+            'formations' => $formations
+        ]);
     }
+
+
 
     #[Route('/medecin/consultations', name: 'medecin_consultations')]
     public function consultations()
@@ -31,24 +42,24 @@ class MedecinController extends AbstractController
 
 
     #[Route('/medecin/formations/new', name: 'medecin_formation_new')]
-public function newFormation(
-    Request $request,
-    EntityManagerInterface $em
-) {
-    $formation = new Formation();
+    public function newFormation(
+        Request $request,
+        EntityManagerInterface $em
+    ) {
+        $formation = new Formation();
 
-    $form = $this->createForm(FormationType::class, $formation);
-    $form->handleRequest($request);
+        $form = $this->createForm(FormationType::class, $formation);
+        $form->handleRequest($request);
 
-    if ($form->isSubmitted() && $form->isValid()) {
-        $em->persist($formation);
-        $em->flush();
+        if ($form->isSubmitted() && $form->isValid()) {
+            $em->persist($formation);
+            $em->flush();
 
-        return $this->redirectToRoute('medecin_formations');
+            return $this->redirectToRoute('medecin_formations');
+        }
+
+        return $this->render('formation/formation_new.html.twig', [
+            'form' => $form->createView()
+        ]);
     }
-
-    return $this->render('formation/formation_new.html.twig', [
-        'form' => $form->createView()
-    ]);
-}
 }

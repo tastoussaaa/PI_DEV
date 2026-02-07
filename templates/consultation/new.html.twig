@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New Consultation{% endblock %}
+
+{% block body %}
+<h1>Create New Consultation</h1>
+
+{{ form_start(form) }}
+    {{ form_widget(form) }}
+    {# Custom submit button #}
+    <button type="submit">Save Consultation</button>
+{{ form_end(form, {'render_rest': false}) }}
+
+<a href="{{ path('consultation_index') }}">Back to list</a>
+{% endblock %}

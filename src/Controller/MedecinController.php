@@ -8,6 +8,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 
 class MedecinController extends AbstractController
 {
@@ -55,19 +57,51 @@ public function consultations(Request $request, ConsultationRepository $reposito
     ]);
 }
 #[Route('/medecin/consultation/{id}/accept', name: 'consultation_accept', methods: ['POST'])]
-public function accept(Consultation $consultation, EntityManagerInterface $em): Response
-{
+public function accept(
+    Consultation $consultation,
+    EntityManagerInterface $em,
+    MailerInterface $mailer
+): Response {
     $consultation->setStatus('accepted');
     $em->flush();
+
+    $email = (new TemplatedEmail())
+        ->from('noreply@aidora.com')
+        ->to($consultation->getEmail())
+        ->subject('Consultation Accepted')
+        ->htmlTemplate('email/consultation_status.html.twig')
+        ->context([
+            'patientName' => $consultation->getName().' '.$consultation->getFamilyName(),
+            'consultationDate' => $consultation->getDateConsultation(),
+            'status' => 'accepted',
+        ]);
+
+    $mailer->send($email);
 
     return $this->redirectToRoute('medecin_consultations');
 }
 
 #[Route('/medecin/consultation/{id}/decline', name: 'consultation_decline', methods: ['POST'])]
-public function decline(Consultation $consultation, EntityManagerInterface $em): Response
-{
+public function decline(
+    Consultation $consultation,
+    EntityManagerInterface $em,
+    MailerInterface $mailer
+): Response {
     $consultation->setStatus('declined');
     $em->flush();
+
+    $email = (new TemplatedEmail())
+        ->from('noreply@aidora.com')
+        ->to($consultation->getEmail())
+        ->subject('Consultation Declined')
+        ->htmlTemplate('email/consultation_status.html.twig')
+        ->context([
+            'patientName' => $consultation->getName().' '.$consultation->getFamilyName(),
+            'consultationDate' => $consultation->getDateConsultation(),
+            'status' => 'declined',
+        ]);
+
+    $mailer->send($email);
 
     return $this->redirectToRoute('medecin_consultations');
 }

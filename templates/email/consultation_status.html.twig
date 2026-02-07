@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Consultation Status</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color:#f4f6f8; padding:20px;">
+    <table width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+            <td align="center">
+                <table width="600" style="background:#ffffff; border-radius:8px; padding:24px;">
+                    
+                    <tr>
+                        <td style="text-align:center; padding-bottom:20px;">
+                            <h2 style="color:#2c3e50; margin:0;">Aidora</h2>
+                            <p style="color:#7f8c8d; margin:5px 0 0;">
+                                Consultation Management
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="color:#2c3e50; font-size:15px;">
+                            <p>Hello <strong>{{ patientName }}</strong>,</p>
+
+                            <p>
+                                Your consultation scheduled on  
+                                <strong>{{ consultationDate|date('d/m/Y H:i') }}</strong>
+                                has been
+                                <strong style="color: {{ status == 'accepted' ? '#27ae60' : '#c0392b' }}">
+                                    {{ status|upper }}
+                                </strong>.
+                            </p>
+
+                            {% if status == 'accepted' %}
+                                <p>Please make sure to be available at the scheduled time.</p>
+                            {% else %}
+                                <p>You may submit another consultation request at your convenience.</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding-top:30px; font-size:13px; color:#7f8c8d;">
+                            <hr style="border:none; border-top:1px solid #ecf0f1;">
+                            <p>This email was sent automatically. Please do not reply.</p>
+                            <p>© {{ "now"|date("Y") }} Aidora</p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

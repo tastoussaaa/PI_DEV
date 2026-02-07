@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes commandes{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+    <style>
+        .table-wrap { overflow-x: auto; }
+        table { width:100%; border-collapse: collapse; }
+        th, td { padding:12px; text-align:left; border-bottom:1px solid #e5e7eb; }
+        th { font-weight:700; color:#07131f; background:#f9fafb; }
+        .btn-sm { padding:6px 12px; font-size:13px; border-radius:8px; text-decoration:none; display:inline-block; }
+        .btn-primary { background:#13B8C2; color:#fff; }
+        .btn-ghost { background:transparent; color:#374151; border:1px solid #d0d7de; }
+    </style>
+{% endblock %}
+
+{% block body %}
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
+    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
+] %}
+
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+    <main class="portal__main">
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Mes commandes</h1>
+                <p class="portal__subtitle">Liste de vos commandes</p>
+            </div>
+            <a href="{{ path('commande_new') }}" class="btn btn--primary">Nouvelle commande</a>
+        </div>
+
+        <div class="box">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Depuis</th>
+                            <th>Produit</th>
+                            <th>Quantité</th>
+                            <th>Montant total</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in commandes %}
+                            {% set diffSec = date().timestamp - (c.dateCommande ? c.dateCommande.timestamp : 0) %}
+                            {% set diffHours = (diffSec / 3600)|round(0, 'floor') %}
+                            {% set diffDays = (diffSec / 86400)|round(0, 'floor') %}
+                            {% if diffDays > 0 %}
+                                {% set depuis = diffDays ~ 'd' %}
+                            {% elseif diffHours > 0 %}
+                                {% set depuis = diffHours ~ 'h' %}
+                            {% else %}
+                                {% set depuis = '0' %}
+                            {% endif %}
+                            <tr>
+                                <td>{{ c.dateCommande ? c.dateCommande|date('d/m/Y H:i') : '' }}</td>
+                                <td>{{ depuis }}</td>
+                                <td>{{ c.produit ? c.produit.nom : '-' }}</td>
+                                <td>{{ c.quantite }}</td>
+                                <td>{{ (c.montantTotal ?? (c.produit ? c.produit.prix * c.quantite : 0))|number_format(2, ',', ' ') }} €</td>
+                                <td>{{ c.statut }}</td>
+                                <td>
+                                    <a href="{{ path('commande_show', { id: c.id }) }}" class="btn-sm btn-primary">Voir</a>
+                                    <a href="{{ path('commande_edit', { id: c.id }) }}" class="btn-sm btn-ghost">Modifier</a>
+                                    <form action="{{ path('commande_delete', { id: c.id }) }}" method="post" style="display:inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ c.id) }}">
+                                        <button type="submit" class="btn-sm btn-ghost" onclick="return confirm('Supprimer cette commande ?');">Supprimer</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7">Aucune commande.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

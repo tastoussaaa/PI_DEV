@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Commande #{{ commande.id }}{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+{% endblock %}
+
+{% block body %}
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
+    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
+] %}
+
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+    <main class="portal__main">
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Commande #{{ commande.id }}</h1>
+                <p class="portal__subtitle">Détail de la commande</p>
+            </div>
+            <a href="{{ path('commande_edit', { id: commande.id }) }}" class="btn btn--primary">Modifier</a>
+        </div>
+        <div class="box" style="max-width:500px">
+            <p><strong>Date :</strong> {{ commande.dateCommande ? commande.dateCommande|date('d/m/Y H:i') : '-' }}</p>
+            <p><strong>Produit :</strong> {{ commande.produit ? commande.produit.nom : '-' }}</p>
+            <p><strong>Quantité :</strong> {{ commande.quantite }}</p>
+            <p><strong>Montant total :</strong> {{ (commande.montantTotal ?? (commande.produit ? commande.produit.prix * commande.quantite : 0))|number_format(2, ',', ' ') }} €</p>
+            <p><strong>Statut :</strong> {{ commande.statut }}</p>
+            <a href="{{ path('commande_index') }}" class="btn btn--ghost" style="margin-top:16px;">Retour à la liste</a>
+        </div>
+    </main>
+</div>
+{% endblock %}

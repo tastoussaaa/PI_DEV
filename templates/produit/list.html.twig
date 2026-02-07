@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Produits{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+    <style>
+        .produit-filters { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:24px; }
+        .produit-filters label { font-size:14px; font-weight:600; margin-right:4px; }
+        .produit-filters select, .produit-filters input[type="text"] { padding:8px 12px; border-radius:10px; border:1px solid #d0d7de; }
+        .produit-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:20px; }
+        .produit-card { background:#fff; border-radius:16px; border:1px solid #e5e7eb; overflow:hidden; transition:box-shadow .2s; }
+        .produit-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.08); }
+        .produit-card__img { width:100%; height:180px; object-fit:cover; background:#f3f4f6; }
+        .produit-card__body { padding:16px; }
+        .produit-card__title { font-size:1.1rem; font-weight:700; color:#07131f; margin:0 0 6px; }
+        .produit-card__cat { font-size:12px; color:#6b7280; margin-bottom:8px; }
+        .produit-card__price { font-size:1.25rem; font-weight:800; color:#13B8C2; margin-bottom:12px; }
+        .produit-card__stock { font-size:12px; color:#6b7280; margin-bottom:12px; }
+        .btn-commander { display:inline-block; padding:10px 18px; background:#13B8C2; color:#fff; border-radius:10px; text-decoration:none; font-weight:600; font-size:14px; transition:background .2s; }
+        .btn-commander:hover { background:#0f9ca3; color:#fff; }
+        .produit-empty { text-align:center; padding:48px 24px; color:#6b7280; }
+    </style>
+{% endblock %}
+
+{% block body %}
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
+    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
+] %}
+
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+    <main class="portal__main">
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Produits</h1>
+                <p class="portal__subtitle">Consultez les produits et passez commande</p>
+            </div>
+        </div>
+
+        <form method="get" action="{{ path('produit_list') }}" class="produit-filters">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="recherche">Recherche</label>
+                <input type="text" id="recherche" name="recherche" value="{{ recherche }}" placeholder="Nom ou catégorie...">
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="categorie">Catégorie</label>
+                <select id="categorie" name="categorie">
+                    <option value="">Toutes</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if categorie_filtre == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="tri">Trier par</label>
+                <select id="tri" name="tri">
+                    <option value="nom" {% if tri == 'nom' %}selected{% endif %}>Nom</option>
+                    <option value="prix" {% if tri == 'prix' %}selected{% endif %}>Prix</option>
+                    <option value="categorie" {% if tri == 'categorie' %}selected{% endif %}>Catégorie</option>
+                </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="ordre">Ordre</label>
+                <select id="ordre" name="ordre">
+                    <option value="ASC" {% if ordre == 'ASC' %}selected{% endif %}>Croissant</option>
+                    <option value="DESC" {% if ordre == 'DESC' %}selected{% endif %}>Décroissant</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn--primary">Filtrer</button>
+        </form>
+
+        {% if produits is empty %}
+            <div class="produit-empty">Aucun produit ne correspond à votre recherche.</div>
+        {% else %}
+            <div class="produit-grid">
+                {% for p in produits %}
+                    <div class="produit-card">
+                        <img class="produit-card__img" src="{{ p.imageName ? asset('uploads/produits/' ~ p.imageName) : asset('assets/images/logo_mini.png') }}" alt="{{ p.nom }}">
+                        <div class="produit-card__body">
+                            <h3 class="produit-card__title">{{ p.nom }}</h3>
+                            <div class="produit-card__cat">{{ p.categorie }}</div>
+                            <div class="produit-card__price">{{ p.prix|number_format(2, ',', ' ') }} €</div>
+                            <div class="produit-card__stock">Stock : {{ p.stock }}</div>
+                            <a href="{{ path('commande_new', { produitId: p.id }) }}" class="btn-commander">Commander</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

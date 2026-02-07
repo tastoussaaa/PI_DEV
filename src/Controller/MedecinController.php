@@ -22,13 +22,22 @@ class MedecinController extends AbstractController
         return $this->render('medecin/dashboard.html.twig');
     }
 
-    #[Route('/medecin/formations', name: 'medecin_formations')]
-    public function formations(FormationRepository $formationRepository): Response
+     #[Route('/medecin/formations', name: 'medecin_formations')]
+    public function formations(Request $request, FormationRepository $formationRepository): Response
     {
-        $formations = $formationRepository->findAll(); // récupère toutes les formations
+        // Get selected category from query parameter (e.g., ?category=Urgence)
+        $selectedCategory = $request->query->get('category');
+
+        // Get formations filtered by category (or all if none selected)
+        $formations = $formationRepository->findValidatedByCategory($selectedCategory);
+
+        // Get all categories for dropdown
+        $categories = $formationRepository->findAllCategories();
 
         return $this->render('formation/formations.html.twig', [
-            'formations' => $formations
+            'formations' => $formations,          // filtered list
+            'categories' => $categories,          // list of all categories
+            'selectedCategory' => $selectedCategory // currently selected category
         ]);
     }
 

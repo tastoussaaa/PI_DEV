@@ -42,6 +42,11 @@ class AideSoignant
     #[ORM\ManyToMany(targetEntity: Formation::class, inversedBy: 'aideSoignants')]
     private Collection $formations;
 
+    /**
+     * @var Collection<int, Mission>
+     */
+    #[ORM\OneToMany(mappedBy: 'aideSoignant', targetEntity: Mission::class)]
+    private Collection $missions;
     #[ORM\Column(length: 255)]
     private ?string $mdp = null;
 
@@ -58,6 +63,7 @@ class AideSoignant
     public function __construct()
     {
         $this->formations = new ArrayCollection();
+        $this->missions = new ArrayCollection();
     }
 
     public function getUser(): ?User
@@ -173,6 +179,18 @@ class AideSoignant
         return $this;
     }
 
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, Formation>
      */
@@ -197,6 +215,20 @@ class AideSoignant
         return $this;
     }
 
+    /**
+     * @return Collection<int, Mission>
+     */
+    public function getMissions(): Collection
+    {
+        return $this->missions;
+    }
+
+    public function addMission(Mission $mission): static
+    {
+        if (!$this->missions->contains($mission)) {
+            $this->missions->add($mission);
+            $mission->setAideSoignant($this);
+        }
     public function getMdp(): ?string
     {
         return $this->mdp;
@@ -209,6 +241,14 @@ class AideSoignant
         return $this;
     }
 
+    public function removeMission(Mission $mission): static
+    {
+        if ($this->missions->removeElement($mission)) {
+            // set the owning side to null (unless already changed)
+            if ($mission->getAideSoignant() === $this) {
+                $mission->setAideSoignant(null);
+            }
+        }
     public function isValidated(): ?bool
     {
         return $this->isValidated;

@@ -88,16 +88,21 @@ final class AideSoingnantController extends BaseController
     }
 
     #[Route('/aidesoingnant/missions', name: 'aidesoingnant_missions')]
-    public function missions(EntityManagerInterface $entityManager): Response
+    public function missions(DemandeAideRepository $demandeAideRepository): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
-        // Get all missions (both EN_ATTENTE and processed ones)
-        $missions = $entityManager->getRepository(Mission::class)->findAll();
-        
+
+        // Get all pending demandes
+        $demandes = $demandeAideRepository->findBy(['statut' => 'EN_ATTENTE']);
+
+        // Filter for URGENT or besoinCertifie
+        $demandes = array_filter($demandes, function($d) {
+            return $d->getTypeDemande() === 'URGENT' || $d->isBesoinCertifie();
+        });
+
         // Sort by most recent first
-        usort($missions, function($a, $b) {
-            return $b->getId() <=> $a->getId();
+        usort($demandes, function($a, $b) {
+            return $b->getDateCreation() <=> $a->getDateCreation();
         });
 
         $navigation = [
@@ -106,8 +111,8 @@ final class AideSoingnantController extends BaseController
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
-        return $this->render('mission/index.html.twig', [
-            'missions' => $missions,
+        return $this->render('aide_soingnant/missions.html.twig', [
+            'demandes' => $demandes,
             'navigation' => $navigation,
         ]);
     }
@@ -116,15 +121,10 @@ final class AideSoingnantController extends BaseController
     public function acceptMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
-        }
-
-        $mission = $entityManager->getRepository(Mission::class)->findOneBy(['demandeAide' => $demande]);
-        if (!$mission) {
-            throw $this->createNotFoundException('Mission not found');
         }
 
         // Get current aide-soignant from UserService
@@ -133,11 +133,18 @@ final class AideSoingnantController extends BaseController
             throw $this->createAccessDeniedException('You must be an aide soignant to accept missions');
         }
 
-        // Link aide-soignant to mission and update status
+        // Create new Mission and link to demande and aide-soignant
+        $mission = new Mission();
+        $mission->setDemandeAide($demande);
         $mission->setAideSoignant($aideSoignant);
         $mission->setStatutMission('ACCEPTED');
+        $mission->setDateDebut($demande->getDateDebutSouhaitee());
+        $mission->setDateFin($demande->getDateFinSouhaitee());
+        $mission->setPrixFinal(0); // To be negotiated later
+
         $demande->setStatut('ACCEPTED');
 
+        $entityManager->persist($mission);
         $entityManager->flush();
 
         $this->addFlash('success', 'Mission acceptée avec succès!');
@@ -148,15 +155,10 @@ final class AideSoingnantController extends BaseController
     public function refuseMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
-        }
-
-        $mission = $entityManager->getRepository(Mission::class)->findOneBy(['demandeAide' => $demande]);
-        if (!$mission) {
-            throw $this->createNotFoundException('Mission not found');
         }
 
         // Verify user is aide soignant
@@ -165,12 +167,7 @@ final class AideSoingnantController extends BaseController
             throw $this->createAccessDeniedException('You must be an aide soignant to refuse missions');
         }
 
-        // Update mission and demande status
-        $mission->setStatutMission('REFUSED');
-        $demande->setStatut('REFUSED');
-
-        $entityManager->flush();
-
+        // For refuse, we do nothing - just redirect back
         $this->addFlash('success', 'Mission refusée avec succès.');
         return $this->redirectToRoute('aidesoingnant_missions');
     }

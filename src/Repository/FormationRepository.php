@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Repository;
+
+use App\Entity\Formation;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
+/**
+ * @extends ServiceEntityRepository<Formation>
+ */
+class FormationRepository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, Formation::class);
+    }
+
+    //    /**
+    //     * @return Formation[] Returns an array of Formation objects
+    //     */
+    //    public function findByExampleField($value): array
+    //    {
+    //        return $this->createQueryBuilder('f')
+    //            ->andWhere('f.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->orderBy('f.id', 'ASC')
+    //            ->setMaxResults(10)
+    //            ->getQuery()
+    //            ->getResult()
+    //        ;
+    //    }
+
+    //    public function findOneBySomeField($value): ?Formation
+    //    {
+    //        return $this->createQueryBuilder('f')
+    //            ->andWhere('f.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->getQuery()
+    //            ->getOneOrNullResult()
+    //        ;
+    //    }
+
+
+
+    public function findValidated(): array
+    {
+        return $this->createQueryBuilder('f')
+            ->andWhere('f.statut = :statut')
+            ->setParameter('statut', Formation::STATUT_VALIDE)
+            ->orderBy('f.startDate', 'DESC')
+            ->andWhere('f.startDate >= :today')
+            ->setParameter('today', new \DateTime())
+
+            ->getQuery()
+            ->getResult();
+    }
+
+
+    public function findValidatedByCategory(?string $category = null): array
+    {
+        $qb = $this->createQueryBuilder('f')
+            ->andWhere('f.statut = :statut')
+            ->setParameter('statut', Formation::STATUT_VALIDE)
+            ->andWhere('f.startDate >= :today')
+            ->setParameter('today', new \DateTime())
+            ->orderBy('f.startDate', 'DESC');
+
+        if ($category) {
+            $qb->andWhere('f.category = :category')
+                ->setParameter('category', $category);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findAllCategories(): array
+    {
+        $result = $this->createQueryBuilder('f')
+            ->select('DISTINCT f.category')
+            ->getQuery()
+            ->getResult();
+
+        // Flatten array of arrays to a simple array of strings
+        return array_map(fn($c) => $c['category'], $result);
+    }
+}

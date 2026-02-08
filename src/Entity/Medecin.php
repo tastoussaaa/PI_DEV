@@ -18,14 +18,30 @@ class Medecin
     #[ORM\Column(length: 255)]
     private ?string $specialite = null;
 
-    #[ORM\Column]
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $rpps = null;
+
+    #[ORM\Column(nullable: true)]
     private ?int $numeroOrdre = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $anneesExperience = null;
 
     #[ORM\Column]
     private ?bool $disponible = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $email = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $fullName = null;
+
+    #[ORM\OneToOne(targetEntity: User::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $user = null;
+
+    #[ORM\Column]
+    private ?bool $isValidated = false;
 
     /**
      * @var Collection<int, Consultation>
@@ -33,9 +49,74 @@ class Medecin
     #[ORM\OneToMany(targetEntity: Consultation::class, mappedBy: 'medecin')]
     private Collection $consultations;
 
+    /**
+     * @var Collection<int, Formation>
+     */
+    #[ORM\OneToMany(targetEntity: Formation::class, mappedBy: 'medecin')]
+    private Collection $formations;
+
+    /**
+     * @var Collection<int, AideSoignant>
+     */
+    #[ORM\OneToMany(targetEntity: AideSoignant::class, mappedBy: 'medecin')]
+    private Collection $aideSoignants;
+
+    #[ORM\Column(length: 255)]
+    private ?string $mdp = null;
+
     public function __construct()
     {
         $this->consultations = new ArrayCollection();
+        $this->formations = new ArrayCollection();
+        $this->aideSoignants = new ArrayCollection();
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
+    public function getRpps(): ?string
+    {
+        return $this->rpps;
+    }
+
+    public function setRpps(?string $rpps): static
+    {
+        $this->rpps = $rpps;
+
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): static
+    {
+        $this->email = $email;
+
+        return $this;
+    }
+
+    public function getFullName(): ?string
+    {
+        return $this->fullName;
+    }
+
+    public function setFullName(string $fullName): static
+    {
+        $this->fullName = $fullName;
+
+        return $this;
     }
 
     public function getId(): ?int
@@ -117,6 +198,90 @@ class Medecin
                 $consultation->setMedecin(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Formation>
+     */
+    public function getFormations(): Collection
+    {
+        return $this->formations;
+    }
+
+    public function addFormation(Formation $formation): static
+    {
+        if (!$this->formations->contains($formation)) {
+            $this->formations->add($formation);
+            $formation->setMedecin($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFormation(Formation $formation): static
+    {
+        if ($this->formations->removeElement($formation)) {
+            // set the owning side to null (unless already changed)
+            if ($formation->getMedecin() === $this) {
+                $formation->setMedecin(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, AideSoignant>
+     */
+    public function getAideSoignants(): Collection
+    {
+        return $this->aideSoignants;
+    }
+
+    public function addAideSoignant(AideSoignant $aideSoignant): static
+    {
+        if (!$this->aideSoignants->contains($aideSoignant)) {
+            $this->aideSoignants->add($aideSoignant);
+            $aideSoignant->setMedecin($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAideSoignant(AideSoignant $aideSoignant): static
+    {
+        if ($this->aideSoignants->removeElement($aideSoignant)) {
+            // set the owning side to null (unless already changed)
+            if ($aideSoignant->getMedecin() === $this) {
+                $aideSoignant->setMedecin(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getMdp(): ?string
+    {
+        return $this->mdp;
+    }
+
+    public function setMdp(string $mdp): static
+    {
+        $this->mdp = $mdp;
+
+        return $this;
+    }
+
+    public function isValidated(): ?bool
+    {
+        return $this->isValidated;
+    }
+
+    public function setIsValidated(bool $isValidated): static
+    {
+        $this->isValidated = $isValidated;
 
         return $this;
     }

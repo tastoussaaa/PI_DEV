@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau produit{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+{% endblock %}
+
+{% block body %}
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
+    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
+    {'name': 'Produits', 'path': path('produit_add'), 'icon': '📦'}
+] %}
+
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+    <main class="portal__main">
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Ajouter produit</h1>
+                <p class="portal__subtitle">Ajoutez un nouveau produit</p>
+            </div>
+        </div>
+        <div class="box" style="max-width:600px">
+            {{ form_start(form, {'attr': {'enctype': 'multipart/form-data', 'autocomplete': 'off'}}) }}
+            <div class="form-group">
+                {{ form_label(form.nom) }}
+                {{ form_widget(form.nom) }}
+                {{ form_errors(form.nom) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.categorie) }}
+                {{ form_widget(form.categorie) }}
+                {{ form_errors(form.categorie) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.description) }}
+                {{ form_widget(form.description) }}
+                {{ form_errors(form.description) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.prix) }}
+                {{ form_widget(form.prix) }}
+                {{ form_errors(form.prix) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.stock) }}
+                {{ form_widget(form.stock) }}
+                {{ form_errors(form.stock) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.image) }}
+                {{ form_widget(form.image) }}
+                {{ form_errors(form.image) }}
+            </div>
+            <div style="margin-top:16px; display:flex; gap:10px">
+                <button type="submit" class="btn btn--primary">Créer</button>
+                <a href="{{ path('produit_add') }}" class="btn btn--ghost">Annuler</a>
+            </div>
+            {{ form_end(form) }}
+        </div>
+        <div class="box" style="margin-top:24px;">
+
+        
+            <h2 class="portal__title" style="margin-bottom:16px;">Produits existants</h2>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #e5e7eb; text-align:left;">
+                            <th style="padding:12px;">Nom</th>
+                            <th style="padding:12px;">Catégorie</th>
+                            <th style="padding:12px;">Prix</th>
+                            <th style="padding:12px;">Stock</th>
+                            <th style="padding:12px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in produits|default([]) %}
+                            <tr style="border-bottom:1px solid #e5e7eb;">
+                                <td style="padding:12px;">{{ p.nom }}</td>
+                                <td style="padding:12px;">{{ p.categorie }}</td>
+                                <td style="padding:12px;">{{ p.prix|number_format(2, ',', ' ') }} dt</td>
+                                <td style="padding:12px;">{{ p.stock }}</td>
+                                <td style="padding:12px;">
+                                    <a href="{{ path('produit_show', { id: p.id }) }}" class="btn btn--primary" style="margin-right:8px;">Voir</a>
+                                    <a href="{{ path('produit_edit', { id: p.id }) }}" class="btn btn--ghost" style="margin-right:8px;">Modifier</a>
+                                    <form action="{{ path('produit_delete', { id: p.id }) }}" method="post" style="display:inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ p.id) }}">
+                                        <button type="submit" class="btn btn--ghost" onclick="return confirm('Supprimer ce produit ?');">Supprimer</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" style="padding:12px;">Aucun produit pour le moment.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

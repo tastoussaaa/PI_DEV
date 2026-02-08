@@ -21,6 +21,16 @@
       Connectez-vous à votre compte Aidora
     </p>
 
+    {% if app.request.query.get('registered') == 'medecin' %}
+      <div class="pill" style="margin-bottom:12px;color:#0369a1;background-color:#ecf7fe;border:1px solid #7dd3fc">
+        ✓ Inscription réussie! Votre compte de médecin est en attente de validation par un administrateur.
+      </div>
+    {% elseif app.request.query.get('registered') == 'aidesoignant' %}
+      <div class="pill" style="margin-bottom:12px;color:#0369a1;background-color:#ecf7fe;border:1px solid #7dd3fc">
+        ✓ Inscription réussie! Votre compte d'aide-soignant est en attente de validation par un administrateur.
+      </div>
+    {% endif %}
+
     {% if error %}
       <div class="pill" style="margin-bottom:12px;color:#b91c1c">
         Identifiants incorrects

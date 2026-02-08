@@ -1,0 +1,60 @@
+<aside class="portal__side">
+
+    <a href="#" class="portal__brand">
+        <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
+        <div>
+            <div class="portal__name">MediPortal</div>
+            <div class="portal__tag">
+                {% if is_granted('ROLE_ADMIN') %}
+                    Espace Admin
+                {% elseif is_granted('ROLE_MEDECIN') %}
+                    Espace Médecin
+                {% elseif is_granted('ROLE_PATIENT') %}
+                    Espace Patient
+                {% endif %}
+            </div>
+        </div>
+    </a>
+
+    <a href="{{ path('profile_index') }}" class="portal__hello" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <div class="portal__avatar">
+            {% if current_user and current_user.fullName %}
+                {{ current_user.fullName[0:1] }}
+            {% else %}
+                U
+            {% endif %}
+        </div>
+        <div>
+            <div class="portal__hi">Bienvenue</div>
+            <div class="portal__mail">
+                {% if current_user and current_user.fullName %}
+                    {{ current_user.fullName }}
+                {% else %}
+                    Utilisateur
+                {% endif %}
+            </div>
+        </div>
+    </a>
+
+    <nav class="portal__menu">
+        {% if is_granted('ROLE_ADMIN') %}
+            <a href="{{ path('app_admin_dashboard') }}"
+               class="portal__item {% if app.request.pathinfo starts with '/admin' %}is-active{% endif %}">
+                <span class="portal__icon">🛠️</span>
+                <span>Validation des Comptes</span>
+            </a>
+        {% endif %}
+        {% for item in navigation|default([]) %}
+            <a href="{{ item.path }}"
+               class="portal__item {% if item.path is defined and app.request.pathinfo starts with item.path %}is-active{% endif %}">
+                <span class="portal__icon">{{ item.icon }}</span>
+                <span>{{ item.name }}</span>
+            </a>
+        {% endfor %}
+    </nav>
+
+    <div class="portal__bottom">
+        <a href="{{ path('app_logout') }}" class="portal__logout">Déconnexion</a>
+    </div>
+
+</aside>

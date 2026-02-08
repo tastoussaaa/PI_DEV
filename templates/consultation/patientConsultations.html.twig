@@ -8,9 +8,11 @@
 
 {% block body %}
 {% set navigation = [
-    {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Dashboard', 'path': path('app_patient_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
     {'name': 'Nouvelle consultation', 'path': path('consultation_new'), 'icon': '➕'},
+    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
+    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
 
    
 ] %}

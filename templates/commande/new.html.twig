@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle commande{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+{% endblock %}
+
+{% block body %}
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('app_patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
+    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
+] %}
+
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+    <main class="portal__main">
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Nouvelle commande</h1>
+                <p class="portal__subtitle">Choisissez un produit et la quantité</p>
+            </div>
+        </div>
+        <div class="box" style="max-width:600px">
+            {{ form_start(form) }}
+            <div class="form-group">
+                {{ form_label(form.produit) }}
+                {{ form_widget(form.produit) }}
+                {{ form_errors(form.produit) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.quantite) }}
+                {{ form_widget(form.quantite) }}
+                {{ form_errors(form.quantite) }}
+            </div>
+            <div class="form-group">
+                <label>Montant total</label>
+                <p id="montant-total-display" style="font-size:1.25rem; font-weight:700; color:#13B8C2;">0,00 dt</p>
+            </div>
+            <div class="form-group">
+                {{ form_label(form.statut) }}
+                {{ form_widget(form.statut) }}
+                {{ form_errors(form.statut) }}
+            </div>
+            <div style="margin-top:16px; display:flex; gap:10px">
+                <button type="submit" class="btn btn--primary">Enregistrer</button>
+                <a href="{{ path('produit_list') }}" class="btn btn--ghost">Retour aux produits</a>
+                <a href="{{ path('commande_index') }}" class="btn btn--ghost">Annuler</a>
+            </div>
+            {{ form_end(form) }}
+        </div>
+    </main>
+</div>
+<script>
+(function() {
+    var select = document.querySelector('select[name*="[produit]"]');
+    var quantite = document.querySelector('input[name*="[quantite]"]');
+    var display = document.getElementById('montant-total-display');
+    function updateMontant() {
+        var prix = 0;
+        if (select && select.options[select.selectedIndex]) {
+            var p = select.options[select.selectedIndex].getAttribute('data-prix');
+            if (p) prix = parseFloat(p);
+        }
+        var q = (quantite && quantite.value) ? parseInt(quantite.value, 10) : 0;
+        if (q < 1) q = 0;
+        var total = prix * q;
+        display.textContent = total.toFixed(2).replace('.', ',') + ' dt';
+    }
+    if (select) select.addEventListener('change', updateMontant);
+    if (quantite) { quantite.addEventListener('input', updateMontant); quantite.addEventListener('change', updateMontant); }
+    updateMontant();
+})();
+</script>
+{% endblock %}

@@ -8,16 +8,17 @@
 
 {% block body %}
 {% set navigation = [
-    {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
     {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
     {'name': 'Ordonnances', 'path': path('Ordonnance_new'), 'icon': '💊'}
+    {'name': 'Nouvelle Formation', 'path': path('medecin_formation_new'), 'icon': '➕'}
 ] %}
 
 <div class="portal">
 
     <!-- SIDEBAR -->
-    <aside class="portal__side">
+    {% include 'side_bar.html.twig' %}
 
         <a href="#" class="portal__brand">
             <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
@@ -68,7 +69,7 @@
                 </p>
             </div>
 
-            <button class="btn btn--primary">Nouvelle consultation</button>
+            <a href="{{ path('medecin_formation_new') }}" class="btn btn--primary">Nouvelle Formation</a>
         </div>
 
         <div class="portal__content">

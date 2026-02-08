@@ -8,7 +8,7 @@
 
 {% block body %}
 {% set navigation = [
-    {'name': 'Dashboard', 'path': path('aidesoingnant_dashboard'), 'icon': '🏠'},
+    {'name': 'Dashboard', 'path': path('app_aide_soignant_dashboard'), 'icon': '🏠'},
     {'name': 'Formation', 'path': path('aidesoingnant_formation'), 'icon': '📚'},
 
    
@@ -53,8 +53,8 @@
         <div class="portal__bottom">
             <a href="#" class="portal__logout">Déconnexion</a>
         </div>
+        {% include 'side_bar.html.twig' %}
 
-    </aside>
 
 
     <!-- MAIN CONTENT -->

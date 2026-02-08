@@ -7,13 +7,6 @@
 {% endblock %}
 
 {% block body %}
-{% set navigation = [
-    {'name': 'Dashboard', 'path': path('app_patient_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
-    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
-    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
-] %}
-
 <div class="portal">
     {% include 'side_bar.html.twig' %}
     <main class="portal__main">

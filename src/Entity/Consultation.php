@@ -9,9 +9,11 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+
 
 #[ORM\Entity(repositoryClass: ConsultationRepository::class)]
-#[Assert\UniqueEntity(fields: ['dateConsultation', 'timeSlot'])]
+#[UniqueEntity(fields: ['dateConsultation', 'timeSlot'])]
 #[Assert\Callback(callback: 'validateWorkingHours')]
 #[Assert\Callback(callback: 'validateFutureDate')]
 class Consultation
@@ -25,12 +27,12 @@ class Consultation
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $dateConsultation = null;
 
-    #[ORM\Column(type: Types::STRING, length: 5)]
+    #[ORM\Column(type: Types::STRING, length: 5, nullable: true)]
     private ?string $timeSlot = null;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $motif = null;
 
     #[ORM\Column(length: 20)]
@@ -38,32 +40,32 @@ class Consultation
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 100)]
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(length: 100, nullable: true)]
     private ?string $name = null;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 100)]
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(length: 100, nullable: true)]
     private ?string $familyName = null;
 
     #[Assert\NotBlank]
     #[Assert\Email]
     #[Assert\Length(max: 180)]
-    #[ORM\Column(length: 180)]
+    #[ORM\Column(length: 180, nullable: true)]
     private ?string $email = null;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 10)]
-    #[ORM\Column(length: 10)]
+    #[ORM\Column(length: 10, nullable: true)]
     private ?string $sex = null;
 
     #[Assert\NotBlank]
     #[Assert\Positive]
     #[Assert\GreaterThanOrEqual(18)]
-    #[ORM\Column(type: Types::INTEGER)]
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?int $age = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $createdAt = null;
 
     // -----------------------

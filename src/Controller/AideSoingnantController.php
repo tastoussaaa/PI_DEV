@@ -34,10 +34,16 @@ final class AideSoingnantController extends BaseController
         
         $aideSoignant = $this->getCurrentAideSoignant();
         $userId = $this->getCurrentUserId();
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+        ];
         
         return $this->render('aide_soingnant/aideSoignantDashboard.html.twig', [
             'aideSoignant' => $aideSoignant,
             'userId' => $userId,
+            'navigation' => $navigation,
         ]);
     }
 
@@ -58,12 +64,18 @@ final class AideSoingnantController extends BaseController
         // Get all categories for dropdown
         $categories = $formationRepository->findAllCategories();
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+        ];
+
         return $this->render('formation/formations.html.twig', [
             'formations' => $formations,
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
             'userId' => $userId,
             'aideSoignant' => $aideSoignant,
+            'navigation' => $navigation,
         ]);
     }
 }

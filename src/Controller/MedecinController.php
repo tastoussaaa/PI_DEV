@@ -1,30 +1,20 @@
 <?php
 
 namespace App\Controller;
-use App\Entity\Consultation;
-use App\Repository\ConsultationRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 
-use App\Service\UserService;
-use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\HttpFoundation\Request;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\Consultation;
 use App\Entity\Formation;
 use App\Form\FormationType;
+use App\Repository\ConsultationRepository;
 use App\Repository\FormationRepository;
+use App\Service\UserService;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
 class MedecinController extends BaseController
 {
-    
-    #[Route('/medecin/dashboard', name: 'medecin_dashboard')]
-    public function dashboard()
     public function __construct(UserService $userService)
     {
         parent::__construct($userService);
@@ -82,41 +72,56 @@ class MedecinController extends BaseController
         ]);
     }
 
-   #[Route('/medecin/consultations', name: 'medecin_consultations')]
-public function consultations(Request $request, ConsultationRepository $repository): Response
-{
-    $search = $request->query->get('search', '');
-    $sort = $request->query->get('sort', 'date');
-    
-    $consultations = $repository->findAll();
-    
-    // Filter by search term
-    if ($search) {
-        $consultations = array_filter($consultations, function($c) use ($search) {
-            return stripos($c->getMotif(), $search) !== false || 
-                   stripos($c->getName(), $search) !== false ||
-                   stripos($c->getFamilyName(), $search) !== false;
-        });
     #[Route('/medecin/consultations', name: 'medecin_consultations')]
-    public function consultations(): Response
+    public function consultations(Request $request, ConsultationRepository $repository): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
         
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
+        $search = $request->query->get('search', '');
+        $sort = $request->query->get('sort', 'date');
+        
+        $consultations = $repository->findAll();
+        
+        // Filter by search term
+        if ($search) {
+            $consultations = array_filter($consultations, function($c) use ($search) {
+                return stripos($c->getMotif(), $search) !== false || 
+                       stripos($c->getName() ?? '', $search) !== false ||
+                       stripos($c->getFamilyName() ?? '', $search) !== false;
+            });
+        }
+        
+        // Sort
+        if ($sort === 'motif') {
+            usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
+        } elseif ($sort === 'date') {
+            usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
+        }
+
         return $this->render('consultation/consultations.html.twig', [
+            'consultations' => $consultations,
+            'search' => $search,
+            'sort' => $sort,
             'userId' => $userId,
             'medecin' => $medecin,
+            'navigation' => [
+                ['name' => 'Dashboard', 'path' => $this->generateUrl('app_medecin_dashboard'), 'icon' => '🏠'],
+                ['name' => 'Consultations', 'path' => $this->generateUrl('medecin_consultations'), 'icon' => '🩺'],
+                ['name' => 'Formations', 'path' => $this->generateUrl('medecin_formations'), 'icon' => '📚'],
+                ['name' => 'Ordonnances', 'path' => $this->generateUrl('Ordonnance_new'), 'icon' => '💊']
+            ],
+            'context' => 'medecin'
         ]);
     }
-
 
     #[Route('/medecin/formations/new', name: 'medecin_formation_new')]
     public function newFormation(
         Request $request,
         EntityManagerInterface $em
-    ) {
+    ): Response {
         $this->denyAccessUnlessGranted('ROLE_USER');
         
         $medecin = $this->getCurrentMedecin();
@@ -141,79 +146,49 @@ public function consultations(Request $request, ConsultationRepository $reposito
             'form' => $form->createView()
         ]);
     }
-    
-    // Sort
-    if ($sort === 'motif') {
-        usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
-    } elseif ($sort === 'date') {
-        usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
-    }
 
-    return $this->render('medecin/index.html.twig', [
-        'consultations' => $consultations,
-        'search' => $search,
-        'sort' => $sort,
-    ]);
-}
-#[Route('/medecin/consultation/{id}/accept', name: 'consultation_accept', methods: ['POST'])]
-public function accept(
-    Consultation $consultation,
-    EntityManagerInterface $em,
-    MailerInterface $mailer
-): Response {
-    $consultation->setStatus('accepted');
-    $em->flush();
+    #[Route('/medecin/consultation/{id}/accept', name: 'medecin_consultation_accept', methods: ['POST'])]
+    public function accept(
+        Consultation $consultation,
+        EntityManagerInterface $em
+    ): Response {
+        $this->denyAccessUnlessGranted('ROLE_USER');
 
-    $email = (new TemplatedEmail())
-        ->from('noreply@aidora.com')
-        ->to($consultation->getEmail())
-        ->subject('Consultation Accepted')
-        ->htmlTemplate('email/consultation_status.html.twig')
-        ->context([
-            'patientName' => $consultation->getName().' '.$consultation->getFamilyName(),
-            'consultationDate' => $consultation->getDateConsultation(),
-            'status' => 'accepted',
-        ]);
-
-    $mailer->send($email);
-
-    return $this->redirectToRoute('medecin_consultations');
-}
-
-#[Route('/medecin/consultation/{id}/decline', name: 'consultation_decline', methods: ['POST'])]
-public function decline(
-    Consultation $consultation,
-    EntityManagerInterface $em,
-    MailerInterface $mailer
-): Response {
-    $consultation->setStatus('declined');
-    $em->flush();
-
-    $email = (new TemplatedEmail())
-        ->from('noreply@aidora.com')
-        ->to($consultation->getEmail())
-        ->subject('Consultation Declined')
-        ->htmlTemplate('email/consultation_status.html.twig')
-        ->context([
-            'patientName' => $consultation->getName().' '.$consultation->getFamilyName(),
-            'consultationDate' => $consultation->getDateConsultation(),
-            'status' => 'declined',
-        ]);
-
-    $mailer->send($email);
-
-    return $this->redirectToRoute('medecin_consultations');
-}
-#[Route('/medecin/consultation/{id}/delete', name: 'consultation_delete', methods: ['POST'])]
-public function delete(Request $request, Consultation $consultation, EntityManagerInterface $em): Response
-{
-    if ($this->isCsrfTokenValid('delete'.$consultation->getId(), $request->request->get('_token'))) {
-        $em->remove($consultation);
+        $consultation->setStatus('accepted');
         $em->flush();
+
+        $this->addFlash('success', 'Consultation accepted successfully!');
+        return $this->redirectToRoute('medecin_consultations');
     }
 
-    return $this->redirectToRoute('medecin_consultations');
-}
+    #[Route('/medecin/consultation/{id}/decline', name: 'medecin_consultation_decline', methods: ['POST'])]
+    public function decline(
+        Consultation $consultation,
+        EntityManagerInterface $em
+    ): Response {
+        $this->denyAccessUnlessGranted('ROLE_USER');
 
+        $consultation->setStatus('declined');
+        $em->flush();
+
+        $this->addFlash('success', 'Consultation declined successfully!');
+        return $this->redirectToRoute('medecin_consultations');
+    }
+
+    #[Route('/medecin/consultation/{id}/delete', name: 'consultation_delete', methods: ['POST'])]
+    public function delete(
+        Request $request,
+        Consultation $consultation,
+        EntityManagerInterface $em
+    ): Response {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        if ($this->isCsrfTokenValid('delete' . $consultation->getId(), $request->request->get('_token'))) {
+            $em->remove($consultation);
+            $em->flush();
+        }
+
+        return $this->redirectToRoute('medecin_consultations');
+    }
 }
 

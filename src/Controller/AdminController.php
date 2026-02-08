@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Repository\FormationRepository;
 use App\Repository\MedecinRepository;
 use App\Repository\AideSoignantRepository;
+use App\Repository\ConsultationRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +27,45 @@ final class AdminController extends AbstractController
         ]);
     }
 
+    #[Route('/admin/consultations', name: 'admin_consultations')]
+    public function consultations(Request $request, ConsultationRepository $consultationRepository)
+    {
+        $search = $request->query->get('search', '');
+        $sort = $request->query->get('sort', 'date');
+        
+        $consultations = $consultationRepository->findAll();
+        
+        // Filter by search term
+        if ($search) {
+            $consultations = array_filter($consultations, function($c) use ($search) {
+                return stripos($c->getMotif(), $search) !== false || 
+                       stripos($c->getName() ?? '', $search) !== false ||
+                       stripos($c->getFamilyName() ?? '', $search) !== false;
+            });
+        }
+        
+        // Sort
+        if ($sort === 'motif') {
+            usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
+        } elseif ($sort === 'date') {
+            usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
+        }
+
+        $navigation = [
+            ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
+        ];
+
+        return $this->render('consultation/consultations.html.twig', [
+            'consultations' => $consultations,
+            'search' => $search,
+            'sort' => $sort,
+            'navigation' => $navigation,
+            'context' => 'admin'
+        ]);
+    }
+
     #[Route('/admin', name: 'app_admin_dashboard')]
     public function dashboard(MedecinRepository $medecinRepository, AideSoignantRepository $aideRepo)
     {
@@ -37,6 +77,7 @@ final class AdminController extends AbstractController
 
         $navigation = [
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
             ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
         ];
 

@@ -116,11 +116,6 @@
 {% endblock %}
 
 {% block body %}
-{% set navigation = [
-    {'name': 'Dashboard', 'path': path('app_aide_soignant_dashboard'), 'icon': '🏠'},
-    {'name': 'Formations', 'path': path('aidesoingnant_formation'), 'icon': '📚'},
-] %}
-
 <div class="portal">
     {% include 'side_bar.html.twig' %}
 

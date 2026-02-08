@@ -22,52 +22,60 @@
 <div class="portal">
 
     <!-- SIDEBAR -->
-    <aside class="portal__side">
-
-        <a href="#" class="portal__brand">
-            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
-            <div>
-                <div class="portal__name">Aidora</div>
-                <div class="portal__tag">Espace Patient</div>
-            </div>
-        </a>
-
-        <div class="portal__hello">
-            <div class="portal__avatar">
-                <img src="{{ asset('assets/images/avatar.png') }}" class="portal__logo" alt="">
-
-            </div>
-            <div>
-                <div class="portal__hi">Bienvenue</div>
-                <div class="portal__mail">
-                    {{ app.user.name ?? 'Patient' }}
-                </div>
-            </div>
-        </div>
-
-        <nav class="portal__menu">
-            {% for item in navigation %}
-                <a href="{{ item.path }}"
-                   class="portal__item {% if app.request.pathinfo == item.path %}is-active{% endif %}">
-                    <span class="portal__icon">{{ item.icon }}</span>
-                    <span>{{ item.name }}</span>
-                </a>
-            {% endfor %}
-        </nav>
-
-        <div class="portal__bottom">
-            <a href="#" class="portal__logout">Déconnexion</a>
-        </div>
-
-    </aside>
-        {% include 'side_bar.html.twig' %}
+    {% include 'side_bar.html.twig' %}
 
 
 
     <!-- MAIN CONTENT -->
     <main class="portal__main">
 
-        
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Dashboard</h1>
+                <p class="portal__subtitle">Vue d'ensemble de vos consultations</p>
+            </div>
+
+            <a href="{{ path('consultation_new') }}" class="btn btn--primary">Nouvelle Consultation</a>
+        </div>
+
+        <div class="portal__content">
+
+            <div class="box">
+                <h3>Mes Consultations</h3>
+                {% if consultations is empty %}
+                    <p style="color:var(--muted)">Vous n'avez pas encore créé de consultation.</p>
+                    <a href="{{ path('consultation_new') }}" class="btn btn--primary" style="margin-top:12px">Créer une consultation</a>
+                {% else %}
+                    <div class="boxGrid" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+                        {% for consultation in consultations %}
+                            <div style="border:1px solid rgba(7,19,31,.10);border-radius:12px;padding:16px">
+                                <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+                                    <div>
+                                        <h4 style="margin:0 0 4px">{{ consultation.motif }}</h4>
+                                        <div style="color:var(--muted);font-size:13px">
+                                            {{ consultation.dateConsultation ? consultation.dateConsultation|date('d M Y H:i') : 'Date non définie' }}
+                                        </div>
+                                    </div>
+                                    <div style="display:flex;gap:4px;justify-content:flex-end">
+                                        {% if consultation.status == 'pending' %}
+                                            <span style="background:rgba(255,193,7,.15);color:#FF9F00;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:900">⏳ En attente</span>
+                                        {% elseif consultation.status == 'accepted' %}
+                                            <span style="background:rgba(19,184,194,.15);color:#13B8C2;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:900">✅ Acceptée</span>
+                                        {% elseif consultation.status == 'declined' %}
+                                            <span style="background:rgba(255,107,107,.15);color:#FF6B6B;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:900">❌ Refusée</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(7,19,31,.05)">
+                                    <a href="{{ path('consultation_show', {'id': consultation.id}) }}" class="btn btn--ghost" style="width:100%;text-align:center">Voir les détails</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
 
     </main>
 

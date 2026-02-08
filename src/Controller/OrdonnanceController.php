@@ -27,8 +27,15 @@ class OrdonnanceController extends AbstractController
     {
         $ordonnances = $repository->findAll();
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_medecin_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('medecin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Ordonnances', 'path' => $this->generateUrl('medecin_ordonnances'), 'icon' => '💊'],
+        ];
+
         return $this->render('ordonnance/medecinOrdonnance.html.twig', [
             'ordonnances' => $ordonnances,
+            'navigation' => $navigation,
         ]);
     }
 
@@ -65,10 +72,17 @@ public function showAll(Request $request, OrdonnanceRepository $repository): Res
         usort($ordonnances, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
     }
 
+    $navigation = [
+        ['name' => 'Dashboard', 'path' => $this->generateUrl('app_medecin_dashboard'), 'icon' => '🏠'],
+        ['name' => 'Consultations', 'path' => $this->generateUrl('medecin_consultations'), 'icon' => '🩺'],
+        ['name' => 'Ordonnances', 'path' => $this->generateUrl('Ordonnance_show_all'), 'icon' => '💊'],
+    ];
+
     return $this->render('ordonnance/show.html.twig', [
         'ordonnances' => $ordonnances,
         'search' => $search,
         'sort' => $sort,
+        'navigation' => $navigation,
     ]);
 }
     #[Route('/new', name: 'Ordonnance_new', methods: ['GET','POST'])]
@@ -85,8 +99,15 @@ public function showAll(Request $request, OrdonnanceRepository $repository): Res
             return $this->redirectToRoute('Ordonnance_show_all');
         }
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_medecin_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('medecin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Ordonnances', 'path' => $this->generateUrl('Ordonnance_show_all'), 'icon' => '💊'],
+        ];
+
         return $this->render('ordonnance/new.html.twig', [
             'form' => $form->createView(),
+            'navigation' => $navigation,
         ]);
     }
 
@@ -102,8 +123,15 @@ public function showAll(Request $request, OrdonnanceRepository $repository): Res
             return $this->redirectToRoute('Ordonnance_show_all');
         }
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_medecin_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('medecin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Ordonnances', 'path' => $this->generateUrl('Ordonnance_show_all'), 'icon' => '💊'],
+        ];
+
         return $this->render('Ordonnance/edit.html.twig', [
             'form' => $form->createView(),
+            'navigation' => $navigation,
         ]);
     }
 

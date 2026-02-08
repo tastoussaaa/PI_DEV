@@ -48,10 +48,16 @@ final class FormationController extends AbstractController
             $appliedFormationIds[$app->getFormation()->getId()] = $app->getStatus();
         }
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formations', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+        ];
+
         return $this->render('formation/aidesoingnant_formations_list.html.twig', [
             'formations' => $formations,
             'appliedFormations' => $appliedFormationIds,
             'aideSoignant' => $aideSoignant,
+            'navigation' => $navigation,
         ]);
     }
 
@@ -117,9 +123,15 @@ final class FormationController extends AbstractController
             $groupedApplications[strtolower($app->getStatus())][] = $app;
         }
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_medecin_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formations', 'path' => $this->generateUrl('medecin_formations'), 'icon' => '📚'],
+        ];
+
         return $this->render('formation/applicants.html.twig', [
             'formation' => $formation,
             'applications' => $groupedApplications,
+            'navigation' => $navigation,
         ]);
     }
 

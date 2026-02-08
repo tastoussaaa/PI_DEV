@@ -12,12 +12,6 @@
 {% endblock %}
 
 {% block body %}
-{% set dashboardRoute = current_user_type == 'aidesoignant' ? 'app_aide_soignant_dashboard' : ('app_' ~ current_user_type ~ '_dashboard') %}
-{% set navigation = [
-    {'name': 'Dashboard', 'path': path(dashboardRoute), 'icon': '🏠'},
-    {'name': 'Mon Profil', 'path': path('profile_index'), 'icon': '👤'},
-] %}
-
 <div class="portal">
     {% include 'side_bar.html.twig' %}
 

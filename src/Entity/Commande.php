@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\CommandeRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CommandeRepository::class)]
 class Commande
@@ -16,18 +17,30 @@ class Commande
 
     #[ORM\ManyToOne(targetEntity: Produit::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Vous devez sélectionner un produit')]
     private ?Produit $produit = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank(message: 'La quantité est obligatoire')]
+    #[Assert\Positive(message: 'La quantité doit être positive')]
+    #[Assert\Range(min: 1, max: 10000, notInRangeMessage: 'La quantité doit être entre 1 et 10000')]
     private ?int $quantite = null;
 
     #[ORM\Column(nullable: true)]
+    #[Assert\Positive(message: 'Le montant total doit être positif')]
     private ?float $montantTotal = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank(message: 'Le statut est obligatoire')]
+    #[Assert\Choice(
+        choices: ['en_attente', 'confirmée', 'livrée', 'annulée'],
+        message: 'Le statut sélectionné est invalide'
+    )]
     private ?string $statut = 'en_attente';
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Assert\NotNull(message: 'La date est obligatoire')]
+    #[Assert\LessThanOrEqual('now', message: 'La date ne peut pas être dans le futur')]
     private ?\DateTimeInterface $dateCommande = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]

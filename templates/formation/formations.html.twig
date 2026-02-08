@@ -9,15 +9,7 @@
 
 {% block body %}
 
-	{% set navigation = [
-	    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
-    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
-    {'name': 'Nouvelle Formation', 'path': path('medecin_formation_new'), 'icon': '➕'}
-] %}
-
-	<div
-		class="portal">
+	<div class="portal">
 
 		{# Sidebar #}
 		{% include 'side_bar.html.twig' %}
@@ -33,7 +25,7 @@
 
 			{# Filter by category #}
 			<div class="filter" style="margin-bottom: 20px;">
-				<form method="get" action="{{ path('aidesoignant_formations') }}">
+				<form method="get" action="{{ path('medecin_formations') }}">
 					<label for="category">Filtrer par catégorie :</label>
 					<select name="category" id="category" onchange="this.form.submit()">
 						<option value="">Toutes</option>
@@ -60,6 +52,11 @@
 									<span>{{ formation.startDate ? formation.startDate|date('d/m/Y') : '' }}
 										-
 										{{ formation.endDate ? formation.endDate|date('d/m/Y') : '' }}</span>
+								</div>
+								<div style="margin-top: 15px; display: flex; gap: 10px;">
+									<a href="{{ path('medecin_formation_applicants', {'id': formation.id}) }}" class="btn btn--secondary" style="flex: 1; text-align: center;">
+										👥 View Applicants
+									</a>
 								</div>
 							</div>
 						{% endfor %}

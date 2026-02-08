@@ -38,11 +38,26 @@ class ProfileController extends BaseController
         $user = $this->getCurrentUser();
         $userEntity = $this->getCurrentUserEntity();
         $userId = $this->getCurrentUserId();
+        $userType = $this->getCurrentUserType();
+
+        $dashboardRoute = match ($userType) {
+            'medecin' => 'app_medecin_dashboard',
+            'patient' => 'app_patient_dashboard',
+            'aide_soignant' => 'app_aide_soignant_dashboard',
+            'admin' => 'app_admin_dashboard',
+            default => 'app_login',
+        };
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl($dashboardRoute), 'icon' => '🏠'],
+            ['name' => 'Mon Profil', 'path' => $this->generateUrl('profile_index'), 'icon' => '👤'],
+        ];
 
         return $this->render('profile/index.html.twig', [
             'user' => $user,
             'userEntity' => $userEntity,
             'userId' => $userId,
+            'navigation' => $navigation,
         ]);
     }
 
@@ -57,6 +72,20 @@ class ProfileController extends BaseController
         $user = $this->getCurrentUser();
         $userEntity = $this->getCurrentUserEntity();
         $userId = $this->getCurrentUserId();
+        $userType = $this->getCurrentUserType();
+
+        $dashboardRoute = match ($userType) {
+            'medecin' => 'app_medecin_dashboard',
+            'patient' => 'app_patient_dashboard',
+            'aide_soignant' => 'app_aide_soignant_dashboard',
+            'admin' => 'app_admin_dashboard',
+            default => 'app_login',
+        };
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl($dashboardRoute), 'icon' => '🏠'],
+            ['name' => 'Mon Profil', 'path' => $this->generateUrl('profile_index'), 'icon' => '👤'],
+        ];
         $error = null;
         $success = null;
 
@@ -250,6 +279,7 @@ class ProfileController extends BaseController
             'userId' => $userId,
             'error' => $error,
             'success' => $success,
+            'navigation' => $navigation,
         ]);
     }
 

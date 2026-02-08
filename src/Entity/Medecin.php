@@ -64,6 +64,11 @@ class Medecin
     #[ORM\OneToMany(targetEntity: AideSoignant::class, mappedBy: 'medecin')]
     private Collection $aideSoignants;
 
+    /**
+     * @var Collection<int, Feedback>
+     */
+    #[ORM\OneToMany(targetEntity: Feedback::class, mappedBy: 'medecin')]
+    private Collection $feedbacks;
     #[ORM\Column(length: 255)]
     private ?string $mdp = null;
 
@@ -72,6 +77,7 @@ class Medecin
         $this->consultations = new ArrayCollection();
         $this->formations = new ArrayCollection();
         $this->aideSoignants = new ArrayCollection();
+        $this->feedbacks = new ArrayCollection();
     }
 
     public function getUser(): ?User

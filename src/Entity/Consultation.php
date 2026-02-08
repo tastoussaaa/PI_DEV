@@ -38,9 +38,16 @@ class Consultation
     #[ORM\OneToMany(targetEntity: Ordonnance::class, mappedBy: 'consultation', orphanRemoval: true)]
     private Collection $ordonnances;
 
+    /**
+     * @var Collection<int, Feedback>
+     */
+    #[ORM\OneToMany(targetEntity: Feedback::class, mappedBy: 'consultation')]
+    private Collection $feedbacks;
+
     public function __construct()
     {
         $this->ordonnances = new ArrayCollection(); // initialize collection for OneToMany
+        $this->feedbacks = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable(); // automatically set creation date
     }
 

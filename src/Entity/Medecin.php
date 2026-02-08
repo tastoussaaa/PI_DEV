@@ -45,11 +45,18 @@ class Medecin
     #[ORM\OneToMany(targetEntity: AideSoignant::class, mappedBy: 'medecin')]
     private Collection $aideSoignants;
 
+    /**
+     * @var Collection<int, Feedback>
+     */
+    #[ORM\OneToMany(targetEntity: Feedback::class, mappedBy: 'medecin')]
+    private Collection $feedbacks;
+
     public function __construct()
     {
         $this->consultations = new ArrayCollection();
         $this->formations = new ArrayCollection();
         $this->aideSoignants = new ArrayCollection();
+        $this->feedbacks = new ArrayCollection();
     }
 
     public function getId(): ?int

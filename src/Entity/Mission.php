@@ -27,16 +27,21 @@ class Mission
     #[ORM\Column]
     private ?int $prixFinal = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $Note = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $Commentaire = null;
 
     // Relation ManyToOne vers DemandeAide
     #[ORM\ManyToOne(targetEntity: DemandeAide::class, inversedBy: "missions")]
     #[ORM\JoinColumn(nullable: false)]
     private ?DemandeAide $demandeAide = null;
+
+    // Relation ManyToOne vers AideSoignant
+    #[ORM\ManyToOne(targetEntity: AideSoignant::class, inversedBy: "missions")]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?AideSoignant $aideSoignant = null;
 
     // ================= Getters et Setters =================
 
@@ -119,6 +124,17 @@ class Mission
     public function setDemandeAide(?DemandeAide $demandeAide): static
     {
         $this->demandeAide = $demandeAide;
+        return $this;
+    }
+
+    public function getAideSoignant(): ?AideSoignant
+    {
+        return $this->aideSoignant;
+    }
+
+    public function setAideSoignant(?AideSoignant $aideSoignant): static
+    {
+        $this->aideSoignant = $aideSoignant;
         return $this;
     }
 }

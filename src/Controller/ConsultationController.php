@@ -15,10 +15,33 @@ use Symfony\Component\Routing\Annotation\Route;
 class ConsultationController extends AbstractController
 {
     #[Route('/', name: 'consultation_index', methods: ['GET'])]
-    public function index(ConsultationRepository $repository): Response
+    public function index(Request $request, ConsultationRepository $repository): Response
     {
+        $search = $request->query->get('search', '');
+        $sort = $request->query->get('sort', 'date');
+
+        $consultations = $repository->findAll();
+
+        // Filter by search term
+        if ($search) {
+            $consultations = array_filter($consultations, function ($c) use ($search) {
+                return stripos($c->getMotif(), $search) !== false
+                    || stripos($c->getName(), $search) !== false
+                    || stripos($c->getFamilyName(), $search) !== false;
+            });
+        }
+
+        // Sort
+        if ($sort === 'motif') {
+            usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
+        } elseif ($sort === 'date') {
+            usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
+        }
+
         return $this->render('consultation/index.html.twig', [
-            'consultations' => $repository->findAll(),
+            'consultations' => $consultations,
+            'search' => $search,
+            'sort' => $sort,
         ]);
     }
 
@@ -30,10 +53,17 @@ class ConsultationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+
+            // If user is logged in, ensure consultation email is set to user's email
+            $user = $this->getUser();
+            if ($user && method_exists($user, 'getEmail') && !$consultation->getEmail()) {
+                $consultation->setEmail($user->getEmail());
+            }
+
             $em->persist($consultation);
             $em->flush();
 
-            return $this->redirectToRoute('consultation_index');
+            return $this->redirectToRoute('patient_consultations');
         }
 
         return $this->render('consultation/new.html.twig', [
@@ -61,7 +91,7 @@ class ConsultationController extends AbstractController
     #[Route('/{id}', name: 'consultation_delete', methods: ['POST'])]
     public function delete(Request $request, Consultation $consultation, EntityManagerInterface $em): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$consultation->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $consultation->getId(), $request->request->get('_token'))) {
             $em->remove($consultation);
             $em->flush();
         }

@@ -7,8 +7,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: ConsultationRepository::class)]
+#[Assert\UniqueEntity(fields: ['dateConsultation', 'timeSlot'])]
+#[Assert\Callback(callback: 'validateWorkingHours')]
+#[Assert\Callback(callback: 'validateFutureDate')]
 class Consultation
 {
     #[ORM\Id]
@@ -16,17 +21,47 @@ class Consultation
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Assert\NotBlank]
+    #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $dateConsultation = null;
 
+    #[ORM\Column(type: Types::STRING, length: 5)]
+    private ?string $timeSlot = null;
+
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255)]
     private ?string $motif = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $diagnostic = null;
+    #[ORM\Column(length: 20)]
+    private ?string $status = 'pending';
 
-    #[ORM\Column(length: 255)]
-    private ?string $status = null;
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
+    #[ORM\Column(length: 100)]
+    private ?string $name = null;
+
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
+    #[ORM\Column(length: 100)]
+    private ?string $familyName = null;
+
+    #[Assert\NotBlank]
+    #[Assert\Email]
+    #[Assert\Length(max: 180)]
+    #[ORM\Column(length: 180)]
+    private ?string $email = null;
+
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 10)]
+    #[ORM\Column(length: 10)]
+    private ?string $sex = null;
+
+    #[Assert\NotBlank]
+    #[Assert\Positive]
+    #[Assert\GreaterThanOrEqual(18)]
+    #[ORM\Column(type: Types::INTEGER)]
+    private ?int $age = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -41,7 +76,12 @@ class Consultation
     public function __construct()
     {
         $this->ordonnances = new ArrayCollection(); // initialize collection for OneToMany
-        $this->createdAt = new \DateTimeImmutable(); // automatically set creation date
+    }
+
+    #[ORM\PrePersist]
+    public function setCreatedAtValue(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -60,6 +100,17 @@ class Consultation
         return $this;
     }
 
+    public function getTimeSlot(): ?string
+    {
+        return $this->timeSlot;
+    }
+
+    public function setTimeSlot(string $timeSlot): static
+    {
+        $this->timeSlot = $timeSlot;
+        return $this;
+    }
+
     public function getMotif(): ?string
     {
         return $this->motif;
@@ -71,17 +122,6 @@ class Consultation
         return $this;
     }
 
-    public function getDiagnostic(): ?string
-    {
-        return $this->diagnostic;
-    }
-
-    public function setDiagnostic(string $diagnostic): static
-    {
-        $this->diagnostic = $diagnostic;
-        return $this;
-    }
-
     public function getStatus(): ?string
     {
         return $this->status;
@@ -90,6 +130,61 @@ class Consultation
     public function setStatus(string $status): static
     {
         $this->status = $status;
+        return $this;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): static
+    {
+        $this->name = $name;
+        return $this;
+    }
+
+    public function getFamilyName(): ?string
+    {
+        return $this->familyName;
+    }
+
+    public function setFamilyName(string $familyName): static
+    {
+        $this->familyName = $familyName;
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): static
+    {
+        $this->email = $email;
+        return $this;
+    }
+
+    public function getSex(): ?string
+    {
+        return $this->sex;
+    }
+
+    public function setSex(string $sex): static
+    {
+        $this->sex = $sex;
+        return $this;
+    }
+
+    public function getAge(): ?int
+    {
+        return $this->age;
+    }
+
+    public function setAge(int $age): static
+    {
+        $this->age = $age;
         return $this;
     }
 
@@ -139,5 +234,56 @@ class Consultation
         }
 
         return $this;
+    }
+
+    /**
+     * Validate that the consultation date and time slot is not in the past
+     */
+    public static function validateFutureDate($object, ExecutionContextInterface $context): void
+    {
+        if (!$object instanceof Consultation) {
+            return;
+        }
+
+        $dateConsultation = $object->getDateConsultation();
+        $timeSlot = $object->getTimeSlot();
+        if (!$dateConsultation || !$timeSlot) {
+            return;
+        }
+
+        $now = new \DateTime();
+        $consultationDateTime = new \DateTime($dateConsultation->format('Y-m-d') . ' ' . $timeSlot);
+
+        if ($consultationDateTime <= $now) {
+            $context->buildViolation('Consultation date and time cannot be in the past.')
+                ->atPath('dateConsultation')
+                ->addViolation();
+        }
+    }
+
+    /**
+     * Validate that the time slot is within working hours
+     */
+    public static function validateWorkingHours($object, ExecutionContextInterface $context): void
+    {
+        if (!$object instanceof Consultation) {
+            return;
+        }
+
+        $timeSlot = $object->getTimeSlot();
+        if (!$timeSlot) {
+            return;
+        }
+
+        $allowedTimeSlots = [
+            '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+            '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
+        ];
+
+        if (!in_array($timeSlot, $allowedTimeSlots)) {
+            $context->buildViolation('Invalid time slot selected.')
+                ->atPath('timeSlot')
+                ->addViolation();
+        }
     }
 }

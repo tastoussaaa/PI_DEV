@@ -1,0 +1,76 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #13B8C2; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 20px; }
+        .footer { background: #f0f0f0; padding: 10px; text-align: center; font-size: 12px; border-radius: 0 0 8px 8px; }
+        .details { margin: 20px 0; }
+        .detail-row { margin: 10px 0; }
+        .label { font-weight: bold; color: #13B8C2; }
+        .button { display: inline-block; background: #13B8C2; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Votre consultation a été enregistrée</h1>
+        </div>
+        
+        <div class="content">
+            <p>Bonjour,</p>
+            
+            <p>Merci d'avoir créé une demande de consultation sur Aidora. Voici les détails de votre demande :</p>
+            
+            <div class="details">
+                {% if consultation.name %}
+                    <div class="detail-row">
+                        <span class="label">Prénom :</span> {{ consultation.name }}
+                    </div>
+                {% endif %}
+                
+                {% if consultation.familyName %}
+                    <div class="detail-row">
+                        <span class="label">Nom :</span> {{ consultation.familyName }}
+                    </div>
+                {% endif %}
+                
+                {% if consultation.motif %}
+                    <div class="detail-row">
+                        <span class="label">Motif :</span> {{ consultation.motif }}
+                    </div>
+                {% endif %}
+                
+                {% if consultation.dateConsultation %}
+                    <div class="detail-row">
+                        <span class="label">Date prévue :</span> {{ consultation.dateConsultation|date('d/m/Y H:i') }}
+                    </div>
+                {% endif %}
+                
+                <div class="detail-row">
+                    <span class="label">Statut :</span> 
+                    {% if consultation.status == 'pending' %}
+                        ⏳ En attente
+                    {% elseif consultation.status == 'accepted' %}
+                        ✅ Acceptée
+                    {% else %}
+                        ❌ Refusée
+                    {% endif %}
+                </div>
+            </div>
+            
+            <p>Un médecin examinera votre demande sous peu et vous contactera pour confirmer la consultation.</p>
+            
+            <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+            
+            <p>Cordialement,<br>L'équipe Aidora</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2026 Aidora. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -39,6 +39,13 @@ class ProduitController extends AbstractController
 
         $categories = $produitRepo->findDistinctCategories();
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+            ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+        ];
+
         return $this->render('produit/list.html.twig', [
             'produits' => $produits,
             'categories' => $categories,
@@ -46,6 +53,7 @@ class ProduitController extends AbstractController
             'tri' => $tri,
             'ordre' => $ordre,
             'recherche' => $recherche,
+            'navigation' => $navigation,
         ]);
     }
 

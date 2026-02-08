@@ -9,7 +9,7 @@
 
 {% block body %}
 {% set navigation = [
-    {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
     {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
     {'name': 'Ordonnances', 'path': path('Ordonnance_new'), 'icon': '💊'}
@@ -78,10 +78,10 @@
                                     <a href="{{ path('consultation_show', {'id': consultation.id}) }}" class="btn btn--ghost">Details</a>
                                     {% if consultation.status == 'pending' %}
                                         <div style="display:flex;gap:6px">
-                                            <form method="post" action="{{ path('consultation_accept', {'id': consultation.id}) }}">
+                                            <form method="post" action="{{ path('medecin_consultation_accept', {'id': consultation.id}) }}">
                                                 <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(19,184,194,.22),rgba(45,230,215,.22));border:1px solid rgba(19,184,194,.30);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✓ Accept</button>
                                             </form>
-                                            <form method="post" action="{{ path('consultation_decline', {'id': consultation.id}) }}">
+                                            <form method="post" action="{{ path('medecin_consultation_decline', {'id': consultation.id}) }}">
                                                 <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(255,107,107,.16),rgba(255,150,107,.16));border:1px solid rgba(255,107,107,.25);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✕ Decline</button>
                                             </form>
                                         </div>

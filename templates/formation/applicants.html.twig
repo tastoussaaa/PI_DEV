@@ -237,13 +237,6 @@
 {% endblock %}
 
 {% block body %}
-{% set navigation = [
-    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
-    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
-    {'name': 'New Formation', 'path': path('medecin_formation_new'), 'icon': '➕'}
-] %}
-
 <div class="portal">
     {% include 'side_bar.html.twig' %}
 

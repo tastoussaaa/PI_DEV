@@ -11,7 +11,7 @@
     {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
     {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
-    {'name': 'Ordonnances', 'path': path('Ordonnance_new'), 'icon': '💊'}
+    {'name': 'Ordonnances', 'path': path('Ordonnance_new'), 'icon': '💊'},
     {'name': 'Nouvelle Formation', 'path': path('medecin_formation_new'), 'icon': '➕'}
 ] %}
 
@@ -19,43 +19,6 @@
 
     <!-- SIDEBAR -->
     {% include 'side_bar.html.twig' %}
-
-        <a href="#" class="portal__brand">
-            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
-            <div>
-                <div class="portal__name">Aidora</div>
-                <div class="portal__tag">Espace Médecin</div>
-            </div>
-        </a>
-
-        <div class="portal__hello">
-            <div class="portal__avatar">
-                <img src="{{ asset('assets/images/avatar.png') }}" class="portal__logo" alt="">
-
-            </div>
-            <div>
-                <div class="portal__hi">Bienvenue</div>
-                <div class="portal__mail">
-                    {{ app.user.name ?? 'Médecin' }}
-                </div>
-            </div>
-        </div>
-
-        <nav class="portal__menu">
-            {% for item in navigation %}
-                <a href="{{ item.path }}"
-                   class="portal__item {% if app.request.pathinfo == item.path %}is-active{% endif %}">
-                    <span class="portal__icon">{{ item.icon }}</span>
-                    <span>{{ item.name }}</span>
-                </a>
-            {% endfor %}
-        </nav>
-
-        <div class="portal__bottom">
-            <a href="#" class="portal__logout">Déconnexion</a>
-        </div>
-
-    </aside>
 
 
     <!-- MAIN CONTENT -->

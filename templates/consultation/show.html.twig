@@ -7,17 +7,16 @@
 {% endblock %}
 
 {% block body %}
+{% set navigation = [
+    {'name': 'Validation des Comptes', 'path': path('app_admin_dashboard'), 'icon': '✓'},
+    {'name': 'Consultations', 'path': path('admin_consultations'), 'icon': '🩺'},
+    {'name': 'Formations', 'path': path('admin_formations'), 'icon': '📚'}
+] %}
+
 <div class="portal">
 
-    <aside class="portal__side">
-        <a href="#" class="portal__brand">
-            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
-            <div>
-                <div class="portal__name">Aidora</div>
-                <div class="portal__tag">Consultation</div>
-            </div>
-        </a>
-    </aside>
+    <!-- SIDEBAR -->
+    {% include 'side_bar.html.twig' %}
 
     <main class="portal__main">
         <header class="portal__header">

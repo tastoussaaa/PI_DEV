@@ -9,62 +9,11 @@
 
 {% block body %}
 
-	{% set navigation = [
-	    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
-    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
-    {'name': 'Nouvelle Formation', 'path': path('medecin_formation_new'), 'icon': '➕'}
-] %}
-
-	<div
-		class="portal">
+	<div class="portal">
 
 		{# Sidebar #}
 		{% include 'side_bar.html.twig' %}
 
-<div class="portal">
-
-    <!-- SIDEBAR -->
-    <aside class="portal__side">
-
-        <a href="#" class="portal__brand">
-            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
-            <div>
-                <div class="portal__name">Aidora</div>
-                <div class="portal__tag">Espace Médecin</div>
-            </div>
-        </a>
-
-        <div class="portal__hello">
-            <div class="portal__avatar">
-                {{  'M' }}
-            </div>
-            <div>
-                <div class="portal__hi">Bienvenue</div>
-                <div class="portal__mail">
-                    {{ app.user.name ?? 'Médecin' }}
-                </div>
-            </div>
-        </div>
-
-        <nav class="portal__menu">
-            {% for item in navigation %}
-                <a href="{{ item.path }}"
-                   class="portal__item {% if app.request.pathinfo == item.path %}is-active{% endif %}">
-                    <span class="portal__icon">{{ item.icon }}</span>
-                    <span>{{ item.name }}</span>
-                </a>
-            {% endfor %}
-        </nav>
-
-        <div class="portal__bottom">
-            <a href="#" class="portal__logout">Déconnexion</a>
-        </div>
-
-    </aside>
-
-</div>
-{% endblock %}
 		<main class="portal__main">
 			<div class="portal__top">
 				<div>
@@ -76,7 +25,7 @@
 
 			{# Filter by category #}
 			<div class="filter" style="margin-bottom: 20px;">
-				<form method="get" action="{{ path('aidesoignant_formations') }}">
+				<form method="get" action="{{ path('medecin_formations') }}">
 					<label for="category">Filtrer par catégorie :</label>
 					<select name="category" id="category" onchange="this.form.submit()">
 						<option value="">Toutes</option>

@@ -7,101 +7,57 @@
 {% endblock %}
 
 {% block body %}
-{% set navigation = [
-    {'name': 'Dashboard', 'path': path('app_patient_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
-    {'name': 'Nouvelle consultation', 'path': path('consultation_new'), 'icon': '➕'},
-    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
-    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
-
-   
-] %}
-
 <div class="portal">
 
     <!-- SIDEBAR -->
-    <aside class="portal__side">
-
-        <a href="#" class="portal__brand">
-            <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
-            <div>
-                <div class="portal__name">Aidora</div>
-                <div class="portal__tag">Espace Patient</div>
-            </div>
-        </a>
-
-        <div class="portal__hello">
-            <div class="portal__avatar">
-                <img src="{{ asset('assets/images/avatar.png') }}" class="portal__logo" alt="">
-
-            </div>
-            <div>
-                <div class="portal__hi">Bienvenue</div>
-                <div class="portal__mail">
-                    {{ app.user.name ?? 'Patient' }}
-                </div>
-            </div>
-        </div>
-
-        <nav class="portal__menu">
-            {% for item in navigation %}
-                <a href="{{ item.path }}"
-                   class="portal__item {% if app.request.pathinfo == item.path %}is-active{% endif %}">
-                    <span class="portal__icon">{{ item.icon }}</span>
-                    <span>{{ item.name }}</span>
-                </a>
-            {% endfor %}
-        </nav>
-
-        <div class="portal__bottom">
-            <a href="#" class="portal__logout">Déconnexion</a>
-        </div>
-
-    </aside>
+    {% include 'side_bar.html.twig' %}
 
 
     <!-- MAIN CONTENT -->
     <main class="portal__main">
 
-        
-        <div class="portal__content">   
-            <h1>Consultations Patient</h1>
-            <div class="consultations">
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Mes Consultations</h1>
+                <p class="portal__subtitle">Consultations que j'ai demandées — suivi du statut.</p>
+            </div>
+
+            <a href="{{ path('consultation_new') }}" class="btn btn--primary">Nouvelle Consultation</a>
+        </div>
+
+        <div class="portal__content">
+
+            <div class="portal__card">
                 {% if consultations is empty %}
-                    <p>Aucune consultation trouvée.</p>
+                    <p>Vous n'avez pas encore demandé de consultation.</p>
                 {% else %}
-                    <div class="consultations__list">
+                    <div class="list">
                         {% for c in consultations %}
-                            <article class="card">
-                                <div class="card__header">
-                                    <strong>{{ c.name }} {{ c.familyName }}</strong>
-                                    <small>{{ c.dateConsultation ? c.dateConsultation|date('d/m/Y H:i') : '' }}</small>
+                            <div class="rowItem">
+                                <div>
+                                    <div class="rowItem__title">{{ c.motif }} — {{ c.dateConsultation ? c.dateConsultation|date('Y-m-d H:i') : 'TBD' }}</div>
+                                    <div class="rowItem__meta">
+                                        Date de création: {{ c.createdAt ? c.createdAt|date('d/m/Y H:i') : '—' }}
+                                    </div>
                                 </div>
-                                <div class="card__body">
-                                    <p>{{ c.motif }}</p>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    {% if c.status == 'pending' %}
+                                        <span style="background:rgba(255,193,7,.15);color:#FF9F00;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:900">⏳ En attente</span>
+                                    {% elseif c.status == 'accepted' %}
+                                        <span style="background:rgba(19,184,194,.15);color:#13B8C2;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:900">✅ Acceptée</span>
+                                    {% elseif c.status == 'declined' %}
+                                        <span style="background:rgba(255,107,107,.15);color:#FF6B6B;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:900">❌ Refusée</span>
+                                    {% endif %}
+                                    <a href="{{ path('consultation_show', {'id': c.id}) }}" class="btn btn--ghost">Details</a>
                                 </div>
-                                <div class="card__footer">
-                                    <span class="status">
-                                        {% if c.status == 'pending' %}
-                                            <span style="color:var(--muted)">⏳ En attente</span>
-                                        {% elseif c.status == 'accepted' %}
-                                            <span style="color:rgb(19,184,194)">✅ Acceptée</span>
-                                        {% else %}
-                                            <span style="color:rgb(255,107,107)">❌ Refusée</span>
-                                        {% endif %}
-                                    </span>
-                                    <a class="btn" href="{{ path('consultation_show', {'id': c.id}) }}">Détails</a>
-                                </div>
-                            </article>
+                            </div>
                         {% endfor %}
                     </div>
                 {% endif %}
-
-                <div class="consultations__actions">
-                    <a class="btn btn-primary" href="{{ path('consultation_new') }}">Nouvelle consultation</a>
-                </div>
             </div>
+
         </div>
+
     </main>
 
 </div>

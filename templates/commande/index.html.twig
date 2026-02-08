@@ -12,6 +12,16 @@
         .btn-sm { padding:6px 12px; font-size:13px; border-radius:8px; text-decoration:none; display:inline-block; }
         .btn-primary { background:#13B8C2; color:#fff; }
         .btn-ghost { background:transparent; color:#374151; border:1px solid #d0d7de; }
+        .btn-disabled { background:#f3f4f6; color:#9ca3af; border:1px solid #e5e7eb; cursor:not-allowed; }
+
+        /* Modal */
+        .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:50; }
+        .modal { background:#fff; border-radius:12px; max-width:480px; width:100%; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.12); }
+        .modal__title { font-size:18px; font-weight:700; margin:0 0 8px; }
+        .modal__body { margin-bottom:16px; color:#374151; }
+        .modal__actions { display:flex; gap:8px; justify-content:flex-end; }
+
+        .note-disabled { font-size:12px; color:#6b7280; margin-left:8px; vertical-align:middle; }
     </style>
 {% endblock %}
 
@@ -65,15 +75,30 @@
                                 <td>{{ depuis }}</td>
                                 <td>{{ c.produit ? c.produit.nom : '-' }}</td>
                                 <td>{{ c.quantite }}</td>
-                                <td>{{ (c.montantTotal ?? (c.produit ? c.produit.prix * c.quantite : 0))|number_format(2, ',', ' ') }} €</td>
+                                <td>{{ (c.montantTotal ?? (c.produit ? c.produit.prix * c.quantite : 0))|number_format(2, ',', ' ') }} dt</td>
                                 <td>{{ c.statut }}</td>
                                 <td>
                                     <a href="{{ path('commande_show', { id: c.id }) }}" class="btn-sm btn-primary">Voir</a>
-                                    <a href="{{ path('commande_edit', { id: c.id }) }}" class="btn-sm btn-ghost">Modifier</a>
-                                    <form action="{{ path('commande_delete', { id: c.id }) }}" method="post" style="display:inline;">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ c.id) }}">
-                                        <button type="submit" class="btn-sm btn-ghost" onclick="return confirm('Supprimer cette commande ?');">Supprimer</button>
-                                    </form>
+                                    {# Edit allowed only within 3 hours #}
+                                    {% set allow_edit = (date().timestamp - (c.dateCommande ? c.dateCommande.timestamp : 0)) <= (3*3600) %}
+                                    {% if allow_edit %}
+                                        <a href="{{ path('commande_edit', { id: c.id }) }}" class="btn-sm btn-ghost">Modifier</a>
+                                    {% else %}
+                                        <span class="btn-sm btn-disabled" title="Modification disponible uniquement dans les 3 premières heures">Modifier</span>
+                                        <span class="note-disabled">Modification indisponible (après 3h)</span>
+                                    {% endif %}
+
+                                    {# Delete (cancel) allowed only within 24 hours - use modal confirmation #}
+                                    {% set allow_delete = (date().timestamp - (c.dateCommande ? c.dateCommande.timestamp : 0)) <= (24*3600) %}
+                                    {% if allow_delete %}
+                                        <form action="{{ path('commande_delete', { id: c.id }) }}" method="post" style="display:inline;" class="delete-form">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ c.id) }}">
+                                            <button type="button" class="btn-sm btn-ghost btn-delete" data-id="{{ c.id }}" data-produit="{{ c.produit ? c.produit.nom : '-' }}">Supprimer</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="btn-sm btn-disabled" title="Annulation disponible uniquement dans les 24 premières heures">Supprimer</span>
+                                        <span class="note-disabled">Annulation indisponible (après 24h)</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% else %}
@@ -87,4 +112,56 @@
         </div>
     </main>
 </div>
+<!-- Delete confirmation modal -->
+<div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <h3 class="modal__title" id="modal-title">Confirmer l'annulation</h3>
+        <div class="modal__body" id="modal-body">Voulez-vous vraiment annuler cette commande ?</div>
+        <div class="modal__actions">
+            <button id="modal-cancel" class="btn-sm btn-ghost">Annuler</button>
+            <button id="modal-confirm" class="btn-sm btn-primary">Confirmer l'annulation</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal delete handling
+(() => {
+    const backdrop = document.getElementById('modal-backdrop');
+    const body = document.getElementById('modal-body');
+    const confirmBtn = document.getElementById('modal-confirm');
+    const cancelBtn = document.getElementById('modal-cancel');
+    let currentForm = null;
+
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const produit = btn.getAttribute('data-produit') || '-';
+            body.textContent = `Confirmer l'annulation de la commande pour : ${produit} ?`;
+            // find form ancestor
+            currentForm = btn.closest('form');
+            backdrop.style.display = 'flex';
+        });
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        backdrop.style.display = 'none';
+        currentForm = null;
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        if (currentForm) {
+            // submit the form
+            currentForm.submit();
+        }
+    });
+
+    // close modal on ESC or click outside
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') backdrop.style.display = 'none';
+    });
+    backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) backdrop.style.display = 'none';
+    });
+})();
+</script>
 {% endblock %}

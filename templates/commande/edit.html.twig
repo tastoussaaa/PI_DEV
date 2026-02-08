@@ -37,7 +37,7 @@
             </div>
             <div class="form-group">
                 <label>Montant total</label>
-                <p id="montant-total-display" style="font-size:1.25rem; font-weight:700; color:#13B8C2;">0,00 €</p>
+                <p id="montant-total-display" style="font-size:1.25rem; font-weight:700; color:#13B8C2;">0,00 dt</p>
             </div>
             <div class="form-group">
                 {{ form_label(form.statut) }}
@@ -66,7 +66,7 @@
         var q = (quantite && quantite.value) ? parseInt(quantite.value, 10) : 0;
         if (q < 1) q = 0;
         var total = prix * q;
-        display.textContent = total.toFixed(2).replace('.', ',') + ' €';
+        display.textContent = total.toFixed(2).replace('.', ',') + ' dt';
     }
     if (select) select.addEventListener('change', updateMontant);
     if (quantite) { quantite.addEventListener('input', updateMontant); quantite.addEventListener('change', updateMontant); }

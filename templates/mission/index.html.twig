@@ -183,12 +183,6 @@
 
 {% block body %}
 
-{% set navigation = [
-    {'name': 'Dashboard', 'path': path('aidesoingnant_dashboard'), 'icon': '🏠'},
-    {'name': 'Mes Missions', 'path': path('aidesoingnant_missions'), 'icon': '📋'},
-    {'name': 'Formation', 'path': path('aidesoingnant_formations'), 'icon': '📚'},
-] %}
-
 <div class="portal">
     {% include 'side_bar.html.twig' %}
 
@@ -236,7 +230,7 @@
 
                             <div class="card__actions">
                                 <a href="{{ path('aidesoingnant_missions_details', {'id': mission.demandeAide.id}) }}" class="btn btn--info">👁️ Voir détails</a>
-                                {% if mission.statutMission == 'PENDING' %}
+                                {% if mission.statutMission == 'EN_ATTENTE' %}
                                     <a href="{{ path('aidesoingnant_missions_accept', {'id': mission.demandeAide.id}) }}" class="btn btn--success">✅ Accepter</a>
                                     <button class="btn btn--warning" onclick="openPriceModal({{ mission.demandeAide.id }}, {{ mission.demandeAide.budgetMax }})">💰 Prix proposé</button>
                                     <a href="{{ path('aidesoingnant_missions_refuse', {'id': mission.demandeAide.id}) }}" class="btn btn--danger">❌ Refuser</a>

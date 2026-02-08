@@ -86,6 +86,7 @@ class ProduitController extends AbstractController
         $produits = $produitRepo->findBy([], ['id' => 'DESC']);
         $categories = $produitRepo->findDistinctCategories();
 
+        //
         return $this->render('produit/add.html.twig', [
             'form' => $form->createView(),
             'produits' => $produits,

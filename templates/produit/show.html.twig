@@ -31,7 +31,7 @@
             <p><strong>Nom :</strong> {{ produit.nom }}</p>
             <p><strong>Catégorie :</strong> {{ produit.categorie }}</p>
             <p><strong>Description :</strong> {{ produit.description }}</p>
-            <p><strong>Prix :</strong> {{ produit.prix|number_format(2, ',', ' ') }} €</p>
+            <p><strong>Prix :</strong> {{ produit.prix|number_format(2, ',', ' ') }} dt</p>
             <p><strong>Stock :</strong> {{ produit.stock }}</p>
             <a href="{{ path('produit_add') }}" class="btn btn--ghost" style="margin-top:16px;">Retour à la liste</a>
         </div>

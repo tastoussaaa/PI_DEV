@@ -90,7 +90,15 @@ class MedecinController extends BaseController
         Request $request,
         EntityManagerInterface $em
     ) {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $medecin = $this->getCurrentMedecin();
+        if (!$medecin) {
+            throw $this->createAccessDeniedException('You must be a medecin to create formations');
+        }
+
         $formation = new Formation();
+        $formation->setMedecin($medecin);
 
         $form = $this->createForm(FormationType::class, $formation);
         $form->handleRequest($request);

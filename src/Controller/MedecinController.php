@@ -2,8 +2,8 @@
 
 namespace App\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
+use App\Service\UserService;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Formation;
@@ -11,20 +11,47 @@ use App\Form\FormationType;
 use App\Repository\FormationRepository;
 use Symfony\Component\HttpFoundation\Response;
 
-
-
-
-class MedecinController extends AbstractController
+class MedecinController extends BaseController
 {
-    #[Route('/medecin/dashboard', name: 'medecin_dashboard')]
-    public function dashboard()
+    public function __construct(UserService $userService)
     {
-        return $this->render('medecin/dashboard.html.twig');
+        parent::__construct($userService);
     }
 
-     #[Route('/medecin/formations', name: 'medecin_formations')]
+    #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
+    public function dashboard(): Response
+    {
+        // Ensure user is authenticated
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        // Ensure only medecins can access this dashboard
+        if (!$this->isCurrentUserMedecin()) {
+            $userType = $this->getCurrentUserType();
+            return match ($userType) {
+                'patient' => $this->redirectToRoute('app_patient_dashboard'),
+                'aidesoignant' => $this->redirectToRoute('app_aide_soignant_dashboard'),
+                'admin' => $this->redirectToRoute('app_admin_dashboard'),
+                default => $this->redirectToRoute('app_login'),
+            };
+        }
+        
+        $medecin = $this->getCurrentMedecin();
+        $userId = $this->getCurrentUserId();
+        
+        return $this->render('medecin/dashboard.html.twig', [
+            'medecin' => $medecin,
+            'userId' => $userId,
+        ]);
+    }
+
+    #[Route('/medecin/formations', name: 'medecin_formations')]
     public function formations(Request $request, FormationRepository $formationRepository): Response
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $userId = $this->getCurrentUserId();
+        $medecin = $this->getCurrentMedecin();
+
         // Get selected category from query parameter (e.g., ?category=Urgence)
         $selectedCategory = $request->query->get('category');
 
@@ -37,16 +64,24 @@ class MedecinController extends AbstractController
         return $this->render('formation/formations.html.twig', [
             'formations' => $formations,          // filtered list
             'categories' => $categories,          // list of all categories
-            'selectedCategory' => $selectedCategory // currently selected category
+            'selectedCategory' => $selectedCategory, // currently selected category
+            'userId' => $userId,
+            'medecin' => $medecin,
         ]);
     }
 
-
-
     #[Route('/medecin/consultations', name: 'medecin_consultations')]
-    public function consultations()
+    public function consultations(): Response
     {
-        return $this->render('consultation/consultations.html.twig');
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $userId = $this->getCurrentUserId();
+        $medecin = $this->getCurrentMedecin();
+
+        return $this->render('consultation/consultations.html.twig', [
+            'userId' => $userId,
+            'medecin' => $medecin,
+        ]);
     }
 
 

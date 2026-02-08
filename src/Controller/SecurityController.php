@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\UserService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -9,12 +10,21 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class SecurityController extends AbstractController
 {
+    public function __construct(private UserService $userService) {}
+
     #[Route('/login', name: 'app_login')]
     public function login(AuthenticationUtils $authUtils): Response
     {
-        // Si déjà connecté, retour home
+        // Si déjà connecté, rediriger vers le dashboard approprié
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_home');
+            $userType = $this->userService->getCurrentUserType();
+            return match ($userType) {
+                'medecin' => $this->redirectToRoute('app_medecin_dashboard'),
+                'patient' => $this->redirectToRoute('app_patient_dashboard'),
+                'aidesoignant' => $this->redirectToRoute('app_aide_soignant_dashboard'),
+                'admin' => $this->redirectToRoute('app_admin_dashboard'),
+                default => $this->redirectToRoute('app_home'),
+            };
         }
 
         return $this->render('security/login.html.twig', [

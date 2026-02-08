@@ -8,7 +8,7 @@
 
 {% block body %}
 {% set navigation = [
-    {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
     {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
     {'name': 'Produits', 'path': path('produit_add'), 'icon': '📦'}
@@ -31,7 +31,7 @@
             <p><strong>Nom :</strong> {{ produit.nom }}</p>
             <p><strong>Catégorie :</strong> {{ produit.categorie }}</p>
             <p><strong>Description :</strong> {{ produit.description }}</p>
-            <p><strong>Prix :</strong> {{ produit.prix|number_format(2, ',', ' ') }} €</p>
+            <p><strong>Prix :</strong> {{ produit.prix|number_format(2, ',', ' ') }} dt</p>
             <p><strong>Stock :</strong> {{ produit.stock }}</p>
             <a href="{{ path('produit_add') }}" class="btn btn--ghost" style="margin-top:16px;">Retour à la liste</a>
         </div>

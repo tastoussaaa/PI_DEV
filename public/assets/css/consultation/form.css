@@ -1,0 +1,63 @@
+/* Consultation form styles - clean and professional */
+.form{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.form__fields{
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:14px;
+}
+.form__field{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.form__label{
+  font-weight:700;
+  font-size:13px;
+  color:var(--text);
+}
+.form__input, .form__select, .form__textarea{
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid rgba(7,19,31,.10);
+  background: #fff;
+  font-size:14px;
+  color:var(--text);
+  box-shadow: var(--shadow2);
+}
+.form__actions{
+  display:flex;
+  gap:12px;
+  justify-content:flex-end;
+  margin-top:12px;
+}
+
+/* Card layout for pages that wrap the form in .portal__card */
+.portal__card{
+  background: #ffffff;
+  border: 1px solid rgba(7,19,31,0.06);
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 6px 18px rgba(7,19,31,0.06);
+}
+
+/* Ensure the form itself stretches inside the card and has a subtle inner spacing */
+.portal__card .form{
+  gap:18px;
+}
+
+/* Make single-column on small screens */
+@media (max-width: 900px){
+  .portal__card{ padding:16px }
+}
+
+@media (max-width: 900px){
+  .form__fields{ grid-template-columns: 1fr }
+  .form__actions{ flex-direction:column; align-items:stretch }
+  .form__actions .btn{ width:100% }
+  .form__actions .btn--primary{ order:2 }
+  .form__actions .btn--ghost{ order:1 }
+}

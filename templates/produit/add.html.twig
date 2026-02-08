@@ -8,7 +8,7 @@
 
 {% block body %}
 {% set navigation = [
-    {'name': 'Dashboard', 'path': path('medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
     {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
     {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
     {'name': 'Produits', 'path': path('produit_add'), 'icon': '📦'}
@@ -19,7 +19,7 @@
     <main class="portal__main">
         <div class="portal__top">
             <div>
-                <h1 class="portal__title">Créer un produit</h1>
+                <h1 class="portal__title">Ajouter produit</h1>
                 <p class="portal__subtitle">Ajoutez un nouveau produit</p>
             </div>
         </div>
@@ -62,6 +62,8 @@
             {{ form_end(form) }}
         </div>
         <div class="box" style="margin-top:24px;">
+
+        
             <h2 class="portal__title" style="margin-bottom:16px;">Produits existants</h2>
             <div style="overflow-x:auto;">
                 <table style="width:100%; border-collapse:collapse;">
@@ -79,7 +81,7 @@
                             <tr style="border-bottom:1px solid #e5e7eb;">
                                 <td style="padding:12px;">{{ p.nom }}</td>
                                 <td style="padding:12px;">{{ p.categorie }}</td>
-                                <td style="padding:12px;">{{ p.prix|number_format(2, ',', ' ') }} €</td>
+                                <td style="padding:12px;">{{ p.prix|number_format(2, ',', ' ') }} dt</td>
                                 <td style="padding:12px;">{{ p.stock }}</td>
                                 <td style="padding:12px;">
                                     <a href="{{ path('produit_show', { id: p.id }) }}" class="btn btn--primary" style="margin-right:8px;">Voir</a>

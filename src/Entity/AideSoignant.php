@@ -24,10 +24,10 @@ class AideSoignant
     #[ORM\Column(length: 255)]
     private ?string $email = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $telephone = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $niveauExperience = null;
 
     #[ORM\Column]
@@ -47,11 +47,47 @@ class AideSoignant
      */
     #[ORM\OneToMany(mappedBy: 'aideSoignant', targetEntity: Mission::class)]
     private Collection $missions;
+    #[ORM\Column(length: 255)]
+    private ?string $mdp = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $adeli = null;
+
+    #[ORM\OneToOne(targetEntity: User::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $user = null;
+
+    #[ORM\Column]
+    private ?bool $isValidated = false;
 
     public function __construct()
     {
         $this->formations = new ArrayCollection();
         $this->missions = new ArrayCollection();
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
+    public function getAdeli(): ?string
+    {
+        return $this->adeli;
+    }
+
+    public function setAdeli(?string $adeli): static
+    {
+        $this->adeli = $adeli;
+
+        return $this;
     }
 
     public function getId(): ?int
@@ -193,6 +229,14 @@ class AideSoignant
             $this->missions->add($mission);
             $mission->setAideSoignant($this);
         }
+    public function getMdp(): ?string
+    {
+        return $this->mdp;
+    }
+
+    public function setMdp(string $mdp): static
+    {
+        $this->mdp = $mdp;
 
         return $this;
     }
@@ -205,6 +249,14 @@ class AideSoignant
                 $mission->setAideSoignant(null);
             }
         }
+    public function isValidated(): ?bool
+    {
+        return $this->isValidated;
+    }
+
+    public function setIsValidated(bool $isValidated): static
+    {
+        $this->isValidated = $isValidated;
 
         return $this;
     }

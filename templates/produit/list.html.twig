@@ -24,13 +24,6 @@
 {% endblock %}
 
 {% block body %}
-{% set navigation = [
-    {'name': 'Dashboard', 'path': path('patient_dashboard'), 'icon': '🏠'},
-    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
-    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
-    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
-] %}
-
 <div class="portal">
     {% include 'side_bar.html.twig' %}
     <main class="portal__main">
@@ -83,7 +76,7 @@
                         <div class="produit-card__body">
                             <h3 class="produit-card__title">{{ p.nom }}</h3>
                             <div class="produit-card__cat">{{ p.categorie }}</div>
-                            <div class="produit-card__price">{{ p.prix|number_format(2, ',', ' ') }} €</div>
+                            <div class="produit-card__price">{{ p.prix|number_format(2, ',', ' ') }} dt</div>
                             <div class="produit-card__stock">Stock : {{ p.stock }}</div>
                             <a href="{{ path('commande_new', { produitId: p.id }) }}" class="btn-commander">Commander</a>
                         </div>

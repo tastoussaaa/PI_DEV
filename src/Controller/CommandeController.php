@@ -23,8 +23,16 @@ class CommandeController extends AbstractController
             ? $commandeRepo->findByDemandeur($user)
             : $commandeRepo->findBy([], ['dateCommande' => 'DESC']);
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+            ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+        ];
+
         return $this->render('commande/index.html.twig', [
             'commandes' => $commandes,
+            'navigation' => $navigation,
         ]);
     }
 
@@ -54,9 +62,16 @@ class CommandeController extends AbstractController
             // Check if enough stock available
             if ($produit->getStock() < $quantite) {
                 $this->addFlash('error', 'Stock insuffisant. Stock disponible: ' . $produit->getStock());
+                $navigation = [
+                    ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+                    ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+                    ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+                    ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+                ];
                 return $this->render('commande/new.html.twig', [
                     'commande' => $commande,
                     'form' => $form->createView(),
+                    'navigation' => $navigation,
                 ]);
             }
             
@@ -69,9 +84,17 @@ class CommandeController extends AbstractController
             return $this->redirectToRoute('commande_index');
         }
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+            ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+        ];
+
         return $this->render('commande/new.html.twig', [
             'commande' => $commande,
             'form' => $form->createView(),
+            'navigation' => $navigation,
         ]);
     }
 
@@ -86,6 +109,17 @@ class CommandeController extends AbstractController
     #[Route('/{id}/edit', name: 'commande_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Commande $commande, EntityManagerInterface $em): Response
     {
+        // Restrict editing to within first 3 hours after order
+        $dateCmd = $commande->getDateCommande();
+        if ($dateCmd) {
+            $now = new \DateTime();
+            $seconds = $now->getTimestamp() - $dateCmd->getTimestamp();
+            if ($seconds > 3 * 3600) {
+                $this->addFlash('error', 'Modification impossible : délai de modification (3 heures) dépassé.');
+                return $this->redirectToRoute('commande_index');
+            }
+        }
+
         // Store original quantity for stock adjustment
         $originalQuantite = $commande->getQuantite();
         
@@ -125,10 +159,21 @@ class CommandeController extends AbstractController
     {
         $token = $request->request->get('_token');
         if ($this->isCsrfTokenValid('delete' . $commande->getId(), $token)) {
+            // Allow deletion (cancellation) only within 24 hours of order
+            $dateCmd = $commande->getDateCommande();
+            if ($dateCmd) {
+                $now = new \DateTime();
+                $seconds = $now->getTimestamp() - $dateCmd->getTimestamp();
+                if ($seconds > 24 * 3600) {
+                    $this->addFlash('error', 'Annulation impossible : délai de 24 heures dépassé.');
+                    return $this->redirectToRoute('commande_index');
+                }
+            }
+
             // Restore stock when command is deleted
             $produit = $commande->getProduit();
             $produit->setStock($produit->getStock() + $commande->getQuantite());
-            
+
             $em->remove($commande);
             $em->flush();
             $this->addFlash('success', 'Commande supprimée.');

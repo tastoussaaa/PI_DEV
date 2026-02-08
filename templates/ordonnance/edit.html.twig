@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Ordonnance{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="portal">
+
+    {% include 'side_bar.html.twig' %}
+
+    <main class="portal__main">
+
+        <header class="portal__header">
+            <h1 class="portal__title">Edit Ordonnance</h1>
+            <p class="portal__subtitle">Update the prescription details.</p>
+        </header>
+
+        <section class="portal__content portal__card">
+
+            {{ form_start(form, {'attr': {'class': 'form'}}) }}
+
+                <div class="form__fields">
+                    {{ form_widget(form) }}
+                </div>
+
+                <div class="form__actions">
+                    <a href="{{ path('Ordonnance_show_all') }}" class="btn btn--ghost" role="button">Cancel</a>
+                    <button type="submit" class="btn btn--primary">Update Ordonnance</button>
+                </div>
+
+            {{ form_end(form) }}
+
+        </section>
+
+    </main>
+
+</div>
+{% endblock %}

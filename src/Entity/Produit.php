@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ProduitRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProduitRepository::class)]
 class Produit
@@ -15,18 +16,41 @@ class Produit
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le nom du produit est obligatoire')]
+    #[Assert\Length(
+        min: 3,
+        max: 255,
+        minMessage: 'Le nom doit contenir au moins 3 caractères',
+        maxMessage: 'Le nom ne peut pas dépasser 255 caractères'
+    )]
     private ?string $nom = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Assert\NotBlank(message: 'La description est obligatoire')]
+    #[Assert\Length(
+        min: 10,
+        minMessage: 'La description doit contenir au moins 10 caractères'
+    )]
     private ?string $description = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank(message: 'Le prix est obligatoire')]
+    #[Assert\Positive(message: 'Le prix doit être positif')]
+    #[Assert\Range(min: 0.01, max: 999999, notInRangeMessage: 'Le prix doit être entre 0.01 et 999999')]
     private ?float $prix = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank(message: 'Le stock est obligatoire')]
+    #[Assert\PositiveOrZero(message: 'Le stock ne peut pas être négatif')]
+    #[Assert\Range(min: 0, max: 100000, notInRangeMessage: 'Le stock doit être entre 0 et 100000')]
     private ?int $stock = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'La catégorie est obligatoire')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'La catégorie ne peut pas dépasser 255 caractères'
+    )]
     private ?string $categorie = null;
 
     #[ORM\Column(length: 255, nullable: true)]

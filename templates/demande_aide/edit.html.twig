@@ -1,0 +1,570 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier la demande d'aide{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        #map {
+            height: 400px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border: 2px solid #ddd;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00796B;
+            box-shadow: 0 0 0 3px rgba(0, 121, 107, 0.1);
+        }
+        
+        .form-group input.error,
+        .form-group textarea.error,
+        .form-group select.error {
+            border-color: var(--danger) !important;
+            background-color: var(--muted-danger-bg);
+        }
+        
+        .form-group input.success,
+        .form-group textarea.success,
+        .form-group select.success {
+            border-color: #00796B;
+        }
+        
+        .error-message {
+            display: none;
+            color: var(--danger);
+            font-size: 12px;
+            margin-top: 6px;
+            padding: 8px;
+            background: var(--muted-danger-bg);
+            border-left: 3px solid var(--danger);
+            border-radius: 3px;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .error-message::before {
+            content: "❌ ";
+            font-weight: bold;
+        }
+        
+        .success-message {
+            display: none;
+            color: var(--green);
+            font-size: 12px;
+            margin-top: 6px;
+            padding: 8px;
+            background: rgba(46,125,50,0.06);
+            border-left: 3px solid var(--green);
+            border-radius: 3px;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        .success-message::before {
+            content: "✅ ";
+            font-weight: bold;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+        
+        #submitBtn {
+            padding: 12px 24px;
+            background: #B2DFDB;
+            color: #00695C;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        
+        #submitBtn:disabled {
+            background: #BDBDBD;
+            cursor: not-allowed;
+        }
+        
+        #submitBtn:hover:not(:disabled) {
+            background: #80DEEA;
+        }
+        
+        .btn--ghost {
+            background: transparent;
+            color: rgba(7,19,31,0.88);
+            border: 2px solid rgba(7,19,31,0.06);
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn--ghost:hover { border-color: rgba(7,19,31,0.12); background: #f5f5f5 }
+
+        .map-info {
+            background: rgba(46,125,50,0.04);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid var(--primary);
+            display: none;
+        }
+        
+        .map-info.active {
+            display: block;
+        }
+        
+        .map-info p {
+            margin: 4px 0;
+            font-size: 13px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+
+    {% set navigation = [
+        { path: '/demandes', name: 'Mes demandes', icon: '📋' },
+        { path: '/demande/aide', name: 'Créer une demande d\'aide', icon: '➕' }
+    ] %}
+
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+
+    <main class="portal__main" style="padding: 32px;">
+        <div class="portal__top" style="text-align: center; margin-bottom: 48px; display: block !important; justify-content: center !important;">
+            <div>
+                <h1 class="portal__title" style="margin: 0 auto 12px auto;">Modifier votre demande d'aide</h1>
+                <p class="portal__subtitle" style="margin: 0 auto;">Mettez à jour les informations de votre demande</p>
+            </div>
+        </div>
+
+        {% for type, messages in app.flashes %}
+            {% for message in messages %}
+                <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; {% if type == 'success' %}background: #d4edda; color: #155724; border: 1px solid #c3e6cb;{% else %}background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        <div class="box" style="max-width: 900px; margin: 0 auto;">
+            <form id="demandeForm" method="POST" action="{{ path('app_demande_aide_edit', {id: demande.id}) }}" novalidate>
+                <!-- Type de demande -->
+                <div class="form-group">
+                    <label for="typeDemande">Type de demande *</label>
+                    <select id="typeDemande" name="demande_aide[typeDemande]" required>
+                        <option value="">Sélectionner...</option>
+                        <option value="URGENT" {% if demande.typeDemande == 'URGENT' %}selected{% endif %}>Urgent</option>
+                        <option value="NORMAL" {% if demande.typeDemande == 'NORMAL' %}selected{% endif %}>Normal</option>
+                        <option value="ECONOMIE" {% if demande.typeDemande == 'ECONOMIE' %}selected{% endif %}>Économie</option>
+                    </select>
+                    <div class="error-message"></div>
+                    <div class="success-message">Sélectionné</div>
+                </div>
+
+                <!-- Description du besoin -->
+                <div class="form-group">
+                    <label for="descriptionBesoin">Description du besoin * <span class="char-count">({{ demande.descriptionBesoin|length }}/5000)</span></label>
+                    <textarea id="descriptionBesoin" name="demande_aide[descriptionBesoin]" minlength="10" maxlength="5000" required rows="4">{{ demande.descriptionBesoin }}</textarea>
+                    <div class="error-message"></div>
+                    <div class="success-message">Valide</div>
+                </div>
+
+                <!-- Type de patient -->
+                <div class="form-group">
+                    <label for="typePatient">Type de patient *</label>
+                    <select id="typePatient" name="demande_aide[typePatient]" required>
+                        <option value="">Sélectionner...</option>
+                        <option value="PERSONNE_AGEE" {% if demande.typePatient == 'PERSONNE_AGEE' %}selected{% endif %}>Personne âgée</option>
+                        <option value="ALZHEIMER" {% if demande.typePatient == 'ALZHEIMER' %}selected{% endif %}>Alzheimer</option>
+                        <option value="HANDICAP" {% if demande.typePatient == 'HANDICAP' %}selected{% endif %}>Handicap</option>
+                        <option value="AUTRE" {% if demande.typePatient == 'AUTRE' %}selected{% endif %}>Autre</option>
+                    </select>
+                    <div class="error-message"></div>
+                    <div class="success-message">Sélectionné</div>
+                </div>
+
+                <!-- Sexe -->
+                <div class="form-group">
+                    <label for="sexe">Sexe de l'aide soignant *</label>
+                    <select id="sexe" name="demande_aide[sexe]" required>
+                        <option value="">Sélectionner...</option>
+                        <option value="F" {% if demande.sexe == 'F' %}selected{% endif %}>Femme</option>
+                        <option value="M" {% if demande.sexe == 'M' %}selected{% endif %}>Homme</option>
+                        <option value="N" {% if demande.sexe == 'N' %}selected{% endif %}>Peu importe</option>
+                    </select>
+                    <div class="error-message"></div>
+                    <div class="success-message">Sélectionné</div>
+                </div>
+
+                <!-- Date de début -->
+                <div class="form-group">
+                    <label for="dateDebutSouhaitee">Date de début souhaitée *</label>
+                    <input type="datetime-local" id="dateDebutSouhaitee" name="demande_aide[dateDebutSouhaitee]" required value="{{ demande.dateDebutSouhaitee ? demande.dateDebutSouhaitee|date('Y-m-d\\TH:i') : '' }}">
+                    <div class="error-message"></div>
+                    <div class="success-message">Valide</div>
+                </div>
+
+                <!-- Date de fin -->
+                <div class="form-group">
+                    <label for="dateFinSouhaitee">Date de fin souhaitée</label>
+                    <input type="datetime-local" id="dateFinSouhaitee" name="demande_aide[dateFinSouhaitee]" value="{{ demande.dateFinSouhaitee ? demande.dateFinSouhaitee|date('Y-m-d\\TH:i') : '' }}">
+                    <div class="error-message"></div>
+                    <div class="success-message">Valide</div>
+                </div>
+
+                <!-- Budget -->
+                <div class="form-group">
+                    <label for="budgetMax">Budget maximum (DT) *</label>
+                    <input type="number" id="budgetMax" name="demande_aide[budgetMax]" min="0" max="100000" required value="{{ demande.budgetMax }}">
+                    <div class="error-message"></div>
+                    <div class="success-message">Valide</div>
+                </div>
+
+                <!-- Besoin certifié -->
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="besoinCertifie" name="demande_aide[besoinCertifie]" {% if demande.besoinCertifie %}checked{% endif %}>
+                    <label for="besoinCertifie">Besoin d'un aidant certifié</label>
+                </div>
+
+                <!-- Lieu -->
+                <div class="form-group">
+                    <label for="lieu">Nom du lieu (optionnel)</label>
+                    <input type="text" id="lieu" name="demande_aide[lieu]" maxlength="255" value="{{ demande.lieu }}">
+                    <div class="error-message"></div>
+                    <div class="success-message">Valide</div>
+                </div>
+
+                <!-- Localisation -->
+                <div class="form-group">
+                    <label>📍 Sélectionnez votre localisation *</label>
+                    <p style="font-size: 13px; color: var(--muted); margin: 8px 0;">Cliquez sur la carte pour changer votre emplacement</p>
+                    <div id="map"></div>
+                    <div class="map-info" id="mapInfo">
+                        <p><strong>Localisation :</strong></p>
+                        <p id="mapCoords" style="color: var(--primary); font-weight: bold;">Sélectionnez sur la carte</p>
+                    </div>
+                    <div class="error-message" id="locationError" style="margin-top: 8px;">Veuillez sélectionner une localisation</div>
+                </div>
+
+                <!-- Champs cachés -->
+                <input type="hidden" id="latitude" name="demande_aide[latitude]" value="{{ demande.latitude }}">
+                <input type="hidden" id="longitude" name="demande_aide[longitude]" value="{{ demande.longitude }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('demande_aide') }}">
+
+                <!-- Boutons -->
+                <div class="button-group">
+                    <button type="submit" id="submitBtn">Enregistrer les modifications</button>
+                    <a href="{{ path('app_demandes_index') }}" class="btn btn--ghost">Annuler</a>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+    const validations = {
+        typeDemande: {
+            required: true,
+            validate: (val) => ['URGENT', 'NORMAL', 'ECONOMIE'].includes(val),
+            errorMsg: 'Veuillez sélectionner un type'
+        },
+        descriptionBesoin: {
+            required: true,
+            validate: (val) => val.length >= 10 && val.length <= 5000,
+            errorMsg: (val) => {
+                if (!val) return 'Obligatoire';
+                if (val.length < 10) return `Min 10 caractères (${val.length}/10)`;
+                return 'Valide';
+            }
+        },
+        typePatient: {
+            required: true,
+            validate: (val) => ['PERSONNE_AGEE', 'ALZHEIMER', 'HANDICAP', 'AUTRE'].includes(val),
+            errorMsg: 'Veuillez sélectionner'
+        },
+        sexe: {
+            required: true,
+            validate: (val) => ['M', 'F', 'N'].includes(val),
+            errorMsg: 'Veuillez sélectionner'
+        },
+        dateDebutSouhaitee: {
+            required: true,
+            validate: (val) => {
+                if (!val) return false;
+                const selectedDateTime = new Date(val);
+                const now = new Date();
+                const typeDemande = document.getElementById('typeDemande').value;
+                
+                if (typeDemande === 'URGENT') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const selectedDate = new Date(val);
+                    selectedDate.setHours(0, 0, 0, 0);
+                    
+                    if (selectedDate.getTime() !== today.getTime()) return false;
+                    
+                    if (selectedDateTime < now) return false;
+                } else {
+                    const min24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                    if (selectedDateTime < min24h) return false;
+                }
+                
+                return true;
+            },
+            errorMsg: (val) => {
+                if (!val) return 'Obligatoire';
+                const selectedDateTime = new Date(val);
+                const now = new Date();
+                const typeDemande = document.getElementById('typeDemande').value;
+                
+                if (typeDemande === 'URGENT') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const selectedDate = new Date(val);
+                    selectedDate.setHours(0, 0, 0, 0);
+                    
+                    if (selectedDate.getTime() !== today.getTime()) {
+                        return 'Urgent: doit être aujourd\'hui';
+                    }
+                    
+                    if (selectedDateTime < now) {
+                        return 'Cette heure est déjà passée, choisir plus tard';
+                    }
+                } else {
+                    const min24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                    if (selectedDateTime < min24h) {
+                        return 'La date/heure doit être au minimum 24h après maintenant';
+                    }
+                }
+                
+                return 'Valide';
+            }
+        },
+        dateFinSouhaitee: {
+            required: false,
+            validate: (val) => {
+                if (!val) return true;
+                const dateDebut = document.getElementById('dateDebutSouhaitee').value;
+                if (!dateDebut) return true;
+                const dateDebutDt = new Date(dateDebut);
+                const dateFinDt = new Date(val);
+                return dateFinDt > dateDebutDt;
+            },
+            errorMsg: (val) => {
+                if (!val) return 'Optionnel';
+                const dateDebut = document.getElementById('dateDebutSouhaitee').value;
+                if (!dateDebut) return 'Optionnel';
+                const dateDebutDt = new Date(dateDebut);
+                const dateFinDt = new Date(val);
+                return dateFinDt > dateDebutDt ? 'Valide' : 'La date/heure de fin doit être après celle de début';
+            }
+        },
+        budgetMax: {
+            required: true,
+            validate: (val) => {
+                if (!val) return false;
+                const num = parseInt(val);
+                return num >= 0 && num <= 100000;
+            },
+            errorMsg: (val) => {
+                if (!val) return 'Obligatoire';
+                const num = parseInt(val);
+                if (num < 0) return 'Le budget doit être positif';
+                if (num > 100000) return 'Le budget ne peut pas dépasser 100 000 DT';
+                return 'Valide';
+            }
+        },
+        lieu: {
+            required: false,
+            validate: (val) => val.length <= 255,
+            errorMsg: 'Max 255 caractères'
+        }
+    };
+
+    const formFields = Object.keys(validations).map(id => document.getElementById(id)).filter(el => el);
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const submitBtn = document.getElementById('submitBtn');
+    const locationError = document.getElementById('locationError');
+
+    // Initialiser la carte
+    const map = L.map('map').setView([{{ demande.latitude }}, {{ demande.longitude }}], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19
+    }).addTo(map);
+
+    let marker = null;
+
+    function addMarker(lat, lng) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng]).addTo(map);
+        latInput.value = lat.toFixed(6);
+        lngInput.value = lng.toFixed(6);
+        document.getElementById('mapCoords').textContent = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+        document.getElementById('mapInfo').classList.add('active');
+        locationError.classList.remove('show');
+        checkValidity();
+    }
+
+    // Afficher le marker existant
+    addMarker({{ demande.latitude }}, {{ demande.longitude }});
+
+    map.on('click', e => addMarker(e.latlng.lat, e.latlng.lng));
+
+    // Validation
+    function validateField(fieldId, showError = true) {
+        const field = document.getElementById(fieldId);
+        if (!field) return true;
+
+        const rules = validations[fieldId];
+        const value = field.value.trim();
+        const isValid = !rules.required || value ? rules.validate(value) : !rules.required;
+
+        const errorDiv = field.parentElement.querySelector('.error-message');
+        const successDiv = field.parentElement.querySelector('.success-message');
+
+        if (!isValid && showError) {
+            field.classList.add('error');
+            field.classList.remove('success');
+            const msg = typeof rules.errorMsg === 'function' ? rules.errorMsg(value) : rules.errorMsg;
+            errorDiv.textContent = msg;
+            errorDiv.classList.add('show');
+            if (successDiv) successDiv.classList.remove('show');
+        } else if (isValid && value) {
+            field.classList.remove('error');
+            field.classList.add('success');
+            errorDiv.classList.remove('show');
+            if (successDiv) successDiv.classList.add('show');
+        } else {
+            field.classList.remove('error', 'success');
+            errorDiv.classList.remove('show');
+            if (successDiv) successDiv.classList.remove('show');
+        }
+
+        return isValid;
+    }
+
+    // Char count
+    const descField = document.getElementById('descriptionBesoin');
+    descField.addEventListener('input', function() {
+        document.querySelector('.char-count').textContent = `(${this.value.length}/5000)`;
+        if (this.classList.contains('error')) validateField('descriptionBesoin', true);
+    });
+
+    // Événements
+    formFields.forEach(field => {
+        field.addEventListener('blur', () => {
+            validateField(field.id, true);
+            checkValidity();
+        });
+        field.addEventListener('change', () => {
+            validateField(field.id, true);
+            checkValidity();
+        });
+    });
+
+    function checkValidity() {
+        let valid = latInput.value && lngInput.value;
+        formFields.forEach(f => {
+            const rules = validations[f.id];
+            const val = f.value.trim();
+            if (!rules.required && !val) return;
+            if (!rules.validate(val)) valid = false;
+        });
+    }
+
+    // Submit
+    document.getElementById('demandeForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        let hasErrors = false;
+        let firstErrorField = null;
+        
+        // Valider tous les champs
+        formFields.forEach(f => {
+            if (!validateField(f.id, true)) {
+                hasErrors = true;
+                if (!firstErrorField) firstErrorField = f;
+            }
+        });
+        
+        // Vérifier la localisation
+        if (!latInput.value || !lngInput.value) {
+            locationError.classList.add('show');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('map');
+        } else {
+            locationError.classList.remove('show');
+        }
+        
+        // Si erreur, scroller vers le premier champ avec erreur
+        if (hasErrors && firstErrorField) {
+            firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Si pas d'erreur, soumettre
+        if (!hasErrors) {
+            e.target.submit();
+        }
+    });
+
+    checkValidity();
+</script>
+
+{% endblock %}

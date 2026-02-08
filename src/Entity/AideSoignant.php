@@ -55,6 +55,9 @@ class AideSoignant
     #[ORM\Column]
     private ?bool $isValidated = false;
 
+    #[ORM\Column]
+    private bool $isActive = true;
+
     public function __construct()
     {
         $this->formations = new ArrayCollection();
@@ -217,6 +220,18 @@ class AideSoignant
     public function setIsValidated(bool $isValidated): static
     {
         $this->isValidated = $isValidated;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
 
         return $this;
     }

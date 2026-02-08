@@ -46,6 +46,9 @@ class Patient
     #[ORM\JoinColumn(nullable: true)]
     private ?User $user = null;
 
+    #[ORM\Column]
+    private bool $isActive = true;
+
     public function __construct()
     {
         $this->consultations = new ArrayCollection();
@@ -178,6 +181,18 @@ class Patient
     public function setMdp(string $mdp): static
     {
         $this->mdp = $mdp;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
 
         return $this;
     }

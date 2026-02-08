@@ -23,6 +23,7 @@ security:
                 login_path: app_login
                 check_path: app_login
                 success_handler: App\Security\AuthenticationSuccessHandler
+                failure_handler: App\Security\AuthenticationFailureHandler
                 enable_csrf: true
             logout:
                 path: app_logout
@@ -50,7 +51,7 @@ security:
         - { path: ^/patient, roles: ROLE_USER }
         
         # AideSoignant routes
-        - { path: ^/aide_soignant, roles: ROLE_USER }
+        - { path: ^/aide-soignant, roles: ROLE_USER }
         
         # Require authentication for most routes
         - { path: ^/, roles: ROLE_USER }

@@ -66,18 +66,6 @@ class AideSoignant
         $this->missions = new ArrayCollection();
     }
 
-    public function getUser(): ?User
-    {
-        return $this->user;
-    }
-
-    public function setUser(?User $user): static
-    {
-        $this->user = $user;
-
-        return $this;
-    }
-
     public function getAdeli(): ?string
     {
         return $this->adeli;
@@ -229,6 +217,9 @@ class AideSoignant
             $this->missions->add($mission);
             $mission->setAideSoignant($this);
         }
+        return $this;
+    }
+
     public function getMdp(): ?string
     {
         return $this->mdp;
@@ -249,6 +240,9 @@ class AideSoignant
                 $mission->setAideSoignant(null);
             }
         }
+        return $this;
+    }
+
     public function isValidated(): ?bool
     {
         return $this->isValidated;

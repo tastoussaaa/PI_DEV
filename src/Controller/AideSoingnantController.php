@@ -44,6 +44,7 @@ final class AideSoingnantController extends BaseController
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
             ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
         
         return $this->render('aide_soingnant/aideSoignantDashboard.html.twig', [
@@ -73,6 +74,7 @@ final class AideSoingnantController extends BaseController
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
             ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
         return $this->render('formation/formations.html.twig', [
@@ -88,17 +90,33 @@ final class AideSoingnantController extends BaseController
     #[Route('/aidesoingnant/missions', name: 'aidesoingnant_missions')]
     public function missions(EntityManagerInterface $entityManager): Response
     {
-        // Get all missions from database
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        // Get all missions (both EN_ATTENTE and processed ones)
         $missions = $entityManager->getRepository(Mission::class)->findAll();
+        
+        // Sort by most recent first
+        usort($missions, function($a, $b) {
+            return $b->getId() <=> $a->getId();
+        });
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
 
         return $this->render('mission/index.html.twig', [
-            'missions' => $missions
+            'missions' => $missions,
+            'navigation' => $navigation,
         ]);
     }
 
     #[Route('/aidesoingnant/missions/accept/{id}', name: 'aidesoingnant_missions_accept')]
-    public function acceptMission(int $id, DemandeAideRepository $demandeAideRepository, AideSoignantRepository $aideSoignantRepository, EntityManagerInterface $entityManager): Response
+    public function acceptMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
@@ -109,11 +127,10 @@ final class AideSoingnantController extends BaseController
             throw $this->createNotFoundException('Mission not found');
         }
 
-        // Get current aide-soignant (assuming authenticated user)
-        $user = $this->getUser();
-        $aideSoignant = $aideSoignantRepository->findOneBy(['email' => $user->getUserIdentifier()]);
+        // Get current aide-soignant from UserService
+        $aideSoignant = $this->getCurrentAideSoignant();
         if (!$aideSoignant) {
-            throw $this->createAccessDeniedException('Aide-soignant not found');
+            throw $this->createAccessDeniedException('You must be an aide soignant to accept missions');
         }
 
         // Link aide-soignant to mission and update status
@@ -123,12 +140,15 @@ final class AideSoingnantController extends BaseController
 
         $entityManager->flush();
 
+        $this->addFlash('success', 'Mission acceptée avec succès!');
         return $this->redirectToRoute('aidesoingnant_missions');
     }
 
     #[Route('/aidesoingnant/missions/refuse/{id}', name: 'aidesoingnant_missions_refuse')]
     public function refuseMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
@@ -139,25 +159,41 @@ final class AideSoingnantController extends BaseController
             throw $this->createNotFoundException('Mission not found');
         }
 
-        // For demo purposes, no aide-soignant needed - just update status
+        // Verify user is aide soignant
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to refuse missions');
+        }
+
+        // Update mission and demande status
         $mission->setStatutMission('REFUSED');
         $demande->setStatut('REFUSED');
 
         $entityManager->flush();
 
+        $this->addFlash('success', 'Mission refusée avec succès.');
         return $this->redirectToRoute('aidesoingnant_missions');
     }
 
     #[Route('/aidesoingnant/missions/details/{id}', name: 'aidesoingnant_missions_details')]
     public function showMission(int $id, DemandeAideRepository $demandeAideRepository): Response
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
         }
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
+
         return $this->render('mission/show.html.twig', [
-            'demande' => $demande
+            'demande' => $demande,
+            'navigation' => $navigation,
         ]);
     }
 

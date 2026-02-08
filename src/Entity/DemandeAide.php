@@ -83,6 +83,9 @@ class DemandeAide
     #[Assert\Choice(choices: ['M', 'F', 'N'], message: 'Veuillez sélectionner un sexe valide')]
     private ?string $sexe = null;
 
+    #[ORM\Column(length: 255, nullable: false)]
+    private ?string $email = null;
+
     #[ORM\OneToMany(mappedBy: "demandeAide", targetEntity: Mission::class, cascade: ['remove'])]
     private Collection $missions;
 
@@ -291,5 +294,16 @@ class DemandeAide
     public function __toString(): string
     {
         return $this->typeDemande . ' - ' . $this->descriptionBesoin;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): static
+    {
+        $this->email = $email;
+        return $this;
     }
 }

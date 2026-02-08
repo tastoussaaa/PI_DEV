@@ -23,6 +23,7 @@ security:
                 login_path: app_login
                 check_path: app_login
                 success_handler: App\Security\AuthenticationSuccessHandler
+                failure_handler: App\Security\AuthenticationFailureHandler
                 enable_csrf: true
             logout:
                 path: app_logout

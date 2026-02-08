@@ -21,7 +21,7 @@ final class AideSoingnantController extends BaseController
         parent::__construct($userService);
     }
 
-    #[Route('/aidesoingnant/dashboard', name: 'app_aide_soignant_dashboard')]
+    #[Route('/aide-soignant/dashboard', name: 'app_aide_soignant_dashboard')]
     public function dashboard(): Response
     {
         // Ensure user is authenticated
@@ -54,7 +54,7 @@ final class AideSoingnantController extends BaseController
         ]);
     }
 
-    #[Route('/aidesoignant/formations', name: 'aidesoignant_formations')]
+    #[Route('/aide-soignant/formations', name: 'aidesoignant_formations')]
     public function formations(Request $request, FormationRepository $formationRepository): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');

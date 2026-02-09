@@ -248,4 +248,62 @@ final class AideSoingnantController extends BaseController
 
         return $this->redirectToRoute('aidesoingnant_missions');
     }
+
+    #[Route('/aide-soignant/formation/{id}/apply', name: 'aidesoingnant_formation_apply', methods: ['POST'])]
+    public function applyForFormation(int $id, FormationRepository $formationRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $formation = $formationRepository->find($id);
+        if (!$formation) {
+            throw $this->createNotFoundException('Formation not found');
+        }
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to apply for formations');
+        }
+
+        // Check if already applied
+        if ($aideSoignant->getFormations()->contains($formation)) {
+            $this->addFlash('warning', 'Vous avez déjà postulé à cette formation.');
+            return $this->redirectToRoute('aidesoignant_formations');
+        }
+
+        // Add aide soignant to formation
+        $aideSoignant->addFormation($formation);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Vous avez postulé à la formation avec succès!');
+        return $this->redirectToRoute('aidesoignant_formations');
+    }
+
+    #[Route('/aide-soignant/formation/{id}/withdraw', name: 'aidesoingnant_formation_withdraw', methods: ['POST'])]
+    public function withdrawFromFormation(int $id, FormationRepository $formationRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $formation = $formationRepository->find($id);
+        if (!$formation) {
+            throw $this->createNotFoundException('Formation not found');
+        }
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to withdraw from formations');
+        }
+
+        // Check if applied
+        if (!$aideSoignant->getFormations()->contains($formation)) {
+            $this->addFlash('warning', 'Vous n\'avez pas postulé à cette formation.');
+            return $this->redirectToRoute('aidesoignant_formations');
+        }
+
+        // Remove aide soignant from formation
+        $aideSoignant->removeFormation($formation);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Vous avez retiré votre candidature avec succès!');
+        return $this->redirectToRoute('aidesoignant_formations');
+    }
 }

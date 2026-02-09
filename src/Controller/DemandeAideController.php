@@ -21,13 +21,18 @@ final class DemandeAideController extends BaseController
     }
 
     #[Route('/demandes', name: 'app_demandes_index', methods: ['GET'])]
-    public function list(DemandeAideRepository $demandeAideRepository): Response
+    public function list(Request $request, DemandeAideRepository $demandeAideRepository): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
+        // Initialize variables
+        $search = $request->query->get('search', '');
+        $sortBy = $request->query->get('sort_by', 'dateCreation');
+        $sortOrder = $request->query->get('sort_order', 'desc');
+
         $user = $this->getUser();
         $demandesAide = [];
-        
+
         // Get only this patient's demandes
         if ($user) {
             try {
@@ -37,14 +42,61 @@ final class DemandeAideController extends BaseController
                     $de = strtolower((string) $d->getEmail());
                     return $de !== '' && strcasecmp($de, $email) === 0;
                 });
-                
-                // Sort by dateCreation desc
-                usort($demandesAide, fn($a, $b) => $b->getDateCreation() <=> $a->getDateCreation());
+
+                // Apply search filter with validation based on sort_by
+                if (!empty($search)) {
+                    $demandesAide = array_filter($demandesAide, function($d) use ($search, $sortBy) {
+                        $searchLower = strtolower($search);
+
+                        switch ($sortBy) {
+                            case 'dateCreation':
+                                // Validate date format (YYYY-MM-DD or DD/MM/YYYY)
+                                if (!preg_match('/^\d{4}-\d{2}-\d{2}$|^\d{2}\/\d{2}\/\d{4}$/', $search)) {
+                                    return false;
+                                }
+                                // For date search, we search in date fields
+                                $dateStr = $d->getDateCreation() ? $d->getDateCreation()->format('Y-m-d') : '';
+                                return stripos($dateStr, $search) !== false;
+
+                            case 'budgetMax':
+                                // Validate integer
+                                if (!is_numeric($search) || intval($search) != $search) {
+                                    return false;
+                                }
+                                return $d->getBudgetMax() == intval($search);
+
+                            case 'typeDemande':
+                                return stripos($d->getTypeDemande(), $searchLower) !== false;
+
+                            case 'statut':
+                                return stripos($d->getStatut(), $searchLower) !== false;
+
+                            default:
+                                // General search across multiple fields
+                                return stripos($d->getDescriptionBesoin(), $searchLower) !== false ||
+                                       stripos($d->getTypeDemande(), $searchLower) !== false ||
+                                       stripos($d->getTypePatient(), $searchLower) !== false ||
+                                       stripos($d->getStatut(), $searchLower) !== false;
+                        }
+                    });
+                }
+
+                // Apply sorting
+                usort($demandesAide, function($a, $b) use ($sortBy, $sortOrder) {
+                    $valueA = $this->getSortValue($a, $sortBy);
+                    $valueB = $this->getSortValue($b, $sortBy);
+
+                    if ($sortOrder === 'asc') {
+                        return $valueA <=> $valueB;
+                    } else {
+                        return $valueB <=> $valueA;
+                    }
+                });
             } catch (\Exception $e) {
                 // User filtering error, skip
             }
         }
-        
+
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
@@ -54,11 +106,58 @@ final class DemandeAideController extends BaseController
             ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
             ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋']
         ];
-        
+
+        // Pagination
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = 10;
+        $totalDemandes = count($demandesAide);
+        $totalPages = ceil($totalDemandes / $perPage);
+        $offset = ($page - 1) * $perPage;
+        $paginatedDemandes = array_slice($demandesAide, $offset, $perPage);
+
+        // Search history
+        $session = $request->getSession();
+        $searchHistory = $session->get('search_history', []);
+        if (!empty($search) && !in_array($search, $searchHistory)) {
+            array_unshift($searchHistory, $search);
+            $searchHistory = array_slice($searchHistory, 0, 5); // Keep last 5
+            $session->set('search_history', $searchHistory);
+        }
+
+        // Handle AJAX request
+        if ($request->isXmlHttpRequest()) {
+            return $this->render('demande_aide/_demandes_list.html.twig', [
+                'demandesAide' => $paginatedDemandes,
+                'search' => $search,
+            ]);
+        }
+
         return $this->render('demande_aide/index.html.twig', [
-            'demandesAide' => $demandesAide,
+            'demandesAide' => $paginatedDemandes,
             'navigation' => $navigation,
+            'search' => $search,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'search_history' => $searchHistory,
         ]);
+    }
+
+    private function getSortValue($demande, $sortBy)
+    {
+        switch ($sortBy) {
+            case 'dateCreation':
+                return $demande->getDateCreation() ? $demande->getDateCreation()->getTimestamp() : 0;
+            case 'typeDemande':
+                return $demande->getTypeDemande();
+            case 'statut':
+                return $demande->getStatut();
+            case 'budgetMax':
+                return $demande->getBudgetMax() ?? 0;
+            default:
+                return $demande->getDateCreation() ? $demande->getDateCreation()->getTimestamp() : 0;
+        }
     }
 
     #[Route('/demande/aide', name: 'app_demande_aide', methods: ['GET', 'POST'])]
@@ -132,25 +231,24 @@ final class DemandeAideController extends BaseController
                     ]);
                 }
                 
-                // Enregistrer en base de données
+                // Enregistrer d'abord la demande d'aide
                 $entityManager->persist($demandeAide);
                 $entityManager->flush();
-                
-                // Create a Mission for aide soignants
+
+                // Créer automatiquement une mission pour cette demande
                 $mission = new Mission();
                 $mission->setDemandeAide($demandeAide);
-                if (!empty($demandeAideData['dateDebutSouhaitee'])) {
-                    $mission->setDateDebut(new \DateTime($demandeAideData['dateDebutSouhaitee']));
-                }
-                if (!empty($demandeAideData['dateFinSouhaitee'])) {
-                    $mission->setDateFin(new \DateTime($demandeAideData['dateFinSouhaitee']));
-                }
                 $mission->setStatutMission('EN_ATTENTE');
-                $mission->setPrixFinal(0); // Default price, will be proposed by aide soignant
-                
+                $mission->setPrixFinal(0);
+                $mission->setNote(null);
+                $mission->setCommentaire(null);
+                $mission->setDateDebut($demandeAide->getDateDebutSouhaitee());
+                $mission->setDateFin($demandeAide->getDateFinSouhaitee());
+
+                // Enregistrer la mission
                 $entityManager->persist($mission);
                 $entityManager->flush();
-                
+
                 $this->addFlash('success', 'Votre demande d\'aide a été enregistrée avec succès !');
                 return $this->redirectToRoute('app_demandes_index');
                 

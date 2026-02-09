@@ -7,6 +7,7 @@ use App\Repository\MedecinRepository;
 use App\Repository\AideSoignantRepository;
 use App\Repository\PatientRepository;
 use App\Repository\ConsultationRepository;
+use App\Repository\ProduitRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,7 +16,12 @@ use App\Entity\Formation;
 use App\Entity\Medecin;
 use App\Entity\AideSoignant;
 use App\Entity\Patient;
+use App\Entity\Produit;
+use App\Form\ProduitType;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 final class AdminController extends AbstractController
 {
@@ -89,6 +95,7 @@ final class AdminController extends AbstractController
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
             ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
         ];
 
         return $this->render('admin/dashboard.html.twig', [
@@ -378,5 +385,151 @@ final class AdminController extends AbstractController
 
         $this->addFlash('success', "Le profil du patient '{$patient->getFullName()}' a été supprimé.");
         return $this->redirectToRoute('app_admin_dashboard');
+    }
+
+    // Gestion des produits
+    #[Route('/admin/produits', name: 'admin_produits')]
+    public function produits(ProduitRepository $produitRepository): Response
+    {
+        $produits = $produitRepository->findAll();
+
+        $navigation = [
+            ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
+        ];
+
+        return $this->render('admin/produits.html.twig', [
+            'produits' => $produits,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/produits/add', name: 'admin_produit_add', methods: ['GET', 'POST'])]
+    public function addProduit(Request $request, EntityManagerInterface $em, SluggerInterface $slugger): Response
+    {
+        $produit = new Produit();
+        $form = $this->createForm(ProduitType::class, $produit);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            if ($form->isValid()) {
+                try {
+                    $imageFile = $form->get('image')->getData();
+                    if ($imageFile) {
+                        $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
+                        $safeFilename = $slugger->slug($originalFilename);
+                        $newFilename = $safeFilename . '-' . uniqid() . '.' . $imageFile->guessExtension();
+                        $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/produits';
+                        if (!is_dir($uploadDir)) {
+                            mkdir($uploadDir, 0755, true);
+                        }
+                        try {
+                            $imageFile->move($uploadDir, $newFilename);
+                            $produit->setImageName($newFilename);
+                        } catch (FileException $e) {
+                            $this->addFlash('error', 'Erreur lors du téléversement de l\'image : ' . $e->getMessage());
+                            return $this->redirectToRoute('admin_produit_add');
+                        }
+                    }
+                    $em->persist($produit);
+                    $em->flush();
+
+                    $this->addFlash('success', 'Produit ajouté avec succès !');
+                    return $this->redirectToRoute('admin_produits');
+                } catch (\Exception $e) {
+                    $this->addFlash('error', 'Erreur lors de l\'ajout du produit : ' . $e->getMessage());
+                }
+            } else {
+                // Form errors - they will be displayed in the template
+                $errors = $form->getErrors(true);
+                foreach ($errors as $error) {
+                    $this->addFlash('error', $error->getMessage());
+                }
+            }
+        }
+
+        $navigation = [
+            ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
+        ];
+
+        return $this->render('admin/produit_add.html.twig', [
+            'form' => $form->createView(),
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/produits/{id}/edit', name: 'admin_produit_edit', methods: ['GET', 'POST'])]
+    public function editProduit(Request $request, Produit $produit, EntityManagerInterface $em, SluggerInterface $slugger): Response
+    {
+        $form = $this->createForm(ProduitType::class, $produit);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            if ($form->isValid()) {
+                try {
+                    $imageFile = $form->get('image')->getData();
+                    if ($imageFile) {
+                        $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
+                        $safeFilename = $slugger->slug($originalFilename);
+                        $newFilename = $safeFilename . '-' . uniqid() . '.' . $imageFile->guessExtension();
+                        $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/produits';
+                        if (!is_dir($uploadDir)) {
+                            mkdir($uploadDir, 0755, true);
+                        }
+                        try {
+                            $imageFile->move($uploadDir, $newFilename);
+                            $produit->setImageName($newFilename);
+                        } catch (FileException $e) {
+                            $this->addFlash('error', 'Erreur lors du téléversement de l\'image : ' . $e->getMessage());
+                            return $this->redirectToRoute('admin_produit_edit', ['id' => $produit->getId()]);
+                        }
+                    }
+                    $em->flush();
+                    $this->addFlash('success', 'Produit mis à jour avec succès !');
+                    return $this->redirectToRoute('admin_produits');
+                } catch (\Exception $e) {
+                    $this->addFlash('error', 'Erreur lors de la mise à jour du produit : ' . $e->getMessage());
+                }
+            } else {
+                // Form errors - they will be displayed in the template
+                $errors = $form->getErrors(true);
+                foreach ($errors as $error) {
+                    $this->addFlash('error', $error->getMessage());
+                }
+            }
+        }
+
+        $navigation = [
+            ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
+        ];
+
+        return $this->render('admin/produit_edit.html.twig', [
+            'form' => $form->createView(),
+            'produit' => $produit,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/produits/{id}', name: 'admin_produit_delete', methods: ['POST'])]
+    public function deleteProduit(Request $request, Produit $produit, EntityManagerInterface $em): RedirectResponse
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('delete-produit' . $produit->getId(), $token)) {
+            throw $this->createAccessDeniedException('CSRF token invalide.');
+        }
+
+        $em->remove($produit);
+        $em->flush();
+        $this->addFlash('success', 'Produit supprimé avec succès !');
+
+        return $this->redirectToRoute('admin_produits');
     }
 }

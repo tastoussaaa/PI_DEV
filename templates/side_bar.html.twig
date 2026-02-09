@@ -3,7 +3,7 @@
     <a href="#" class="portal__brand">
         <img src="{{ asset('assets/images/logo_mini.png') }}" class="portal__logo" alt="">
         <div>
-            <div class="portal__name">MediPortal</div>
+            <div class="portal__name">Aidora</div>
             <div class="portal__tag">
                 {% if is_granted('ROLE_ADMIN') %}
                     Espace Admin
@@ -16,22 +16,37 @@
         </div>
     </a>
 
-    <div class="portal__hello">
+    <a href="{{ path('profile_index') }}" class="portal__hello" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="portal__avatar">
-            {{  'U' }}
+            {% if current_user and current_user.fullName %}
+                {{ current_user.fullName[0:1] }}
+            {% else %}
+                U
+            {% endif %}
         </div>
         <div>
             <div class="portal__hi">Bienvenue</div>
             <div class="portal__mail">
-                {{ app.user.name ?? 'Utilisateur' }}
+                {% if current_user and current_user.fullName %}
+                    {{ current_user.fullName }}
+                {% else %}
+                    Utilisateur
+                {% endif %}
             </div>
         </div>
-    </div>
+    </a>
 
     <nav class="portal__menu">
-        {% for item in navigation %}
+        {% if is_granted('ROLE_ADMIN') %}
+            <a href="{{ path('app_admin_dashboard') }}"
+               class="portal__item {% if app.request.pathinfo starts with '/admin' %}is-active{% endif %}">
+                <span class="portal__icon">🛠️</span>
+                <span>Validation des Comptes</span>
+            </a>
+        {% endif %}
+        {% for item in navigation|default([]) %}
             <a href="{{ item.path }}"
-               class="portal__item {% if app.request.pathinfo starts with item.path %}is-active{% endif %}">
+               class="portal__item {% if item.path is defined and app.request.pathinfo starts with item.path %}is-active{% endif %}">
                 <span class="portal__icon">{{ item.icon }}</span>
                 <span>{{ item.name }}</span>
             </a>

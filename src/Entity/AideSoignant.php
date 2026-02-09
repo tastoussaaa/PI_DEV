@@ -24,10 +24,10 @@ class AideSoignant
     #[ORM\Column(length: 255)]
     private ?string $email = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $telephone = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $niveauExperience = null;
 
     #[ORM\Column]
@@ -42,9 +42,43 @@ class AideSoignant
     #[ORM\ManyToMany(targetEntity: Formation::class, inversedBy: 'aideSoignants')]
     private Collection $formations;
 
+    /**
+     * @var Collection<int, Mission>
+     */
+    #[ORM\OneToMany(mappedBy: 'aideSoignant', targetEntity: Mission::class)]
+    private Collection $missions;
+    #[ORM\Column(length: 255)]
+    private ?string $mdp = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $adeli = null;
+
+    #[ORM\OneToOne(targetEntity: User::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $user = null;
+
+    #[ORM\Column]
+    private ?bool $isValidated = false;
+
+    #[ORM\Column]
+    private bool $isActive = true;
+
     public function __construct()
     {
         $this->formations = new ArrayCollection();
+        $this->missions = new ArrayCollection();
+    }
+
+    public function getAdeli(): ?string
+    {
+        return $this->adeli;
+    }
+
+    public function setAdeli(?string $adeli): static
+    {
+        $this->adeli = $adeli;
+
+        return $this;
     }
 
     public function getId(): ?int
@@ -136,6 +170,18 @@ class AideSoignant
         return $this;
     }
 
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, Formation>
      */
@@ -156,6 +202,70 @@ class AideSoignant
     public function removeFormation(Formation $formation): static
     {
         $this->formations->removeElement($formation);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Mission>
+     */
+    public function getMissions(): Collection
+    {
+        return $this->missions;
+    }
+
+    public function addMission(Mission $mission): static
+    {
+        if (!$this->missions->contains($mission)) {
+            $this->missions->add($mission);
+            $mission->setAideSoignant($this);
+        }
+        return $this;
+    }
+
+    public function getMdp(): ?string
+    {
+        return $this->mdp;
+    }
+
+    public function setMdp(string $mdp): static
+    {
+        $this->mdp = $mdp;
+
+        return $this;
+    }
+
+    public function removeMission(Mission $mission): static
+    {
+        if ($this->missions->removeElement($mission)) {
+            // set the owning side to null (unless already changed)
+            if ($mission->getAideSoignant() === $this) {
+                $mission->setAideSoignant(null);
+            }
+        }
+        return $this;
+    }
+
+    public function isValidated(): ?bool
+    {
+        return $this->isValidated;
+    }
+
+    public function setIsValidated(bool $isValidated): static
+    {
+        $this->isValidated = $isValidated;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
 
         return $this;
     }

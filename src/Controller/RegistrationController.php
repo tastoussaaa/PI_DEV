@@ -3,6 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\Medecin;
+use App\Entity\AideSoignant;
+use App\Entity\Patient;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,8 +32,9 @@ class RegistrationController extends AbstractController
             $email = trim((string)$request->request->get('email'));
             $plainPassword = (string)$request->request->get('password');
             $fullName = trim((string)$request->request->get('fullName'));
+            $userType = (string)$request->request->get('userType');
 
-            if ($email === '' || $plainPassword === '' || $fullName === '') {
+            if ($email === '' || $plainPassword === '' || $fullName === '' || $userType === '') {
                 $error = "Veuillez remplir tous les champs.";
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "Email invalide.";
@@ -42,14 +46,72 @@ class RegistrationController extends AbstractController
                 if ($existing) {
                     $error = "Cet email est déjà utilisé.";
                 } else {
+                    // Create User
                     $user = new User();
                     $user->setEmail($email);
                     $user->setFullName($fullName);
+                    $user->setUserType($userType);
                     $user->setRoles(['ROLE_USER']);
                     $user->setPassword($hasher->hashPassword($user, $plainPassword));
 
                     $em->persist($user);
+
+                    // Create specific user entity based on userType
+                    if ($userType === 'medecin') {
+                        $medecin = new Medecin();
+                        $medecin->setEmail($email);
+                        $medecin->setFullName($fullName);
+                        $medecin->setUser($user);
+                        $medecin->setSpecialite((string)$request->request->get('specialty') ?: 'Non spécifiée');
+                        $medecin->setRpps((string)$request->request->get('rpps') ?: null);
+                        $medecin->setDisponible(true);
+                        $medecin->setIsValidated(false); // Must be validated by admin
+                        $medecin->setMdp($hasher->hashPassword($user, $plainPassword));
+
+                        $em->persist($medecin);
+                    } elseif ($userType === 'aidesoignant') {
+                        $nom = $fullName;
+                        $prenom = '';
+                        if (strpos($fullName, ' ') !== false) {
+                            [$nom, $prenom] = explode(' ', $fullName, 2);
+                        }
+
+                        $aidesoignant = new AideSoignant();
+                        $aidesoignant->setNom($nom);
+                        $aidesoignant->setPrenom($prenom);
+                        $aidesoignant->setEmail($email);
+                        $aidesoignant->setUser($user);
+                        $aidesoignant->setAdeli((string)$request->request->get('adeli') ?: null);
+                        $aidesoignant->setDisponible(true);
+                        $aidesoignant->setIsValidated(false); // Must be validated by admin
+                        $aidesoignant->setMdp($hasher->hashPassword($user, $plainPassword));
+
+                        $em->persist($aidesoignant);
+                    } elseif ($userType === 'patient') {
+                        $patient = new Patient();
+                        $patient->setEmail($email);
+                        $patient->setFullName($fullName);
+                        $patient->setUser($user);
+                        
+                        $birthDateStr = $request->request->get('birthDate');
+                        if ($birthDateStr) {
+                            $patient->setBirthDate(new \DateTime($birthDateStr));
+                        }
+                        
+                        $patient->setSsn((string)$request->request->get('ssn') ?: null);
+                        $patient->setPathologie('Non spécifiée');
+                        $patient->setMdp($hasher->hashPassword($user, $plainPassword));
+
+                        $em->persist($patient);
+                    }
+
                     $em->flush();
+
+                    // Show message based on user type
+                    if ($userType === 'medecin' || $userType === 'aidesoignant') {
+                        // Redirect with message that account needs validation
+                        return $this->redirectToRoute('app_login', ['registered' => $userType]);
+                    }
 
                     // Après inscription, rediriger vers login
                     return $this->redirectToRoute('app_login');
@@ -57,8 +119,11 @@ class RegistrationController extends AbstractController
             }
         }
 
+        $registered = $request->query->get('registered');
+
         return $this->render('security/register.html.twig', [
             'error' => $error,
+            'registered' => $registered,
         ]);
     }
 }

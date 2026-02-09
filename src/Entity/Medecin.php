@@ -18,14 +18,33 @@ class Medecin
     #[ORM\Column(length: 255)]
     private ?string $specialite = null;
 
-    #[ORM\Column]
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $rpps = null;
+
+    #[ORM\Column(nullable: true)]
     private ?int $numeroOrdre = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $anneesExperience = null;
 
     #[ORM\Column]
     private ?bool $disponible = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $email = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $fullName = null;
+
+    #[ORM\OneToOne(targetEntity: User::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $user = null;
+
+    #[ORM\Column]
+    private ?bool $isValidated = false;
+
+    #[ORM\Column]
+    private bool $isActive = true;
 
     /**
      * @var Collection<int, Consultation>
@@ -45,11 +64,68 @@ class Medecin
     #[ORM\OneToMany(targetEntity: AideSoignant::class, mappedBy: 'medecin')]
     private Collection $aideSoignants;
 
+    /**
+     * @var Collection<int, Feedback>
+     */
+    #[ORM\OneToMany(targetEntity: Feedback::class, mappedBy: 'medecin')]
+    private Collection $feedbacks;
+    #[ORM\Column(length: 255)]
+    private ?string $mdp = null;
+
     public function __construct()
     {
         $this->consultations = new ArrayCollection();
         $this->formations = new ArrayCollection();
         $this->aideSoignants = new ArrayCollection();
+        $this->feedbacks = new ArrayCollection();
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
+    public function getRpps(): ?string
+    {
+        return $this->rpps;
+    }
+
+    public function setRpps(?string $rpps): static
+    {
+        $this->rpps = $rpps;
+
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): static
+    {
+        $this->email = $email;
+
+        return $this;
+    }
+
+    public function getFullName(): ?string
+    {
+        return $this->fullName;
+    }
+
+    public function setFullName(string $fullName): static
+    {
+        $this->fullName = $fullName;
+
+        return $this;
     }
 
     public function getId(): ?int
@@ -191,6 +267,42 @@ class Medecin
                 $aideSoignant->setMedecin(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getMdp(): ?string
+    {
+        return $this->mdp;
+    }
+
+    public function setMdp(string $mdp): static
+    {
+        $this->mdp = $mdp;
+
+        return $this;
+    }
+
+    public function isValidated(): ?bool
+    {
+        return $this->isValidated;
+    }
+
+    public function setIsValidated(bool $isValidated): static
+    {
+        $this->isValidated = $isValidated;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
 
         return $this;
     }

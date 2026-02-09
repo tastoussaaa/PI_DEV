@@ -1,0 +1,363 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Admin Dashboard - Validation des Comptes{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+
+    <main class="portal__main">
+        <div class="portal__top">
+            <div>
+                <h1 class="portal__title">Admin Dashboard</h1>
+                <p class="portal__subtitle">Gérer les validations de compte</p>
+            </div>
+        </div>
+
+        <nav style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+            {% for item in navigation|default([]) %}
+            <a href="{{ item.path }}" 
+               style="padding: 8px 16px; text-decoration: none; border-radius: 6px; {% if app.request.pathinfo == item.path or (item.name == 'Validation des Comptes' and app.request.pathinfo starts with '/admin') %}background-color: #f0f4ff; color: #2563eb; font-weight: 600;{% else %}color: #6b7280;{% endif %} transition: all 0.3s;">
+                <span style="margin-right: 4px;">{{ item.icon }}</span>{{ item.name }}
+            </a>
+            {% endfor %}
+        </nav>
+
+        <div class="portal__content">
+            {% for message in app.flashes('success') %}
+            <div class="pill" style="margin-bottom: 16px; color: #059669; background-color: #ecfdf5; border: 1px solid #6ee7b7;">
+                ✓ {{ message }}
+            </div>
+            {% endfor %}
+
+            <!-- PENDING MEDECINS -->
+            {% if pendingMedecins %}
+            <div class="box" style="margin-bottom: 32px;">
+                <h3 style="color: #d97706; margin-bottom: 16px;">
+                    🏥 Médecins en Attente de Validation ({{ pendingMedecins|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Spécialité</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">RPPS</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for medecin in pendingMedecins %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px;">{{ medecin.fullName }}</td>
+                            <td style="padding: 12px;">{{ medecin.email }}</td>
+                            <td style="padding: 12px;">{{ medecin.specialite }}</td>
+                            <td style="padding: 12px;">{{ medecin.rpps ?? 'N/A' }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_medecin_validate', {id: medecin.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('validate-medecin' ~ medecin.id) }}">
+                                    <button type="submit" class="btn btn--primary" style="padding: 8px 16px; font-size: 14px;">Valider</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_medecin_reject', {id: medecin.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir rejeter ce compte?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('reject-medecin' ~ medecin.id) }}">
+                                    <button type="submit" class="btn btn--ghost" style="padding: 8px 16px; font-size: 14px; color: #dc2626;">Rejeter</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- PENDING AIDE SOIGNANTS -->
+            {% if pendingAideSoignants %}
+            <div class="box" style="margin-bottom: 32px;">
+                <h3 style="color: #d97706; margin-bottom: 16px;">
+                    🩺 Aides-Soignants en Attente de Validation ({{ pendingAideSoignants|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Prénom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">ADELI</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aideSoignant in pendingAideSoignants %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px;">{{ aideSoignant.nom }}</td>
+                            <td style="padding: 12px;">{{ aideSoignant.prenom }}</td>
+                            <td style="padding: 12px;">{{ aideSoignant.email }}</td>
+                            <td style="padding: 12px;">{{ aideSoignant.adeli ?? 'N/A' }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_aide_soignant_validate', {id: aideSoignant.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('validate-aide' ~ aideSoignant.id) }}">
+                                    <button type="submit" class="btn btn--primary" style="padding: 8px 16px; font-size: 14px;">Valider</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_aide_soignant_reject', {id: aideSoignant.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir rejeter ce compte?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('reject-aide' ~ aideSoignant.id) }}">
+                                    <button type="submit" class="btn btn--ghost" style="padding: 8px 16px; font-size: 14px; color: #dc2626;">Rejeter</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if not pendingMedecins and not pendingAideSoignants %}
+            <div class="box" style="text-align: center; padding: 48px 24px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">✓</div>
+                <div style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Aucun compte en attente</div>
+                <div style="color: #6b7280;">Tous les comptes ont été traités.</div>
+            </div>
+            {% endif %}
+
+            <!-- VALIDATED MEDECINS -->
+            {% if validatedMedecins %}
+            <div class="box" style="margin-top: 32px;">
+                <h3 style="color: #059669; margin-bottom: 16px;">
+                    ✓ Médecins Validés ({{ validatedMedecins|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Spécialité</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for medecin in validatedMedecins %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px;">{{ medecin.fullName }}</td>
+                            <td style="padding: 12px;">{{ medecin.email }}</td>
+                            <td style="padding: 12px;">{{ medecin.specialite }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_medecin_disable', {id: medecin.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir désactiver ce compte?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('disable-medecin' ~ medecin.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #f59e0b; color: white; border: 1px solid #f59e0b; margin-right: 4px;">Désactiver</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_medecin_delete', {id: medecin.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce compte? Cette action est irréversible.');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-medecin' ~ medecin.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #dc2626; color: white; border: 1px solid #dc2626;">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- DISABLED MEDECINS -->
+            {% if disabledMedecins %}
+            <div class="box" style="margin-top: 32px;">
+                <h3 style="color: #6b7280; margin-bottom: 16px;">
+                    🔒 Médecins Désactivés ({{ disabledMedecins|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Spécialité</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for medecin in disabledMedecins %}
+                        <tr style="border-bottom: 1px solid #e5e7eb; background-color: #f9fafb;">
+                            <td style="padding: 12px;">{{ medecin.fullName }}</td>
+                            <td style="padding: 12px;">{{ medecin.email }}</td>
+                            <td style="padding: 12px;">{{ medecin.specialite }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_medecin_enable', {id: medecin.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('enable-medecin' ~ medecin.id) }}">
+                                    <button type="submit" class="btn btn--primary" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;">Activer</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_medecin_delete', {id: medecin.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce compte? Cette action est irréversible.');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-medecin' ~ medecin.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #dc2626; color: white; border: 1px solid #dc2626;">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- VALIDATED AIDE SOIGNANTS -->
+            {% if validatedAideSoignants %}
+            <div class="box" style="margin-top: 32px;">
+                <h3 style="color: #059669; margin-bottom: 16px;">
+                    ✓ Aides-Soignants Validés ({{ validatedAideSoignants|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Prénom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aideSoignant in validatedAideSoignants %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px;">{{ aideSoignant.nom }}</td>
+                            <td style="padding: 12px;">{{ aideSoignant.prenom }}</td>
+                            <td style="padding: 12px;">{{ aideSoignant.email }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_aide_soignant_disable', {id: aideSoignant.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir désactiver ce compte?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('disable-aide' ~ aideSoignant.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #f59e0b; color: white; border: 1px solid #f59e0b; margin-right: 4px;">Désactiver</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_aide_soignant_delete', {id: aideSoignant.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce compte? Cette action est irréversible.');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-aide' ~ aideSoignant.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #dc2626; color: white; border: 1px solid #dc2626;">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- DISABLED AIDE SOIGNANTS -->
+            {% if disabledAideSoignants %}
+            <div class="box" style="margin-top: 32px;">
+                <h3 style="color: #6b7280; margin-bottom: 16px;">
+                    🔒 Aides-Soignants Désactivés ({{ disabledAideSoignants|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Prénom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aideSoignant in disabledAideSoignants %}
+                        <tr style="border-bottom: 1px solid #e5e7eb; background-color: #f9fafb;">
+                            <td style="padding: 12px;">{{ aideSoignant.nom }}</td>
+                            <td style="padding: 12px;">{{ aideSoignant.prenom }}</td>
+                            <td style="padding: 12px;">{{ aideSoignant.email }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_aide_soignant_enable', {id: aideSoignant.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('enable-aide' ~ aideSoignant.id) }}">
+                                    <button type="submit" class="btn btn--primary" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;">Activer</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_aide_soignant_delete', {id: aideSoignant.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce compte? Cette action est irréversible.');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-aide' ~ aideSoignant.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #dc2626; color: white; border: 1px solid #dc2626;">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- ACTIVE PATIENTS -->
+            {% if activePatients %}
+            <div class="box" style="margin-top: 32px;">
+                <h3 style="color: #059669; margin-bottom: 16px;">
+                    👤 Patients Actifs ({{ activePatients|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Date de naissance</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for patient in activePatients %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px;">{{ patient.fullName }}</td>
+                            <td style="padding: 12px;">{{ patient.email }}</td>
+                            <td style="padding: 12px;">{{ patient.birthDate ? patient.birthDate|date('d/m/Y') : 'N/A' }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_patient_disable', {id: patient.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir désactiver ce compte?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('disable-patient' ~ patient.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #f59e0b; color: white; border: 1px solid #f59e0b; margin-right: 4px;">Désactiver</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_patient_delete', {id: patient.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce compte? Cette action est irréversible.');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-patient' ~ patient.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #dc2626; color: white; border: 1px solid #dc2626;">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- DISABLED PATIENTS -->
+            {% if disabledPatients %}
+            <div class="box" style="margin-top: 32px;">
+                <h3 style="color: #6b7280; margin-bottom: 16px;">
+                    🔒 Patients Désactivés ({{ disabledPatients|length }})
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Nom</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Date de naissance</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for patient in disabledPatients %}
+                        <tr style="border-bottom: 1px solid #e5e7eb; background-color: #f9fafb;">
+                            <td style="padding: 12px;">{{ patient.fullName }}</td>
+                            <td style="padding: 12px;">{{ patient.email }}</td>
+                            <td style="padding: 12px;">{{ patient.birthDate ? patient.birthDate|date('d/m/Y') : 'N/A' }}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <form method="post" action="{{ path('admin_patient_enable', {id: patient.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('enable-patient' ~ patient.id) }}">
+                                    <button type="submit" class="btn btn--primary" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;">Activer</button>
+                                </form>
+                                <form method="post" action="{{ path('admin_patient_delete', {id: patient.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce compte? Cette action est irréversible.');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-patient' ~ patient.id) }}">
+                                    <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background-color: #dc2626; color: white; border: 1px solid #dc2626;">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

@@ -82,9 +82,16 @@ class CommandeController extends AbstractController
             // Check if enough stock available
             if ($produit->getStock() < $quantite) {
                 $this->addFlash('error', 'Stock insuffisant. Stock disponible: ' . $produit->getStock());
+                $navigation = [
+                    ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+                    ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+                    ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+                    ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+                ];
                 return $this->render('commande/new.html.twig', [
                     'commande' => $commande,
                     'form' => $form->createView(),
+                    'navigation' => $navigation,
                 ]);
             }
             
@@ -97,9 +104,17 @@ class CommandeController extends AbstractController
             return $this->redirectToRoute('commande_index');
         }
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+            ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+        ];
+
         return $this->render('commande/new.html.twig', [
             'commande' => $commande,
             'form' => $form->createView(),
+            'navigation' => $navigation,
         ]);
     }
 

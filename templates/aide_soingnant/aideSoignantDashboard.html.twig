@@ -9,16 +9,14 @@
 {% block body %}
 {% set navigation = [
     {'name': 'Dashboard', 'path': path('aidesoingnant_dashboard'), 'icon': '🏠'},
-    {'name': 'Formation', 'path': path('aidesoingnant_formation'), 'icon': '📚'},
+    {'name': 'Mes Missions', 'path': path('aidesoingnant_missions'), 'icon': '📋'},
+    {'name': 'Formation', 'path': path('aidesoingnant_formations'), 'icon': '📚'},
 
-   
 ] %}
 
 <div class="portal">
 
-        {% include 'side_bar.html.twig' %}
-
-
+	{% include 'side_bar.html.twig' %}
 
     <!-- MAIN CONTENT -->
     <main class="portal__main">

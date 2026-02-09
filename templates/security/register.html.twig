@@ -1,44 +1,73 @@
 {% extends 'base.html.twig' %}
 {% block title %}Inscription{% endblock %}
 
+{% block javascripts %}
+  {{ parent() }}
+  <script src="{{ asset('assets/js/controle.js') }}" defer></script>
+{% endblock %}
+
 {% block body %}
 <div class="bg-orbs"></div>
 
 <div class="container" style="padding:60px 0">
   <div class="card" style="max-width:520px;margin:0 auto;padding:24px">
-  <div style="text-align:center;margin-bottom:16px">
-  <a href="{{ path('app_home') }}">
-    <img 
-      src="{{ asset('assets/images/logo_mini.png') }}" 
-      alt="Aidora"
-      style="height:56px;margin-bottom:8px"
-    >
-  </a>
-</div>
+    <div style="text-align:center;margin-bottom:16px">
+      <a href="{{ path('app_home') }}">
+        <img 
+          src="{{ asset('assets/images/logo_mini.png') }}" 
+          alt="Aidora"
+          style="height:56px;margin-bottom:8px"
+        >
+      </a>
+    </div>
 
     <h2 style="margin-bottom:8px">Créer un compte</h2>
     <p style="color:#6b7280;margin-bottom:16px">
       Rejoignez la plateforme Aidora
     </p>
 
-    {% if error %}
-      <div class="pill" style="margin-bottom:12px;color:#b91c1c">
-        {{ error }}
-      </div>
-    {% endif %}
-
-    <form method="post">
+    <form method="post" id="registrationForm">
       <label>Nom complet</label>
-      <input type="text" name="fullName" required
+      <input type="text" name="fullName" 
              style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
 
       <label>Email</label>
-      <input type="email" name="email" required
+      <input type="email" name="email" 
              style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
 
       <label>Mot de passe</label>
-      <input type="password" name="password" minlength="6" required
+      <input type="password" name="password" minlength="6" 
              style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+
+      <label>Type de compte</label>
+      <select name="userType" id="userType"style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+        <option value="">Sélectionnez</option>
+        <option value="medecin">Médecin</option>
+        <option value="aidesoignant">Aide-Soignant</option>
+        <option value="patient">Patient</option>
+      </select>
+
+      {# Champs spécifiques aux Médecins #}
+      <div id="medecinFields" style="display:none;">
+        <label>Numéro RPPS</label>
+        <input type="text" name="rpps" style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+        <label>Spécialité</label>
+        <input type="text" name="specialty" style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+      </div>
+
+      {# Champs spécifiques aux Aides-Soignants #}
+      <div id="aideFields" style="display:none;">
+        <label>Numéro ADELI</label>
+        <input type="text" name="adeli" style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+      </div>
+
+      {# Champs spécifiques aux Patients #}
+      <div id="patientFields" style="display:none;">
+        <label>Date de naissance</label>
+        <input type="date" name="birthDate" style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+        <label>Numéro de sécurité sociale</label>
+        <input type="text" name="ssn" style="width:100%;padding:12px;border-radius:12px;margin:8px 0 16px">
+      </div>
 
       <div style="display:flex;gap:10px">
         <button class="btn btn--primary" type="submit">Créer le compte</button>
@@ -47,4 +76,21 @@
     </form>
   </div>
 </div>
+
+<script>
+  const userType = document.getElementById('userType');
+  const medecinFields = document.getElementById('medecinFields');
+  const aideFields = document.getElementById('aideFields');
+  const patientFields = document.getElementById('patientFields');
+
+  userType.addEventListener('change', function() {
+    medecinFields.style.display = 'none';
+    aideFields.style.display = 'none';
+    patientFields.style.display = 'none';
+
+    if (this.value === 'medecin') medecinFields.style.display = 'block';
+    if (this.value === 'aidesoignant') aideFields.style.display = 'block';
+    if (this.value === 'patient') patientFields.style.display = 'block';
+  });
+</script>
 {% endblock %}

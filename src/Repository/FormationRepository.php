@@ -43,7 +43,7 @@ class FormationRepository extends ServiceEntityRepository
 
 
 
-      public function findValidated(): array
+    public function findValidated(): array
     {
         return $this->createQueryBuilder('f')
             ->andWhere('f.statut = :statut')
@@ -54,5 +54,34 @@ class FormationRepository extends ServiceEntityRepository
 
             ->getQuery()
             ->getResult();
+    }
+
+
+    public function findValidatedByCategory(?string $category = null): array
+    {
+        $qb = $this->createQueryBuilder('f')
+            ->andWhere('f.statut = :statut')
+            ->setParameter('statut', Formation::STATUT_VALIDE)
+            ->andWhere('f.startDate >= :today')
+            ->setParameter('today', new \DateTime())
+            ->orderBy('f.startDate', 'DESC');
+
+        if ($category) {
+            $qb->andWhere('f.category = :category')
+                ->setParameter('category', $category);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findAllCategories(): array
+    {
+        $result = $this->createQueryBuilder('f')
+            ->select('DISTINCT f.category')
+            ->getQuery()
+            ->getResult();
+
+        // Flatten array of arrays to a simple array of strings
+        return array_map(fn($c) => $c['category'], $result);
     }
 }

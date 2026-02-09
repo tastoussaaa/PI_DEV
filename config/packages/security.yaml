@@ -19,18 +19,44 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                success_handler: App\Security\AuthenticationSuccessHandler
+                failure_handler: App\Security\AuthenticationFailureHandler
+                enable_csrf: true
+            logout:
+                path: app_logout
+                target: app_login
 
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
-
             # https://symfony.com/doc/current/security/impersonating_user.html
             # switch_user: true
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
-        - { path: ^/client, roles: ROLE_USER }
+        # Public routes
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/register, roles: PUBLIC_ACCESS }
+        
+        # Admin routes
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        
+        # Medecin routes
+        - { path: ^/medecin, roles: ROLE_USER }
+        
+        # Patient routes
+        - { path: ^/patient, roles: ROLE_USER }
+        
+        # AideSoignant routes
+        - { path: ^/aidesoingnant, roles: ROLE_USER }
+        - { path: ^/aide_soignant, roles: ROLE_USER }
+        - { path: ^/aidesoignant, roles: ROLE_USER }
+        - { path: ^/aide-soignant, roles: ROLE_USER }
+        
+        # Require authentication for most routes
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:
@@ -41,4 +67,3 @@ when@test:
                 algorithm: auto
                 cost: 4 # Lowest possible value for bcrypt
                 time_cost: 3 # Lowest possible value for argon
-

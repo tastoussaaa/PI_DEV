@@ -56,6 +56,21 @@ class ProduitController extends AbstractController
             'tri' => $tri,                     // Current sort field (to remember user's choice)
             'ordre' => $ordre,                 // Current sort direction (to remember user's choice)
             'recherche' => $recherche,         // Current search text (to show in search box)
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+            ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+        ];
+
+        return $this->render('produit/list.html.twig', [
+            'produits' => $produits,
+            'categories' => $categories,
+            'categorie_filtre' => $categorie,
+            'tri' => $tri,
+            'ordre' => $ordre,
+            'recherche' => $recherche,
+            'navigation' => $navigation,
         ]);
     }
 

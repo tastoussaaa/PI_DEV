@@ -88,21 +88,16 @@ final class AideSoingnantController extends BaseController
     }
 
     #[Route('/aidesoingnant/missions', name: 'aidesoingnant_missions')]
-    public function missions(DemandeAideRepository $demandeAideRepository): Response
+    public function missions(EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
 
-        // Get all pending demandes
-        $demandes = $demandeAideRepository->findBy(['statut' => 'EN_ATTENTE']);
-
-        // Filter for URGENT or besoinCertifie
-        $demandes = array_filter($demandes, function($d) {
-            return $d->getTypeDemande() === 'URGENT' || $d->isBesoinCertifie();
-        });
+        // Get all missions from database
+        $missions = $entityManager->getRepository(Mission::class)->findAll();
 
         // Sort by most recent first
-        usort($demandes, function($a, $b) {
-            return $b->getDateCreation() <=> $a->getDateCreation();
+        usort($missions, function($a, $b) {
+            return $b->getId() <=> $a->getId();
         });
 
         $navigation = [
@@ -111,8 +106,8 @@ final class AideSoingnantController extends BaseController
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
-        return $this->render('aide_soingnant/missions.html.twig', [
-            'demandes' => $demandes,
+        return $this->render('mission/list.html.twig', [
+            'missions' => $missions,
             'navigation' => $navigation,
         ]);
     }
@@ -133,18 +128,21 @@ final class AideSoingnantController extends BaseController
             throw $this->createAccessDeniedException('You must be an aide soignant to accept missions');
         }
 
-        // Create new Mission and link to demande and aide-soignant
-        $mission = new Mission();
-        $mission->setDemandeAide($demande);
+        // Find the existing Mission for this demande
+        $missions = $demande->getMissions();
+        if ($missions->isEmpty()) {
+            throw $this->createNotFoundException('Mission not found for this demande');
+        }
+
+        $mission = $missions->first();
+
+        // Update the existing Mission
         $mission->setAideSoignant($aideSoignant);
-        $mission->setStatutMission('ACCEPTED');
-        $mission->setDateDebut($demande->getDateDebutSouhaitee());
-        $mission->setDateFin($demande->getDateFinSouhaitee());
+        $mission->setStatutMission('ACCEPTÉE');
         $mission->setPrixFinal(0); // To be negotiated later
 
-        $demande->setStatut('ACCEPTED');
+        $demande->setStatut('ACCEPTÉE');
 
-        $entityManager->persist($mission);
         $entityManager->flush();
 
         $this->addFlash('success', 'Mission acceptée avec succès!');
@@ -167,7 +165,21 @@ final class AideSoingnantController extends BaseController
             throw $this->createAccessDeniedException('You must be an aide soignant to refuse missions');
         }
 
-        // For refuse, we do nothing - just redirect back
+        // Find the existing Mission for this demande
+        $missions = $demande->getMissions();
+        if ($missions->isEmpty()) {
+            throw $this->createNotFoundException('Mission not found for this demande');
+        }
+
+        $mission = $missions->first();
+
+        // Update the existing Mission
+        $mission->setStatutMission('REFUSÉE');
+
+        $demande->setStatut('REFUSÉE');
+
+        $entityManager->flush();
+
         $this->addFlash('success', 'Mission refusée avec succès.');
         return $this->redirectToRoute('aidesoingnant_missions');
     }

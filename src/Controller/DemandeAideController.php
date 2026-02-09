@@ -231,8 +231,22 @@ final class DemandeAideController extends BaseController
                     ]);
                 }
                 
-                // Enregistrer en base de données
+                // Enregistrer d'abord la demande d'aide
                 $entityManager->persist($demandeAide);
+                $entityManager->flush();
+
+                // Créer automatiquement une mission pour cette demande
+                $mission = new Mission();
+                $mission->setDemandeAide($demandeAide);
+                $mission->setStatutMission('EN_ATTENTE');
+                $mission->setPrixFinal(0);
+                $mission->setNote(null);
+                $mission->setCommentaire(null);
+                $mission->setDateDebut($demandeAide->getDateDebutSouhaitee());
+                $mission->setDateFin($demandeAide->getDateFinSouhaitee());
+
+                // Enregistrer la mission
+                $entityManager->persist($mission);
                 $entityManager->flush();
 
                 $this->addFlash('success', 'Votre demande d\'aide a été enregistrée avec succès !');

@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Entity\Consultation;
 use App\Form\ConsultationType;
 use App\Repository\ConsultationRepository;
+use App\Repository\MedecinRepository;
+use App\Repository\MedecinRepository as MedecinRepo;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +20,7 @@ use Symfony\Component\Mime\Email;
 #[Route('/consultation')]
 class ConsultationController extends AbstractController
 {
-    public function __construct(private MailerInterface $mailer) {}
+    public function __construct(private MailerInterface $mailer, private ConsultationRepository $consultationRepository) {}
 
     #[Route('/', name: 'consultation_index', methods: ['GET'])]
     public function index(Request $request, ConsultationRepository $repository): Response
@@ -80,7 +82,7 @@ class ConsultationController extends AbstractController
     }
 
     #[Route('/new', name: 'consultation_new', methods: ['GET','POST'])]
-    public function new(Request $request, EntityManagerInterface $em): Response
+    public function new(Request $request, EntityManagerInterface $em, MedecinRepo $medecinRepo): Response
     {
         $consultation = new Consultation();
         $form = $this->createForm(ConsultationType::class, $consultation);
@@ -104,12 +106,12 @@ class ConsultationController extends AbstractController
             $em->persist($consultation);
             $em->flush();
 
-            // Send confirmation email
+            // Send notification email to all medecins
             try {
-                $this->sendConsultationConfirmationEmail($consultation);
+                $this->sendNewConsultationNotificationToMedecins($consultation, $medecinRepo);
             } catch (\Exception $e) {
                 // Log the error but don't fail the consultation creation
-                error_log('Failed to send confirmation email: ' . $e->getMessage());
+                error_log('Failed to send notification to medecins: ' . $e->getMessage());
             }
 
             return $this->redirectToRoute('patient_consultations');
@@ -121,9 +123,13 @@ class ConsultationController extends AbstractController
             ['name' => 'Nouvelle consultation', 'path' => $this->generateUrl('consultation_new'), 'icon' => '➕'],
         ];
 
+        // Get unavailable slots for the form
+        $unavailableSlots = $this->getUnavailableSlots();
+
         return $this->render('consultation/new.html.twig', [
             'form' => $form->createView(),
             'navigation' => $navigation,
+            'unavailableSlots' => $unavailableSlots,
         ]);
     }
 
@@ -232,5 +238,51 @@ class ConsultationController extends AbstractController
             ]));
 
         $this->mailer->send($email);
+    }
+
+    /**
+     * Send notification email to all medecins about new consultation
+     */
+    private function sendNewConsultationNotificationToMedecins(Consultation $consultation, MedecinRepo $medecinRepo): void
+    {
+        $medecins = $medecinRepo->findAll();
+
+        foreach ($medecins as $medecin) {
+            if ($medecin->getEmail()) {
+                $email = (new Email())
+                    ->from('noreply@aidora.com')
+                    ->to($medecin->getEmail())
+                    ->subject('Nouvelle consultation à examiner')
+                    ->html($this->renderView('email/new_consultation_notification.html.twig', [
+                        'medecin' => $medecin,
+                        'consultation' => $consultation,
+                        'url' => $this->generateUrl('medecin_consultations', [], 0), // 0 for absolute URL
+                    ]));
+
+                $this->mailer->send($email);
+            }
+        }
+    }
+
+
+
+    /**
+     * Get list of unavailable slots for display
+     */
+    private function getUnavailableSlots(): array
+    {
+        $consultations = $this->consultationRepository->findAll();
+        $unavailableSlots = [];
+
+        foreach ($consultations as $consultation) {
+            if ($consultation->getDateConsultation() && $consultation->getTimeSlot()) {
+                $unavailableSlots[] = [
+                    'date' => $consultation->getDateConsultation()->format('Y-m-d'),
+                    'timeSlot' => $consultation->getTimeSlot()
+                ];
+            }
+        }
+
+        return $unavailableSlots;
     }
 }

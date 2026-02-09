@@ -28,7 +28,7 @@
             <div class="card">
                 <div style="display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start">
                     <div>
-                        <h3 style="margin:0 0 8px">{{ consultation.motif }} <span style="color:var(--muted);font-weight:700">· {{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d H:i') : '—' }}</span></h3>
+                        <h3 style="margin:0 0 8px">{{ consultation.motif }} <span style="color:var(--muted);font-weight:700">· {{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d') ~ ' ' ~ consultation.timeSlot : '—' }}</span></h3>
 
                         <div style="margin-top:12px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
                             <div>

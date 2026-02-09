@@ -46,7 +46,7 @@
                         {% for consultation in consultations %}
                             <div class="rowItem">
                                 <div>
-                                    <div class="rowItem__title">{{ consultation.motif }} — {{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d H:i') : 'TBD' }}</div>
+                                    <div class="rowItem__title">{{ consultation.motif }} — {{ consultation.dateConsultation ? consultation.dateConsultation|date('Y-m-d') ~ ' ' ~ consultation.timeSlot : 'TBD' }}</div>
                                     <div class="rowItem__meta">
                                         Patient: {{ consultation.name }} {{ consultation.familyName }} · 
                                         Status: 

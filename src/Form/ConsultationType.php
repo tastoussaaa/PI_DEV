@@ -43,28 +43,33 @@ class ConsultationType extends AbstractType
                     '16:30' => '16:30',
                 ],
                 'placeholder' => 'Choose a time slot',
+                'required' => false,
                 'row_attr' => ['class' => 'form__field'],
                 'attr' => ['class' => 'form__select']
             ])
             ->add('motif', TextType::class, [
                 'label' => 'Motif',
                 'row_attr' => ['class' => 'form__field'],
-                'attr' => ['class' => 'form__input', 'placeholder' => 'Reason for consultation']
+                'attr' => ['class' => 'form__input', 'placeholder' => 'Reason for consultation'],
+                'required' => false,
             ])
             ->add('name', TextType::class, [
                 'label' => 'First name',
                 'row_attr' => ['class' => 'form__field'],
-                'attr' => ['class' => 'form__input', 'placeholder' => 'Given name']
+                'attr' => ['class' => 'form__input', 'placeholder' => 'Given name'],
+                'required' => false,
             ])
             ->add('familyName', TextType::class, [
                 'label' => 'Family name',
                 'row_attr' => ['class' => 'form__field'],
-                'attr' => ['class' => 'form__input', 'placeholder' => 'Surname']
+                'attr' => ['class' => 'form__input', 'placeholder' => 'Surname'],
+                'required' => false,
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Email',
                 'row_attr' => ['class' => 'form__field'],
-                'attr' => ['class' => 'form__input', 'placeholder' => 'patient@example.com']
+                'attr' => ['class' => 'form__input', 'placeholder' => 'patient@example.com'],
+                'required' => false,
             ])
             ->add('sex', ChoiceType::class, [
                 'label' => 'Sex',
@@ -74,12 +79,14 @@ class ConsultationType extends AbstractType
                 ],
                 'placeholder' => 'Choose',
                 'row_attr' => ['class' => 'form__field'],
-                'attr' => ['class' => 'form__select']
+                'attr' => ['class' => 'form__select'],
+                'required' => false,
             ])
             ->add('age', IntegerType::class, [
                 'label' => 'Age',
                 'row_attr' => ['class' => 'form__field'],
-                'attr' => ['class' => 'form__input', 'min' => 0]
+                'attr' => ['class' => 'form__input', 'min' => 0, 'max' => 150],
+                'required' => false,
             ]);
     }
 

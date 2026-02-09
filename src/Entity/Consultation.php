@@ -14,8 +14,8 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ConsultationRepository::class)]
 #[UniqueEntity(fields: ['dateConsultation', 'timeSlot'])]
-#[Assert\Callback(callback: 'validateWorkingHours')]
-#[Assert\Callback(callback: 'validateFutureDate')]
+// #[Assert\Callback(callback: 'validateWorkingHours')]
+// #[Assert\Callback(callback: 'validateFutureDate')]
 class Consultation
 {
     #[ORM\Id]
@@ -80,6 +80,12 @@ class Consultation
      */
     #[ORM\OneToMany(targetEntity: Feedback::class, mappedBy: 'consultation')]
     private Collection $feedbacks;
+
+    #[ORM\ManyToOne(targetEntity: Medecin::class, inversedBy: 'consultations')]
+    private ?Medecin $medecin = null;
+
+    #[ORM\ManyToOne(targetEntity: Patient::class, inversedBy: 'consultations')]
+    private ?Patient $patient = null;
 
     public function __construct()
     {

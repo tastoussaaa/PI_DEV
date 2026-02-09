@@ -12,10 +12,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 
 class MedecinController extends BaseController
 {
-    public function __construct(UserService $userService)
+    public function __construct(UserService $userService, private MailerInterface $mailer)
     {
         parent::__construct($userService);
     }
@@ -157,6 +159,14 @@ class MedecinController extends BaseController
         $consultation->setStatus('accepted');
         $em->flush();
 
+        // Send email notification to patient
+        try {
+            $this->sendConsultationStatusEmail($consultation, 'accepted');
+        } catch (\Exception $e) {
+            // Log the error but don't fail the acceptance
+            error_log('Failed to send acceptance email: ' . $e->getMessage());
+        }
+
         $this->addFlash('success', 'Consultation accepted successfully!');
         return $this->redirectToRoute('medecin_consultations');
     }
@@ -170,6 +180,14 @@ class MedecinController extends BaseController
 
         $consultation->setStatus('declined');
         $em->flush();
+
+        // Send email notification to patient
+        try {
+            $this->sendConsultationStatusEmail($consultation, 'declined');
+        } catch (\Exception $e) {
+            // Log the error but don't fail the decline
+            error_log('Failed to send decline email: ' . $e->getMessage());
+        }
 
         $this->addFlash('success', 'Consultation declined successfully!');
         return $this->redirectToRoute('medecin_consultations');
@@ -189,6 +207,29 @@ class MedecinController extends BaseController
         }
 
         return $this->redirectToRoute('medecin_consultations');
+    }
+
+    /**
+     * Send consultation status email to patient
+     */
+    private function sendConsultationStatusEmail(Consultation $consultation, string $status): void
+    {
+        $patientName = $consultation->getName() . ' ' . $consultation->getFamilyName();
+        $date = $consultation->getDateConsultation() ? $consultation->getDateConsultation()->format('d/m/Y') : 'TBD';
+        $time = $consultation->getTimeSlot() ?: 'TBD';
+        $consultationDate = $date . ' at ' . $time;
+
+        $email = (new Email())
+            ->from('noreply@aidora.com')
+            ->to($consultation->getEmail() ?? 'contact@aidora.com')
+            ->subject('Mise à jour de votre consultation')
+            ->html($this->renderView('email/consultation_status.html.twig', [
+                'patientName' => $patientName,
+                'consultationDate' => $consultationDate,
+                'status' => $status,
+            ]));
+
+        $this->mailer->send($email);
     }
 }
 

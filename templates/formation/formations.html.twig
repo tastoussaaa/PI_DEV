@@ -9,7 +9,8 @@
 
 {% block body %}
 
-	<div class="portal">
+	<div
+		class="portal">
 
 		{# Sidebar #}
 		{% include 'side_bar.html.twig' %}
@@ -53,11 +54,15 @@
 										-
 										{{ formation.endDate ? formation.endDate|date('d/m/Y') : '' }}</span>
 								</div>
+								<a href="{{ path('medecin_formation_applicants', {'id': formation.id}) }}" class="btn btn--primary" style="flex: 1; text-align: center;">
+									✉️ Postuler
+								</a>
 								<div style="margin-top: 15px; display: flex; gap: 10px;">
 									<a href="{{ path('medecin_formation_applicants', {'id': formation.id}) }}" class="btn btn--secondary" style="flex: 1; text-align: center;">
 										👥 View Applicants
 									</a>
 								</div>
+
 							</div>
 						{% endfor %}
 					</div>

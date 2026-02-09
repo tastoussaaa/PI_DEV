@@ -47,6 +47,13 @@ class ProduitController extends AbstractController
         // This populates the category dropdown filter in the browser
         $categories = $produitRepo->findDistinctCategories();
 
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
+            ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
+        ];
+
         // Load the shop/list template and send all the data to display
         // Users will see a table/grid of all products with filter dropdowns and search box
         return $this->render('produit/list.html.twig', [
@@ -56,20 +63,6 @@ class ProduitController extends AbstractController
             'tri' => $tri,                     // Current sort field (to remember user's choice)
             'ordre' => $ordre,                 // Current sort direction (to remember user's choice)
             'recherche' => $recherche,         // Current search text (to show in search box)
-        $navigation = [
-            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
-            ['name' => 'Consultations', 'path' => $this->generateUrl('patient_consultations'), 'icon' => '🩺'],
-            ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
-            ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋'],
-        ];
-
-        return $this->render('produit/list.html.twig', [
-            'produits' => $produits,
-            'categories' => $categories,
-            'categorie_filtre' => $categorie,
-            'tri' => $tri,
-            'ordre' => $ordre,
-            'recherche' => $recherche,
             'navigation' => $navigation,
         ]);
     }

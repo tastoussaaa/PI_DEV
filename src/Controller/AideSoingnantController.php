@@ -88,17 +88,82 @@ final class AideSoingnantController extends BaseController
     }
 
     #[Route('/aidesoingnant/missions', name: 'aidesoingnant_missions')]
-    public function missions(EntityManagerInterface $entityManager): Response
+    public function missions(Request $request, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
 
-        // Get all missions from database
-        $missions = $entityManager->getRepository(Mission::class)->findAll();
+        // Get search and sort parameters
+        $search = $request->query->get('search', '');
+        $sortBy = $request->query->get('sort_by', 'dateCreation');
+        $sortOrder = $request->query->get('sort_order', 'desc');
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 10; // Items per page
 
-        // Sort by most recent first
-        usort($missions, function($a, $b) {
-            return $b->getId() <=> $a->getId();
-        });
+        // Build query
+        $qb = $entityManager->getRepository(Mission::class)->createQueryBuilder('m')
+            ->leftJoin('m.demandeAide', 'd')
+            ->select('m, d');
+
+        // Apply search filter
+        if (!empty($search)) {
+            switch ($sortBy) {
+                case 'dateCreation':
+                    // Handle date search
+                    $date = $this->parseDate($search);
+                    if ($date) {
+                        $qb->andWhere('DATE(d.dateCreation) = :date')
+                           ->setParameter('date', $date->format('Y-m-d'));
+                    }
+                    break;
+                case 'budgetMax':
+                    // Handle budget search
+                    if (is_numeric($search)) {
+                        $qb->andWhere('d.budgetMax = :budget')
+                           ->setParameter('budget', (int) $search);
+                    }
+                    break;
+                case 'typeDemande':
+                    $qb->andWhere('d.typeDemande LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+                    break;
+                case 'statutMission':
+                    $qb->andWhere('m.statutMission LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+                    break;
+                default:
+                    $qb->andWhere('d.descriptionBesoin LIKE :search OR d.typeDemande LIKE :search OR m.statutMission LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+            }
+        }
+
+        // Apply sorting
+        $orderDirection = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+        switch ($sortBy) {
+            case 'dateCreation':
+                $qb->orderBy('d.dateCreation', $orderDirection);
+                break;
+            case 'typeDemande':
+                $qb->orderBy('d.typeDemande', $orderDirection);
+                break;
+            case 'statutMission':
+                $qb->orderBy('m.statutMission', $orderDirection);
+                break;
+            case 'budgetMax':
+                $qb->orderBy('d.budgetMax', $orderDirection);
+                break;
+            default:
+                $qb->orderBy('m.id', 'DESC');
+        }
+
+        // Get total count for pagination
+        $totalCount = (clone $qb)->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = ceil($totalCount / $limit);
+
+        // Apply pagination
+        $qb->setFirstResult(($page - 1) * $limit)
+           ->setMaxResults($limit);
+
+        $missions = $qb->getQuery()->getResult();
 
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
@@ -109,7 +174,24 @@ final class AideSoingnantController extends BaseController
         return $this->render('mission/list.html.twig', [
             'missions' => $missions,
             'navigation' => $navigation,
+            'search' => $search,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
         ]);
+    }
+
+    private function parseDate(string $dateString): ?\DateTime
+    {
+        $formats = ['Y-m-d', 'd/m/Y', 'Y/m/d', 'd-m-Y'];
+        foreach ($formats as $format) {
+            $date = \DateTime::createFromFormat($format, $dateString);
+            if ($date && $date->format($format) === $dateString) {
+                return $date;
+            }
+        }
+        return null;
     }
 
     #[Route('/aidesoingnant/missions/accept/{id}', name: 'aidesoingnant_missions_accept')]

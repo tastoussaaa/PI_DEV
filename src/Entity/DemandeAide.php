@@ -89,6 +89,11 @@ class DemandeAide
     #[ORM\OneToMany(mappedBy: "demandeAide", targetEntity: Mission::class, cascade: ['remove'])]
     private Collection $missions;
 
+    #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le titre de la demande est obligatoire')]
+    #[Assert\Length(min: 10, minMessage: 'Le titre doit contenir au moins 10 caractères', max: 5000, maxMessage: 'Le titre ne peut pas dépasser 5000 caractères')]
+    private ?string $TitreD = null;
+
     public function __construct()
     {
         $this->missions = new ArrayCollection();
@@ -293,7 +298,7 @@ class DemandeAide
 
     public function __toString(): string
     {
-        return $this->typeDemande . ' - ' . $this->descriptionBesoin;
+        return $this->TitreD . ' - ' . $this->typeDemande;
     }
 
     public function getEmail(): ?string
@@ -304,6 +309,18 @@ class DemandeAide
     public function setEmail(string $email): static
     {
         $this->email = $email;
+        return $this;
+    }
+
+    public function getTitreD(): ?string
+    {
+        return $this->TitreD;
+    }
+
+    public function setTitreD(string $TitreD): static
+    {
+        $this->TitreD = $TitreD;
+
         return $this;
     }
 }

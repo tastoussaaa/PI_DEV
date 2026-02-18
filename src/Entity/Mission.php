@@ -43,6 +43,9 @@ class Mission
     #[ORM\JoinColumn(nullable: true)]
     private ?AideSoignant $aideSoignant = null;
 
+    #[ORM\Column(length: 255)]
+    private ?string $TitreM = null;
+
     // ================= Getters et Setters =================
 
     public function getId(): ?int
@@ -137,6 +140,18 @@ class Mission
     public function setAideSoignant(?AideSoignant $aideSoignant): static
     {
         $this->aideSoignant = $aideSoignant;
+        return $this;
+    }
+
+    public function getTitreM(): ?string
+    {
+        return $this->TitreM;
+    }
+
+    public function setTitreM(string $TitreM): static
+    {
+        $this->TitreM = $TitreM;
+
         return $this;
     }
 }

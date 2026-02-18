@@ -13,6 +13,7 @@ use App\Repository\DemandeAideRepository;
 use App\Repository\AideSoignantRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Mission;
+use App\Entity\DemandeAide;
 
 final class AideSoingnantController extends BaseController
 {
@@ -47,7 +48,15 @@ final class AideSoingnantController extends BaseController
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
         
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
+
         return $this->render('aide_soingnant/aideSoignantDashboard.html.twig', [
+            'navigation' => $navigation,
             'aideSoignant' => $aideSoignant,
             'userId' => $userId,
             'navigation' => $navigation,
@@ -92,23 +101,21 @@ final class AideSoingnantController extends BaseController
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
 
-        // Get search and sort parameters
         $search = $request->query->get('search', '');
         $sortBy = $request->query->get('sort_by', 'dateCreation');
         $sortOrder = $request->query->get('sort_order', 'desc');
         $page = max(1, (int) $request->query->get('page', 1));
-        $limit = 10; // Items per page
+        $limit = 10;
 
-        // Build query
         $qb = $entityManager->getRepository(Mission::class)->createQueryBuilder('m')
             ->leftJoin('m.demandeAide', 'd')
-            ->select('m, d');
+            ->select('m, d')
+            ->andWhere('m.StatutMission = :status')
+            ->setParameter('status', 'ACCEPTÉE');
 
-        // Apply search filter
         if (!empty($search)) {
             switch ($sortBy) {
                 case 'dateCreation':
-                    // Handle date search
                     $date = $this->parseDate($search);
                     if ($date) {
                         $qb->andWhere('DATE(d.dateCreation) = :date')
@@ -116,7 +123,6 @@ final class AideSoingnantController extends BaseController
                     }
                     break;
                 case 'budgetMax':
-                    // Handle budget search
                     if (is_numeric($search)) {
                         $qb->andWhere('d.budgetMax = :budget')
                            ->setParameter('budget', (int) $search);
@@ -126,17 +132,12 @@ final class AideSoingnantController extends BaseController
                     $qb->andWhere('d.typeDemande LIKE :search')
                        ->setParameter('search', '%' . $search . '%');
                     break;
-                case 'statutMission':
-                    $qb->andWhere('m.statutMission LIKE :search')
-                       ->setParameter('search', '%' . $search . '%');
-                    break;
                 default:
-                    $qb->andWhere('d.descriptionBesoin LIKE :search OR d.typeDemande LIKE :search OR m.statutMission LIKE :search')
+                    $qb->andWhere('d.descriptionBesoin LIKE :search OR d.typeDemande LIKE :search OR m.titreM LIKE :search')
                        ->setParameter('search', '%' . $search . '%');
             }
         }
 
-        // Apply sorting
         $orderDirection = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
         switch ($sortBy) {
             case 'dateCreation':
@@ -145,33 +146,24 @@ final class AideSoingnantController extends BaseController
             case 'typeDemande':
                 $qb->orderBy('d.typeDemande', $orderDirection);
                 break;
-            case 'statutMission':
-                $qb->orderBy('m.statutMission', $orderDirection);
-                break;
-            case 'budgetMax':
-                $qb->orderBy('d.budgetMax', $orderDirection);
-                break;
             default:
-                $qb->orderBy('m.id', 'DESC');
+                $qb->orderBy('d.dateCreation', 'DESC');
         }
 
-        // Get total count for pagination
         $totalCount = (clone $qb)->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
         $totalPages = ceil($totalCount / $limit);
 
-        // Apply pagination
-        $qb->setFirstResult(($page - 1) * $limit)
-           ->setMaxResults($limit);
-
+        $qb->setFirstResult(($page - 1) * $limit)->setMaxResults($limit);
         $missions = $qb->getQuery()->getResult();
 
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
             ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
-        return $this->render('mission/list.html.twig', [
+        return $this->render('aide_soingnant/missions.html.twig', [
             'missions' => $missions,
             'navigation' => $navigation,
             'search' => $search,
@@ -194,7 +186,106 @@ final class AideSoingnantController extends BaseController
         return null;
     }
 
-    #[Route('/aidesoingnant/missions/accept/{id}', name: 'aidesoingnant_missions_accept')]
+    #[Route('/aidesoingnant/demandes', name: 'aidesoingnant_demandes')]
+    public function demandes(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $search = $request->query->get('search', '');
+        $sortBy = $request->query->get('sort_by', 'dateCreation');
+        $sortOrder = $request->query->get('sort_order', 'desc');
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 10;
+
+        // Get demandes with status EN_ATTENTE (via missions) and REFUSÉE
+        $qb = $entityManager->getRepository(DemandeAide::class)->createQueryBuilder('d')
+            ->leftJoin('d.missions', 'm')
+            ->select('d')
+            ->distinct()
+            ->andWhere('(m.StatutMission = :status OR d.statut = :refused)')
+            ->setParameter('status', 'EN_ATTENTE')
+            ->setParameter('refused', 'REFUSÉE');
+
+        if (!empty($search)) {
+            switch ($sortBy) {
+                case 'dateCreation':
+                    $date = $this->parseDate($search);
+                    if ($date) {
+                        $qb->andWhere('DATE(d.dateCreation) = :date')
+                           ->setParameter('date', $date->format('Y-m-d'));
+                    }
+                    break;
+                case 'budgetMax':
+                    if (is_numeric($search)) {
+                        $qb->andWhere('d.budgetMax = :budget')
+                           ->setParameter('budget', (int) $search);
+                    }
+                    break;
+                case 'typeDemande':
+                    $qb->andWhere('d.typeDemande LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+                    break;
+                default:
+                    $qb->andWhere('d.descriptionBesoin LIKE :search OR d.typeDemande LIKE :search OR d.titreD LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+            }
+        }
+
+        $orderDirection = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+        switch ($sortBy) {
+            case 'dateCreation':
+                $qb->orderBy('d.dateCreation', $orderDirection);
+                break;
+            case 'typeDemande':
+                $qb->orderBy('d.typeDemande', $orderDirection);
+                break;
+            case 'budgetMax':
+                $qb->orderBy('d.budgetMax', $orderDirection);
+                break;
+            default:
+                $qb->orderBy('d.dateCreation', 'DESC');
+        }
+
+        $totalCount = (clone $qb)->select('COUNT(DISTINCT d.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = ceil($totalCount / $limit);
+
+        $qb->setFirstResult(($page - 1) * $limit)->setMaxResults($limit);
+        $demandesData = $qb->getQuery()->getResult();
+
+        // Convert to format compatible with template
+        $demandes = [];
+        foreach ($demandesData as $demande) {
+            $missions = $demande->getMissions();
+            if (!$missions->isEmpty()) {
+                // If has missions, use the first one
+                $demandes[] = $missions->first();
+            } else {
+                // If no missions (refusée), create a wrapper object
+                $mission = new Mission();
+                $mission->setDemandeAide($demande);
+                $demandes[] = $mission;
+            }
+        }
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
+
+        return $this->render('aide_soingnant/demandes.html.twig', [
+            'demandes' => $demandes,
+            'navigation' => $navigation,
+            'search' => $search,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+        ]);
+    }
+
+    #[Route('/aidesoingnant/missions/accept/{id}', name: 'aidesoingnant_accept_mission')]
     public function acceptMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
@@ -220,6 +311,7 @@ final class AideSoingnantController extends BaseController
 
         // Update the existing Mission
         $mission->setAideSoignant($aideSoignant);
+        $mission->setTitreM($demande->getTitreD());
         $mission->setStatutMission('ACCEPTÉE');
         $mission->setPrixFinal(0); // To be negotiated later
 
@@ -247,23 +339,19 @@ final class AideSoingnantController extends BaseController
             throw $this->createAccessDeniedException('You must be an aide soignant to refuse missions');
         }
 
-        // Find the existing Mission for this demande
-        $missions = $demande->getMissions();
-        if ($missions->isEmpty()) {
-            throw $this->createNotFoundException('Mission not found for this demande');
-        }
-
-        $mission = $missions->first();
-
-        // Update the existing Mission
-        $mission->setStatutMission('REFUSÉE');
-
+        // Update the demande status to REFUSÉE
         $demande->setStatut('REFUSÉE');
+
+        // Delete all associated missions
+        $missions = $demande->getMissions();
+        foreach ($missions as $mission) {
+            $entityManager->remove($mission);
+        }
 
         $entityManager->flush();
 
-        $this->addFlash('success', 'Mission refusée avec succès.');
-        return $this->redirectToRoute('aidesoingnant_missions');
+        $this->addFlash('success', 'Demande d\'aide refusée avec succès.');
+        return $this->redirectToRoute('aidesoingnant_demandes');
     }
 
     #[Route('/aidesoingnant/missions/details/{id}', name: 'aidesoingnant_missions_details')]

@@ -148,7 +148,7 @@
         <div class="box" style="max-width: 900px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px;">
                 <div>
-                    <h2 style="margin: 0 0 12px 0;">{{ demande.typeDemande }}</h2>
+                    <h2 style="margin: 0 0 12px 0;">{{ demande.titreD }}</h2>
                     <span class="status-badge status--{{ demande.typeDemande|lower }}">{{ demande.typeDemande }}</span>
                 </div>
                 <div style="text-align: right;">
@@ -160,6 +160,10 @@
             <div class="details-grid">
                 <div class="detail-section">
                     <h3>📋 Informations générales</h3>
+                    <div class="detail-item">
+                        <div class="detail-label">Titre de la demande</div>
+                        <div class="detail-value">{{ demande.titreD }}</div>
+                    </div>
                     <div class="detail-item">
                         <div class="detail-label">Description du besoin</div>
                         <div class="detail-value">{{ demande.descriptionBesoin }}</div>

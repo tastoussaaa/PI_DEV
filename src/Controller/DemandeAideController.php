@@ -190,6 +190,7 @@ final class DemandeAideController extends BaseController
                 }
                 
                 // Remplir les données du formulaire
+                $demandeAide->setTitreD($demandeAideData['TitreD'] ?? '');
                 $demandeAide->setTypeDemande($demandeAideData['typeDemande'] ?? null);
                 $demandeAide->setDescriptionBesoin($demandeAideData['descriptionBesoin'] ?? null);
                 $demandeAide->setTypePatient($demandeAideData['typePatient'] ?? null);
@@ -238,6 +239,7 @@ final class DemandeAideController extends BaseController
                 // Créer automatiquement une mission pour cette demande
                 $mission = new Mission();
                 $mission->setDemandeAide($demandeAide);
+                $mission->setTitreM($demandeAide->getTitreD());
                 $mission->setStatutMission('EN_ATTENTE');
                 $mission->setPrixFinal(0);
                 $mission->setNote(null);
@@ -319,6 +321,7 @@ final class DemandeAideController extends BaseController
                 }
                 
                 // Mettre à jour les données
+                $demandeAide->setTitreD($demandeAideData['TitreD'] ?? '');
                 $demandeAide->setTypeDemande($demandeAideData['typeDemande'] ?? null);
                 $demandeAide->setDescriptionBesoin($demandeAideData['descriptionBesoin'] ?? null);
                 $demandeAide->setTypePatient($demandeAideData['typePatient'] ?? null);

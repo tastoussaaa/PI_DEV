@@ -197,6 +197,16 @@ final class AideSoingnantController extends BaseController
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 10;
 
+        // Get current aide-soignant
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to view demandes');
+        }
+
+        // Convert aide-soignant sexe to demande sexe format
+        // HOMME -> M, FEMME -> F
+        $aideSexeMapped = ($aideSoignant->getSexe() === 'HOMME') ? 'M' : 'F';
+
         // Get demandes with status EN_ATTENTE (via missions) and REFUSÉE
         $qb = $entityManager->getRepository(DemandeAide::class)->createQueryBuilder('d')
             ->leftJoin('d.missions', 'm')
@@ -204,7 +214,11 @@ final class AideSoingnantController extends BaseController
             ->distinct()
             ->andWhere('(m.StatutMission = :status OR d.statut = :refused)')
             ->setParameter('status', 'EN_ATTENTE')
-            ->setParameter('refused', 'REFUSÉE');
+            ->setParameter('refused', 'REFUSÉE')
+            // Filter by aide-soignant sexe compatibility
+            ->andWhere('(d.sexe = :aideSexe OR d.sexe = :indifferent)')
+            ->setParameter('aideSexe', $aideSexeMapped)
+            ->setParameter('indifferent', 'N');
 
         if (!empty($search)) {
             switch ($sortBy) {

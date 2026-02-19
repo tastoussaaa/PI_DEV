@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\DemandeAide;
 use App\Entity\Mission;
+use App\Entity\AideSoignant;
 use App\Form\DemandeAideType;
 use App\Repository\DemandeAideRepository;
 use App\Service\UserService;
@@ -252,7 +253,7 @@ final class DemandeAideController extends BaseController
                 $entityManager->flush();
 
                 $this->addFlash('success', 'Votre demande d\'aide a été enregistrée avec succès !');
-                return $this->redirectToRoute('app_demandes_index');
+                return $this->redirectToRoute('app_demande_select_aide', ['id' => $demandeAide->getId()]);
                 
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Failed: ' . $e->getMessage());
@@ -268,7 +269,7 @@ final class DemandeAideController extends BaseController
     }
 
     #[Route('/demande/{id}', name: 'app_demande_aide_show', methods: ['GET'])]
-    public function show(DemandeAide $demandeAide): Response
+    public function show(DemandeAide $demandeAide, EntityManagerInterface $entityManager): Response
     {
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
@@ -279,10 +280,33 @@ final class DemandeAideController extends BaseController
             ['name' => 'Produits', 'path' => $this->generateUrl('produit_list'), 'icon' => '🛒'],
             ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋']
         ];
+
+        $qb = $entityManager->getRepository(AideSoignant::class)->createQueryBuilder('a')
+            ->andWhere('a.isValidated = :validated')
+            ->setParameter('validated', true);
+
+        $demandeSexe = $demandeAide->getSexe();
+        if ($demandeSexe === 'M') {
+            $qb->andWhere('a.Sexe IN (:sexes)')
+               ->setParameter('sexes', ['HOMME', 'M']);
+        } elseif ($demandeSexe === 'F') {
+            $qb->andWhere('a.Sexe IN (:sexes)')
+               ->setParameter('sexes', ['FEMME', 'F']);
+        } else {
+            $qb->andWhere('a.Sexe IN (:sexes)')
+               ->setParameter('sexes', ['HOMME', 'FEMME', 'M', 'F']);
+        }
+
+        $aidesSoignantsCompatibles = $qb
+            ->orderBy('a.disponible', 'DESC')
+            ->addOrderBy('a.niveauExperience', 'DESC')
+            ->getQuery()
+            ->getResult();
         
         return $this->render('demande_aide/show.html.twig', [
             'demande' => $demandeAide,
             'navigation' => $navigation,
+            'aidesSoignantsCompatibles' => $aidesSoignantsCompatibles,
         ]);
     }
 
@@ -380,6 +404,91 @@ final class DemandeAideController extends BaseController
             'demande' => $demandeAide,
             'navigation' => $navigation,
         ]);
+    }
+
+    #[Route('/demande/{id}/select-aide', name: 'app_demande_select_aide', methods: ['GET'])]
+    public function selectAide(DemandeAide $demandeAide, EntityManagerInterface $entityManager): Response
+    {
+        // Si l'aide a déjà été choisi, rediriger vers la demande
+        if ($demandeAide->getAideChoisie() !== null) {
+            return $this->redirectToRoute('app_demande_aide_show', ['id' => $demandeAide->getId()]);
+        }
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('app_demandes_index'), 'icon' => '📝'],
+        ];
+
+        // Récupérer les aides-soignants compatibles
+        $qb = $entityManager->getRepository(AideSoignant::class)->createQueryBuilder('a')
+            ->andWhere('a.isValidated = :validated')
+            ->setParameter('validated', true);
+
+        $demandeSexe = $demandeAide->getSexe();
+        if ($demandeSexe === 'M') {
+            $qb->andWhere('a.Sexe IN (:sexes)')
+               ->setParameter('sexes', ['HOMME']);
+        } elseif ($demandeSexe === 'F') {
+            $qb->andWhere('a.Sexe IN (:sexes)')
+               ->setParameter('sexes', ['FEMME']);
+        } else {
+            $qb->andWhere('a.Sexe IN (:sexes)')
+               ->setParameter('sexes', ['HOMME', 'FEMME']);
+        }
+
+        $aidesSoignantsCompatibles = $qb
+            ->orderBy('a.disponible', 'DESC')
+            ->addOrderBy('a.niveauExperience', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->render('demande_aide/select_aide.html.twig', [
+            'demande' => $demandeAide,
+            'aidesSoignantsCompatibles' => $aidesSoignantsCompatibles,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/demande/{id}/select-aide/{aideId}', name: 'app_demande_select_aide_post', methods: ['POST'])]
+    public function selectAidePost(DemandeAide $demandeAide, int $aideId, EntityManagerInterface $entityManager): Response
+    {
+        // Récupérer l'aide-soignant choisi
+        $aideSoignant = $entityManager->getRepository(AideSoignant::class)->find($aideId);
+        if (!$aideSoignant) {
+            $this->addFlash('error', 'Aide-soignant non trouvé.');
+            return $this->redirectToRoute('app_demande_select_aide', ['id' => $demandeAide->getId()]);
+        }
+
+        // Binding de l'aide-soignant à la demande
+        $demandeAide->setAideChoisie($aideSoignant);
+        $demandeAide->setStatut('EN_ATTENTE');
+
+        // Récupérer ou créer la mission associée
+        $missions = $demandeAide->getMissions();
+        $mission = null;
+        
+        if ($missions->count() > 0) {
+            // La mission existe déjà (créée lors de la demande)
+            $mission = $missions->first();
+        } else {
+            // Créer une nouvelle mission
+            $mission = new Mission();
+            $mission->setDemandeAide($demandeAide);
+            $mission->setTitreM($demandeAide->getTitreD());
+            $mission->setStatutMission('EN_ATTENTE');
+            $mission->setPrixFinal(0);
+            $mission->setDateDebut($demandeAide->getDateDebutSouhaitee());
+            $mission->setDateFin($demandeAide->getDateFinSouhaitee());
+            $entityManager->persist($mission);
+        }
+
+        // Assigner l'aide-soignant à la mission
+        $mission->setAideSoignant($aideSoignant);
+
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Vous avez sélectionné ' . $aideSoignant->getNom() . ' comme aide-soignant !');
+        return $this->redirectToRoute('app_demande_aide_show', ['id' => $demandeAide->getId()]);
     }
 
     #[Route('/demande/{id}/delete', name: 'app_demande_aide_delete', methods: ['POST'])]

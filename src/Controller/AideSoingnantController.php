@@ -45,12 +45,6 @@ final class AideSoingnantController extends BaseController
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
             ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
-            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
-        ];
-        
-        $navigation = [
-            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
-            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
             ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
@@ -59,7 +53,6 @@ final class AideSoingnantController extends BaseController
             'navigation' => $navigation,
             'aideSoignant' => $aideSoignant,
             'userId' => $userId,
-            'navigation' => $navigation,
         ]);
     }
 
@@ -208,17 +201,16 @@ final class AideSoingnantController extends BaseController
         $aideSexeMapped = ($aideSoignant->getSexe() === 'HOMME') ? 'M' : 'F';
 
         // Get demandes with status EN_ATTENTE (via missions) and REFUSÉE
+        // NOW: Filter only by aideChoisie = current aide-soignant
         $qb = $entityManager->getRepository(DemandeAide::class)->createQueryBuilder('d')
             ->leftJoin('d.missions', 'm')
             ->select('d')
             ->distinct()
+            ->andWhere('d.aideChoisie = :aideSoignant')
+            ->setParameter('aideSoignant', $aideSoignant)
             ->andWhere('(m.StatutMission = :status OR d.statut = :refused)')
             ->setParameter('status', 'EN_ATTENTE')
-            ->setParameter('refused', 'REFUSÉE')
-            // Filter by aide-soignant sexe compatibility
-            ->andWhere('(d.sexe = :aideSexe OR d.sexe = :indifferent)')
-            ->setParameter('aideSexe', $aideSexeMapped)
-            ->setParameter('indifferent', 'N');
+            ->setParameter('refused', 'REFUSÉE');
 
         if (!empty($search)) {
             switch ($sortBy) {

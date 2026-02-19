@@ -46,30 +46,47 @@
         .card p {
             margin: 12px 0;
             color: #666;
-            line-height: 1.6;
+            line-height: 1;
             flex-grow: 1;
         }
         
-        .card__actions {
+         .card__actions {
             display: flex;
             gap: 12px;
             margin-top: auto;
             padding-top: 16px;
         }
-        
+
+        .card__actions a,
         .card__actions button,
-        .card__actions a {
+        .card__actions form {
             flex: 1;
+            min-width: 0;
+        }
+
+        .card__actions form {
+            display: flex;
+            margin: 0;
+        }
+
+        .card__actions form button {
+            flex: 1;
+        }
+
+        .card__actions a,
+        .card__actions button {
             padding: 12px 16px;
             font-size: 14px;
-            border: none;
             border-radius: 6px;
-            cursor: pointer;
             font-weight: 600;
-            transition: all 0.3s ease;
             text-decoration: none;
             text-align: center;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         
         .btn--info {
             background: #B3E5FC;
@@ -84,15 +101,27 @@
         }
 
         .btn--edit {
-            background: #B2DFDB;
-            color: #00695C;
+            background: #FFD8B8;
+            color: #D27600;
             border: none;
         }
 
         .btn--edit:hover {
-            background: #80DEEA;
+            background: #FFCCA3;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 150, 136, 0.2);
+            box-shadow: 0 4px 12px rgba(210, 118, 0, 0.2);
+        }
+
+        .btn--select {
+            background: #C8E6C9;
+            color: #2E7D32;
+            border: none;
+        }
+
+        .btn--select:hover {
+            background: #A5D6A7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
         }
 
         .btn--danger {
@@ -309,7 +338,12 @@
                                     <h3 style="margin: 0 0 12px 0;">{{ demande.titreD }}</h3>
                                     <span class="card__status status--{{ demande.typeDemande|lower }}">{{ demande.typeDemande }}</span>
                                 </div>
-                                <span class="card__status status--{{ demande.statut|lower|replace({'_': '_'}) }}">{{ demande.statut|replace({'_': ' '}) }}</span>
+                                {% set statusClass = {
+                                    'ACCEPTÉE': 'accepted',
+                                    'EN_ATTENTE': 'en_attente',
+                                    'REFUSÉE': 'refused'
+                                }[demande.statut] ?? demande.statut|lower|replace({'_': '_'}) %}
+                                <span class="card__status status--{{ statusClass }}">{{ demande.statut|replace({'_': ' '}) }}</span>
                             </div>
 
                             <p style="margin: 12px 0; color: #666; line-height: 1.5;">{{ demande.descriptionBesoin|length > 120 ? demande.descriptionBesoin|slice(0, 120) ~ '…' : demande.descriptionBesoin }}</p>
@@ -330,12 +364,15 @@
                             </div>
 
                             <div class="card__actions">
+                                {% if demande.statut == 'EN_ATTENTE' and not demande.aideChoisie %}
+                                    <a href="{{ path('app_demande_select_aide', {id: demande.id}) }}" class="btn btn--select">👥 Sélectionner un aide</a>
+                                {% endif %}
                                 {% if demande.statut == 'EN_ATTENTE' %}
                                     <a href="{{ path('app_demande_aide_edit', {id: demande.id}) }}" class="btn btn--edit">✏️ Modifier</a>
                                 {% endif %}
                                 <a href="{{ path('app_demande_aide_show', {id: demande.id}) }}" class="btn btn--info">👁️ Suivre</a>
-                                <form method="POST" action="{{ path('app_demande_aide_delete', {id: demande.id}) }}" style="flex: 1;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?');">
-                                    <button type="submit" class="btn btn--danger" style="width: 100%;">❌ Annuler</button>
+                                <form method="POST" action="{{ path('app_demande_aide_delete', {id: demande.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?');">
+                                    <button type="submit" class="btn btn--danger">❌ Annuler</button>
                                 </form>
                             </div>
                         </div>

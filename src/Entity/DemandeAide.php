@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use App\Entity\Mission;
+use App\Entity\AideSoignant;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DemandeAideRepository::class)]
@@ -93,6 +94,10 @@ class DemandeAide
     #[Assert\NotBlank(message: 'Le titre de la demande est obligatoire')]
     #[Assert\Length(min: 10, minMessage: 'Le titre doit contenir au moins 10 caractères', max: 5000, maxMessage: 'Le titre ne peut pas dépasser 5000 caractères')]
     private ?string $TitreD = null;
+
+    #[ORM\ManyToOne(targetEntity: AideSoignant::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?AideSoignant $aideChoisie = null;
 
     public function __construct()
     {
@@ -321,6 +326,17 @@ class DemandeAide
     {
         $this->TitreD = $TitreD;
 
+        return $this;
+    }
+
+    public function getAideChoisie(): ?AideSoignant
+    {
+        return $this->aideChoisie;
+    }
+
+    public function setAideChoisie(?AideSoignant $aideChoisie): static
+    {
+        $this->aideChoisie = $aideChoisie;
         return $this;
     }
 }

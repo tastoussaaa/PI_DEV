@@ -1,0 +1,378 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sélectionner un aide-soignant{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+<style>
+    /* --- Container & Header --- */
+    .select-aide__container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    .select-aide__header {
+        margin-bottom: 40px;
+        padding: 36px 24px;
+        background: linear-gradient(135deg, #9C92D4 0%, #B6A0E0 100%);
+        color: #fff;
+        text-align: center;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(156, 146, 212, 0.25);
+    }
+
+    .select-aide__title {
+        font-size: 30px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .select-aide__subtitle {
+        font-size: 16px;
+        font-weight: 500;
+        opacity: 0.9;
+    }
+
+    .return-button {
+        text-align: center;
+        margin-top: 40px;
+        margin-bottom: 60px;
+    }
+
+    .return-button a {
+        display: inline-block;
+        padding: 12px 28px;
+        background: #9C92D4;
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: 0.3s ease;
+    }
+
+    .return-button a:hover {
+        background: #B6A0E0;
+        transform: translateY(-2px);
+    }
+
+    /* --- Demande Info --- */
+    .demande-info__box {
+        background: #F8F8FB;
+        padding: 24px;
+        border-radius: 12px;
+        margin-bottom: 40px;
+        border: 1px solid #D0CBE6;
+    }
+
+    .demande-info__title {
+        color: #9C92D4;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+        font-size: 16px;
+    }
+
+    .demande-info__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+
+    .demande-info__label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #9C92D4;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .demande-info__value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #4B4A5B;
+    }
+
+    /* --- Grille aides-soignants --- */
+    .aides-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .aide-card {
+        position: relative;
+        padding: 20px;
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #D0CBE6;
+        box-shadow: 0 4px 16px rgba(156, 146, 212, 0.1);
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+    }
+
+    .aide-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(156, 146, 212, 0.2);
+    }
+
+    .aide-card h3 {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #4B4A5B;
+    }
+
+    .aide-card p {
+        font-size: 13px;
+        color: #777;
+        margin-bottom: 8px;
+    }
+
+    /* --- Badges --- */
+    .aide-badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 8px;
+    }
+
+    .badge--available {
+        background: #A4D4AE;
+        color: #2E7D32;
+    }
+
+    .badge--unavailable {
+        background: #F3C1C6;
+        color: #721C24;
+    }
+
+    /* --- Aide info --- */
+    .aide-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        background: #F8F8FB;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #D0CBE6;
+        margin: 16px 0;
+        font-size: 13px;
+    }
+
+    .aide-info-label {
+        color: #9C92D4;
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .aide-info-value {
+        color: #4B4A5B;
+        font-weight: 600;
+    }
+
+    /* --- Détails --- */
+    .aide-details {
+        background: #F8F8FB;
+        padding: 12px 16px;
+        border-left: 4px solid #9C92D4;
+        border-radius: 10px;
+        font-size: 13px;
+        margin-bottom: 12px;
+        color: #555;
+    }
+
+    .aide-details a {
+        color: #9C92D4;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .aide-details a:hover {
+        text-decoration: underline;
+    }
+
+    /* --- Tarif --- */
+    .aide-tarif {
+        background: #9C92D4;
+        color: white;
+        padding: 14px;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 700;
+        margin: 12px 0;
+        font-size: 16px;
+    }
+
+    /* --- Bouton choisir --- */
+    .btn--choisir {
+        background: #A4D4AE;
+        color: #2E7D32;
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 10px 0;
+        width: 100%;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s ease;
+    }
+
+    .btn--choisir:hover {
+        background: #81C784;
+    }
+
+    /* --- No aides --- */
+    .no-aides {
+        text-align: center;
+        padding: 60px 20px;
+        border-radius: 12px;
+        background: #F8F8FB;
+        color: #888;
+        border: 2px dashed #D0CBE6;
+    }
+
+    .no-aides h2 {
+        color: #9C92D4;
+        font-size: 20px;
+        margin-bottom: 8px;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+        .aide-info {
+            grid-template-columns: 1fr;
+        }
+    }
+
+</style>
+{% endblock %}
+
+{% block body %}
+
+{% set navigation = [
+    {'name': 'Dashboard', 'path': path('app_patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Nouvelle consultation', 'path': path('consultation_new'), 'icon': '➕'},
+    {'name': 'Demandes', 'path': path('app_demandes_index'), 'icon': '📝'},
+    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
+    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
+] %}
+
+<div class="portal">
+    {% include 'side_bar.html.twig' %}
+
+    <main class="portal__main">
+        <div class="select-aide__header">
+            <h1 class="select-aide__title">👥 Sélectionner un aide-soignant</h1>
+            <p class="select-aide__subtitle">Choisissez parmi nos professionnels qualifiés</p>
+        </div>
+
+        <div class="select-aide__container">
+
+            <!-- Infos demande -->
+            <div class="demande-info__box">
+                <h3 class="demande-info__title">📋 Votre demande</h3>
+                <div class="demande-info__grid">
+                    <div>
+                        <div class="demande-info__label">Titre</div>
+                        <div class="demande-info__value">{{ demande.TitreD }}</div>
+                    </div>
+                    <div>
+                        <div class="demande-info__label">Type de patient</div>
+                        <div class="demande-info__value">{{ demande.typePatient }}</div>
+                    </div>
+                    <div>
+                        <div class="demande-info__label">Date début</div>
+                        <div class="demande-info__value">
+                            {% if demande.dateDebutSouhaitee %}{{ demande.dateDebutSouhaitee|date('d/m/Y') }}{% else %}Non spécifiée{% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="demande-info__label">Type de demande</div>
+                        <div class="demande-info__value">{{ demande.typeDemande }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grille aides-soignants -->
+            {% if aidesSoignantsCompatibles|length > 0 %}
+            <div class="aides-grid">
+                {% for aide in aidesSoignantsCompatibles %}
+                <div class="aide-card">
+                    <div>
+                        <h3>{{ aide.nom|capitalize }} {{ aide.prenom|capitalize }}</h3>
+                        <p>Aide-soignant(e) professionnel(le)</p>
+                        {% if aide.disponible %}
+                        <span class="aide-badge badge--available">✓ Disponible</span>
+                        {% else %}
+                        <span class="aide-badge badge--unavailable">✗ Non disponible</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="aide-info">
+                        <div>
+                            <div class="aide-info-label">Sexe</div>
+                            <div class="aide-info-value">{{ aide.Sexe == 'HOMME' ? 'Homme' : 'Femme' }}</div>
+                        </div>
+                        <div>
+                            <div class="aide-info-label">Expérience</div>
+                            <div class="aide-info-value">{{ aide.niveauExperience }} ans</div>
+                        </div>
+                        <div>
+                            <div class="aide-info-label">Localisation</div>
+                            <div class="aide-info-value">{{ aide.villeIntervention }}</div>
+                        </div>
+                        <div>
+                            <div class="aide-info-label">Rayon</div>
+                            <div class="aide-info-value">{{ aide.rayonInterventionKm }} km</div>
+                        </div>
+                    </div>
+
+                    <div class="aide-details">
+                        <div class="aide-details-label">Types de patients :</div>
+                        {{ aide.typePatientsAcceptes }}
+                    </div>
+
+                    <div class="aide-details">
+                        <div class="aide-details-label">📧 Email :</div>
+                        <a href="mailto:{{ aide.email }}">{{ aide.email }}</a>
+                    </div>
+
+                    <div class="aide-details">
+                        <div class="aide-details-label">📱 Téléphone :</div>
+                        <a href="tel:{{ aide.telephone }}">{{ aide.telephone }}</a>
+                    </div>
+
+                    <div class="aide-tarif">💰 {{ aide.tarifMin }} DT/h</div>
+
+                    <div class="aide-card__actions">
+                        <form method="POST" action="{{ path('app_demande_select_aide_post', {id: demande.id, aideId: aide.id}) }}">
+                            <button type="submit" class="btn--choisir">✓ Choisir cet aide-soignant</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-aides">
+                <div>🔍</div>
+                <h2>Aucun aide-soignant compatible trouvé</h2>
+                <p>Malheureusement, aucun aide-soignant ne correspond à vos critères.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="return-button">
+            <a href="{{ path('app_demandes_index') }}">← Retour à mes demandes</a>
+        </div>
+    </main>
+</div>
+
+{% endblock %}

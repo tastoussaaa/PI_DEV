@@ -69,52 +69,51 @@
             flex-wrap: wrap;
         }
         
+        .actions button,
+        .actions a {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 12px;
+            font-size: 13px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+        
         .btn-back {
-            padding: 12px 20px;
             background: #F5F5F5;
             color: #333;
             border: 1px solid #ddd;
-            border-radius: 6px;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-            cursor: pointer;
         }
         
         .btn-back:hover {
             background: #E8E8E8;
             border-color: #999;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
         .btn-edit {
-            padding: 12px 20px;
-            background: #B2DFDB;
-            color: #00695C;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            background: #FFD8B8;
+            color: #D27600;
         }
-        
+
         .btn-edit:hover {
-            background: #80DEEA;
+            background: #FFCCA3;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 150, 136, 0.2);
+            box-shadow: 0 4px 12px rgba(210, 118, 0, 0.2);
         }
         
         .btn-delete {
-            padding: 12px 20px;
             background: #FFCCCC;
             color: #C62828;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            padding: 10px 12px;
+            font-size: 13px;
+            min-width: 100px;
         }
         
         .btn-delete:hover {
@@ -122,7 +121,32 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(198, 40, 40, 0.2);
         }
-        
+
+        .aide-meta {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .badge-dispo {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-dispo--ok {
+            background: #C8E6C9;
+            color: #1B5E20;
+        }
+
+        .badge-dispo--ko {
+            background: #FFCCCC;
+            color: #C62828;
+        }
+
         /* small button helpers moved to global stylesheet */
     </style>
 {% endblock %}
@@ -153,7 +177,12 @@
                 </div>
                 <div style="text-align: right;">
                     <h3 style="margin: 0 0 8px 0;">Statut</h3>
-                    <span class="status-badge status--{{ demande.statut|lower|replace({'_': '_'}) }}">{{ demande.statut|replace({'_': ' '}) }}</span>
+                    {% set statusClass = {
+                        'ACCEPTÉE': 'accepted',
+                        'EN_ATTENTE': 'en_attente',
+                        'REFUSÉE': 'refused'
+                    }[demande.statut] ?? demande.statut|lower|replace({'_': '_'}) %}
+                    <span class="status-badge status--{{ statusClass }}">{{ demande.statut|replace({'_': ' '}) }}</span>
                 </div>
             </div>
 
@@ -230,6 +259,91 @@
                 </div>
             {% endif %}
 
+            <div class="detail-section" style="margin-bottom: 24px; border-left-color: #4CAF50;">
+                <h3>👩‍⚕️ Aides-soignants compatibles</h3>
+                {% if aidesSoignantsCompatibles is empty %}
+                    <p style="margin: 8px 0 0; color: #666;">Aucun aide-soignant compatible trouvé pour le moment.</p>
+                {% else %}
+                    <div class="aides-grid">
+                        {% for aide in aidesSoignantsCompatibles %}
+                            <div class="aide-card">
+                                <h4>{{ aide.nom }} {{ aide.prenom }}</h4>
+                                <div class="aide-meta">📧 {{ aide.email }}</div>
+                                <div class="aide-meta">📱 {{ aide.telephone ?? 'Non renseigné' }}</div>
+                                <div class="aide-meta">⚧ Sexe: {{ aide.sexe }}</div>
+                                <div class="aide-meta">📍 {{ aide.villeIntervention }} ({{ aide.rayonInterventionKm }} km)</div>
+                                <div class="aide-meta">🧑‍🦳 Patients: {{ aide.typePatientsAcceptes }}</div>
+                                <div class="aide-meta">💰 Tarif min: {{ aide.tarifMin }} DT</div>
+                                <div class="aide-meta">⭐ Expérience: {{ aide.niveauExperience ?? 0 }}</div>
+                                <span class="badge-dispo {{ aide.disponible ? 'badge-dispo--ok' : 'badge-dispo--ko' }}">
+                                    {{ aide.disponible ? 'Disponible' : 'Indisponible' }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if demande.aideChoisie %}
+            <div class="detail-section" style="margin-bottom: 24px; border-left-color: #2E7D32;">
+                <h3>✓ Aide-soignant sélectionné</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; padding: 12px 0;">
+                    <div class="detail-item">
+                        <div class="detail-label">Nom</div>
+                        <div class="detail-value">{{ demande.aideChoisie.nom|capitalize }} {{ demande.aideChoisie.prenom|capitalize }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Sexe</div>
+                        <div class="detail-value">
+                            {% if demande.aideChoisie.Sexe == 'HOMME' %}
+                                Homme
+                            {% else %}
+                                Femme
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Expérience</div>
+                        <div class="detail-value">{{ demande.aideChoisie.niveauExperience }} ans</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Localisation</div>
+                        <div class="detail-value">{{ demande.aideChoisie.villeIntervention }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Rayon</div>
+                        <div class="detail-value">{{ demande.aideChoisie.rayonInterventionKm }} km</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Disponibilité</div>
+                        <div class="detail-value">
+                            {% if demande.aideChoisie.disponible %}
+                                ✓ Disponible
+                            {% else %}
+                                ✗ Non disponible
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value"><a href="mailto:{{ demande.aideChoisie.email }}" style="color: var(--primary); text-decoration: none;">{{ demande.aideChoisie.email }}</a></div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Téléphone</div>
+                        <div class="detail-value"><a href="tel:{{ demande.aideChoisie.telephone }}" style="color: var(--primary); text-decoration: none;">{{ demande.aideChoisie.telephone }}</a></div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Types de patients</div>
+                        <div class="detail-value">{{ demande.aideChoisie.typePatientsAcceptes }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Tarif minimum</div>
+                        <div class="detail-value">{{ demande.aideChoisie.tarifMin }} DT/h</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="actions">
                 <a href="{{ path('app_demandes_index') }}" class="btn-back">← Retour</a>
                 {% if demande.statut == 'EN_ATTENTE' %}
@@ -244,6 +358,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+{% if demande.lieu or (demande.latitude and demande.longitude) %}
 <script>
     // Initialiser la carte
     const map = L.map('map').setView([{{ demande.latitude }}, {{ demande.longitude }}], 15);
@@ -256,5 +371,6 @@
     L.marker([{{ demande.latitude }}, {{ demande.longitude }}]).addTo(map)
         .bindPopup('<b>{{ demande.lieu ?? 'Demande d\'aide' }}</b>');
 </script>
+{% endif %}
 
 {% endblock %}

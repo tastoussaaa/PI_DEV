@@ -46,6 +46,41 @@ class Mission
     #[ORM\Column(length: 255)]
     private ?string $TitreM = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?float $latitudeCheckin = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $longitudeCheckin = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $latitudeCheckout = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $longitudeCheckout = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTime $checkInAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTime $checkOutAt = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $statusVerification = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $pdfFilePath = null;
+
+    // ================= ARCHIVE & HISTORIQUE =================
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTime $archivedAt = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $finalStatus = null; // TERMINÉE, EXPIRÉE, ANNULÉE
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $archiveReason = null;
+
     // ================= Getters et Setters =================
 
     public function getId(): ?int
@@ -151,6 +186,140 @@ class Mission
     public function setTitreM(string $TitreM): static
     {
         $this->TitreM = $TitreM;
+
+        return $this;
+    }
+
+    public function getLatitudeCheckin(): ?float
+    {
+        return $this->latitudeCheckin;
+    }
+
+    public function setLatitudeCheckin(?float $latitudeCheckin): static
+    {
+        $this->latitudeCheckin = $latitudeCheckin;
+
+        return $this;
+    }
+
+    public function getLongitudeCheckin(): ?float
+    {
+        return $this->longitudeCheckin;
+    }
+
+    public function setLongitudeCheckin(?float $longitudeCheckin): static
+    {
+        $this->longitudeCheckin = $longitudeCheckin;
+
+        return $this;
+    }
+
+    public function getLatitudeCheckout(): ?float
+    {
+        return $this->latitudeCheckout;
+    }
+
+    public function setLatitudeCheckout(?float $latitudeCheckout): static
+    {
+        $this->latitudeCheckout = $latitudeCheckout;
+
+        return $this;
+    }
+
+    public function getLongitudeCheckout(): ?float
+    {
+        return $this->longitudeCheckout;
+    }
+
+    public function setLongitudeCheckout(?float $longitudeCheckout): static
+    {
+        $this->longitudeCheckout = $longitudeCheckout;
+
+        return $this;
+    }
+
+    public function getCheckInAt(): ?\DateTime
+    {
+        return $this->checkInAt;
+    }
+
+    public function setCheckInAt(?\DateTime $checkInAt): static
+    {
+        $this->checkInAt = $checkInAt;
+
+        return $this;
+    }
+
+    public function getCheckOutAt(): ?\DateTime
+    {
+        return $this->checkOutAt;
+    }
+
+    public function setCheckOutAt(?\DateTime $checkOutAt): static
+    {
+        $this->checkOutAt = $checkOutAt;
+
+        return $this;
+    }
+
+    public function getStatusVerification(): ?string
+    {
+        return $this->statusVerification;
+    }
+
+    public function setStatusVerification(?string $statusVerification): static
+    {
+        $this->statusVerification = $statusVerification;
+
+        return $this;
+    }
+
+    public function getPdfFilePath(): ?string
+    {
+        return $this->pdfFilePath;
+    }
+
+    public function setPdfFilePath(?string $pdfFilePath): static
+    {
+        $this->pdfFilePath = $pdfFilePath;
+
+        return $this;
+    }
+
+    // ================= ARCHIVE & HISTORIQUE =================
+
+    public function getArchivedAt(): ?\DateTime
+    {
+        return $this->archivedAt;
+    }
+
+    public function setArchivedAt(?\DateTime $archivedAt): static
+    {
+        $this->archivedAt = $archivedAt;
+
+        return $this;
+    }
+
+    public function getFinalStatus(): ?string
+    {
+        return $this->finalStatus;
+    }
+
+    public function setFinalStatus(?string $finalStatus): static
+    {
+        $this->finalStatus = $finalStatus;
+
+        return $this;
+    }
+
+    public function getArchiveReason(): ?string
+    {
+        return $this->archiveReason;
+    }
+
+    public function setArchiveReason(?string $archiveReason): static
+    {
+        $this->archiveReason = $archiveReason;
 
         return $this;
     }

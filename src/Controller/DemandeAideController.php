@@ -10,6 +10,7 @@ use App\Repository\DemandeAideRepository;
 use App\Service\UserService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -41,7 +42,10 @@ final class DemandeAideController extends BaseController
                 $allDemandes = $demandeAideRepository->findAll();
                 $demandesAide = array_filter($allDemandes, function($d) use ($email) {
                     $de = strtolower((string) $d->getEmail());
-                    return $de !== '' && strcasecmp($de, $email) === 0;
+                    $isUserDemande = $de !== '' && strcasecmp($de, $email) === 0;
+                    // Exclude archived demandes (statut ANNULÉE)
+                    $isNotArchived = !in_array($d->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE']);
+                    return $isUserDemande && $isNotArchived;
                 });
 
                 // Apply search filter with validation based on sort_by
@@ -162,7 +166,7 @@ final class DemandeAideController extends BaseController
     }
 
     #[Route('/demande/aide', name: 'app_demande_aide', methods: ['GET', 'POST'])]
-    public function create(Request $request, EntityManagerInterface $entityManager, ValidatorInterface $validator): Response
+    public function create(Request $request, EntityManagerInterface $entityManager, ValidatorInterface $validator, \App\Service\UrgencyCalculator $urgencyCalculator): Response
     {
         $demandeAide = new DemandeAide();
         
@@ -218,6 +222,10 @@ final class DemandeAideController extends BaseController
                 $demandeAide->setDateCreation(new \DateTime());
                 $demandeAide->setStatut('EN_ATTENTE');
                 $demandeAide->setEmail($this->getUser()->getEmail());
+
+                // Calculate urgency score using AI-powered service
+                $urgencyScore = $urgencyCalculator->calculateUrgencyScore($demandeAide);
+                $demandeAide->setUrgencyScore($urgencyScore);
                 
                 // Valider l'entité
                 $errors = $validator->validate($demandeAide);
@@ -269,7 +277,7 @@ final class DemandeAideController extends BaseController
     }
 
     #[Route('/demande/{id}', name: 'app_demande_aide_show', methods: ['GET'])]
-    public function show(DemandeAide $demandeAide, EntityManagerInterface $entityManager): Response
+    public function show(DemandeAide $demandeAide, EntityManagerInterface $entityManager, \App\Service\ReportAssistant $reportAssistant): Response
     {
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
@@ -302,11 +310,16 @@ final class DemandeAideController extends BaseController
             ->addOrderBy('a.niveauExperience', 'DESC')
             ->getQuery()
             ->getResult();
+
+        // Generate AI-powered report
+        $report = $reportAssistant->generateReport($demandeAide);
         
         return $this->render('demande_aide/show.html.twig', [
             'demande' => $demandeAide,
             'navigation' => $navigation,
             'aidesSoignantsCompatibles' => $aidesSoignantsCompatibles,
+            'aiReport' => $report,
+            'reportAssistant' => $reportAssistant,
         ]);
     }
 
@@ -494,11 +507,74 @@ final class DemandeAideController extends BaseController
     #[Route('/demande/{id}/delete', name: 'app_demande_aide_delete', methods: ['POST'])]
     public function delete(DemandeAide $demandeAide, EntityManagerInterface $entityManager): Response
     {
-        $entityManager->remove($demandeAide);
-        $entityManager->flush();
-        
-        $this->addFlash('success', 'La demande a été supprimée avec succès !');
+        try {
+            // Physically delete all associated missions
+            foreach ($demandeAide->getMissions() as $mission) {
+                $entityManager->remove($mission);
+            }
+
+            // Physically delete the demande itself
+            $entityManager->remove($demandeAide);
+            $entityManager->flush();
+            
+            $this->addFlash('success', 'La demande a été supprimée avec succès !');
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la suppression: ' . $e->getMessage());
+        }
+
         return $this->redirectToRoute('app_demandes_index');
+    }
+
+    #[Route('/demandes/historique', name: 'app_demandes_history')]
+    public function history(Request $request, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $user = $this->getUser();
+        $email = $user ? $user->getEmail() : '';
+
+        if (!$email) {
+            throw $this->createAccessDeniedException('User not found');
+        }
+
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 10;
+
+        // Récupérer toutes les demandes d'aide de ce patient avec status TERMINÉE, EXPIRÉE, ANNULÉE
+        $allDemandes = $demandeAideRepository->findAll();
+        $userDemandes = array_filter($allDemandes, function($d) use ($email) {
+            $de = strtolower((string) $d->getEmail());
+            return $de !== '' && strcasecmp($de, $email) === 0;
+        });
+
+        // Filtrer par statuts archivés
+        $archivedDemandes = array_filter($userDemandes, function($d) {
+            return in_array($d->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE']);
+        });
+
+        // Trier par date décroissante
+        usort($archivedDemandes, function($a, $b) {
+            return $b->getDateCreation()->getTimestamp() - $a->getDateCreation()->getTimestamp();
+        });
+
+        $totalCount = count($archivedDemandes);
+        $totalPages = ceil($totalCount / $limit);
+
+        $demandes = array_slice($archivedDemandes, ($page - 1) * $limit, $limit);
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('app_demandes_index'), 'icon' => '📝'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('consultation_index'), 'icon' => '👨‍⚕️'],
+            ['name' => 'Historique', 'path' => $this->generateUrl('app_demandes_history'), 'icon' => '📚'],
+        ];
+
+        return $this->render('demande_aide/history.html.twig', [
+            'demandes' => $demandes,
+            'navigation' => $navigation,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+        ]);
     }
 }
 

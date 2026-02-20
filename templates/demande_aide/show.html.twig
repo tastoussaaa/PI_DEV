@@ -259,6 +259,75 @@
                 </div>
             {% endif %}
 
+            {# AI-powered completeness and report #}
+            {% if aiReport is defined %}
+                <div class="detail-section" style="margin-bottom: 24px; border-left-color: #9C27B0;">
+                    <h3>🤖 Analyse IA de votre demande</h3>
+                    
+                    {# Completeness score #}
+                    <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong>Complétude de la demande:</strong>
+                            <span style="font-size: 24px; font-weight: 700; color: {{ reportAssistant.getCompletenessColor(aiReport.completeness.level) }};">
+                                {{ aiReport.completeness.score }}%
+                            </span>
+                        </div>
+                        <div style="height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; background: {{ reportAssistant.getCompletenessColor(aiReport.completeness.level) }}; width: {{ aiReport.completeness.score }}%; transition: width 0.3s;"></div>
+                        </div>
+                        <div style="margin-top: 8px; font-size: 13px; color: #666;">
+                            Niveau: <span style="font-weight: 600; color: {{ reportAssistant.getCompletenessColor(aiReport.completeness.level) }};">{{ aiReport.completeness.level }}</span>
+                        </div>
+                    </div>
+
+                    {# Missing fields and suggestions #}
+                    {% if aiReport.completeness.suggestions is not empty %}
+                        <div style="background: #FFF9C4; padding: 12px; border-radius: 8px; border-left: 4px solid #FBC02D; margin-bottom: 16px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #F57F17;">💡 Suggestions pour améliorer votre demande:</strong>
+                            <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+                                {% for suggestion in aiReport.completeness.suggestions %}
+                                    <li style="margin-bottom: 4px;">{{ suggestion }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {# Timeline analysis #}
+                    {% if aiReport.timeline.status is defined %}
+                        <div style="background: {% if aiReport.timeline.status == 'OVERDUE' %}#FFEBEE{% elseif aiReport.timeline.status == 'IMMINENT' %}#FFF3E0{% else %}#E8F5E9{% endif %}; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                            <strong>⏱️ {{ aiReport.timeline.message }}</strong>
+                        </div>
+                    {% endif %}
+
+                    {# Budget analysis #}
+                    {% if aiReport.budget is defined %}
+                        <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                            <strong>💰 Budget:</strong> {{ aiReport.budget.total }} TND pour {{ aiReport.budget.duration }} jour(s)
+                            <br><em style="font-size: 13px; color: #666;">Moyenne journalière: {{ aiReport.budget.dailyAverage }} TND/jour</em>
+                        </div>
+                    {% endif %}
+
+                    {# Recommendations #}
+                    {% if aiReport.recommendations is not empty %}
+                        <div style="background: #E3F2FD; padding: 12px; border-radius: 8px; border-left: 4px solid #2196F3; margin-bottom: 16px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #1976D2;">📋 Recommandations:</strong>
+                            <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+                                {% for recommendation in aiReport.recommendations %}
+                                    <li style="margin-bottom: 4px;">{{ recommendation|raw }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {# Global recommendation #}
+                    {% if aiReport.globalRecommendation is defined %}
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 8px; font-weight: 600; text-align: center;">
+                            ✨ {{ aiReport.globalRecommendation }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
             <div class="detail-section" style="margin-bottom: 24px; border-left-color: #4CAF50;">
                 <h3>👩‍⚕️ Aides-soignants compatibles</h3>
                 {% if aidesSoignantsCompatibles is empty %}
@@ -349,9 +418,11 @@
                 {% if demande.statut == 'EN_ATTENTE' %}
                     <a href="{{ path('app_demande_aide_edit', {id: demande.id}) }}" class="btn-edit">✏️ Modifier</a>
                 {% endif %}
-                <form method="POST" action="{{ path('app_demande_aide_delete', {id: demande.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?');" style="margin-left: auto;">
-                    <button type="submit" class="btn-delete">❌ Annuler</button>
-                </form>
+                {% if demande.statut and demande.statut not in ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE'] %}
+                    <form method="POST" action="{{ path('app_demande_aide_delete', {id: demande.id}) }}" style="margin-left: auto;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?');">
+                        <button type="submit" class="btn-delete">✗ Annuler</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </main>

@@ -180,6 +180,16 @@
             color: #D32F2F;
             border: 1px solid rgba(211, 47, 47, 0.15);
         }
+
+        .urgency-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         
         .card__info {
             display: grid;
@@ -218,7 +228,10 @@
                 <h1 class="portal__title">Mes demandes d'aide</h1>
                 <p class="portal__subtitle">Consultez et gérez toutes vos demandes d'aide</p>
             </div>
-            <a href="{{ path('app_demande_aide') }}" class="btn btn--primary">+ Créer une demande</a>
+            <div style="display: flex; gap: 12px;">
+                <a href="{{ path('app_demande_aide') }}" class="btn btn--primary">+ Créer une demande</a>
+                <a href="{{ path('app_demandes_history') }}" class="btn btn--info" style="background: #17a2b8; color: white; text-decoration: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; display: flex; align-items: center; gap: 6px;">📚 Historique</a>
+            </div>
         </div>
 
         <!-- Search and Sort Form -->
@@ -337,6 +350,13 @@
                                 <div>
                                     <h3 style="margin: 0 0 12px 0;">{{ demande.titreD }}</h3>
                                     <span class="card__status status--{{ demande.typeDemande|lower }}">{{ demande.typeDemande }}</span>
+                                    {% if demande.urgencyScore is not null %}
+                                        {% set urgencyLevel = demande.urgencyScore >= 80 ? 'CRITICAL' : (demande.urgencyScore >= 60 ? 'HIGH' : (demande.urgencyScore >= 40 ? 'MEDIUM' : 'LOW')) %}
+                                        {% set urgencyColor = demande.urgencyScore >= 80 ? '#DC3545' : (demande.urgencyScore >= 60 ? '#FD7E14' : (demande.urgencyScore >= 40 ? '#FFC107' : '#28A745')) %}
+                                        <span class="urgency-badge" style="background: {{ urgencyColor }}15; color: {{ urgencyColor }}; border: 1px solid {{ urgencyColor }}30; margin-left: 8px;">
+                                            🔥 {{ urgencyLevel }} ({{ demande.urgencyScore }})
+                                        </span>
+                                    {% endif %}
                                 </div>
                                 {% set statusClass = {
                                     'ACCEPTÉE': 'accepted',

@@ -99,6 +99,9 @@ class DemandeAide
     #[ORM\JoinColumn(nullable: true)]
     private ?AideSoignant $aideChoisie = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $urgencyScore = null;
+
     public function __construct()
     {
         $this->missions = new ArrayCollection();
@@ -337,6 +340,17 @@ class DemandeAide
     public function setAideChoisie(?AideSoignant $aideChoisie): static
     {
         $this->aideChoisie = $aideChoisie;
+        return $this;
+    }
+
+    public function getUrgencyScore(): ?int
+    {
+        return $this->urgencyScore;
+    }
+
+    public function setUrgencyScore(?int $urgencyScore): static
+    {
+        $this->urgencyScore = $urgencyScore;
         return $this;
     }
 }

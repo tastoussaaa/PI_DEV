@@ -137,12 +137,77 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(245, 127, 23, 0.2);
         }
+
+        .traceability-message {
+            margin: 16px 0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .traceability-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 280px;
+            max-width: 420px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+            display: none;
+        }
+
+        .traceability-toast--success {
+            background: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+
+        .traceability-toast--error {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+
+        .traceability-message--success {
+            background: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+
+        .traceability-message--error {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+
+        .traceability-meta {
+            margin: 16px 0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: #f9f9f9;
+            border-left: 4px solid #13B8C2;
+            font-size: 13px;
+            color: #444;
+        }
+
+        .actions button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 {% endblock %}
 
 {% block body %}
 
 <div class="portal">
+    <div id="traceabilityToast" class="traceability-toast"></div>
+
     {% include 'side_bar.html.twig' %}
 
     <main class="portal__main">
@@ -238,11 +303,52 @@
                 </div>
             {% endif %}
 
+            <div id="traceabilityMessage" class="traceability-message"></div>
+
+            {% if mission %}
+                <div class="traceability-meta">
+                    <strong>Traçabilité mission:</strong>
+                    Check-in: {{ mission.checkInAt ? mission.checkInAt|date('d/m/Y H:i:s') : 'Non effectué' }} |
+                    Check-out: {{ mission.checkOutAt ? mission.checkOutAt|date('d/m/Y H:i:s') : 'Non effectué' }} |
+                    Vérification: {{ mission.statusVerification ?? 'PENDING' }}
+                </div>
+            {% endif %}
+
             <div class="actions">
                 <a href="{{ path('aidesoingnant_missions') }}" class="btn-back">← Retour</a>
-                <form method="POST" action="{{ path('aidesoingnant_missions_delete', {'id': demande.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette mission ? Cette action est irréversible.');">
-                    <button type="submit" class="btn-danger">🗑️ Supprimer</button>
-                </form>
+                {% if mission and (demande.statut == 'ACCEPTÉE' or mission.statutMission == 'ACCEPTÉE') %}
+                    <button
+                        id="checkinBtn"
+                        class="btn-success"
+                        data-url="{{ path('mission_checkin', {'id': mission.id}) }}"
+                        {% if mission.checkInAt %}disabled{% endif %}
+                    >📍 Check-in</button>
+                    <button
+                        id="checkoutBtn"
+                        class="btn-warning"
+                        data-url="{{ path('mission_checkout', {'id': mission.id}) }}"
+                        {% if not mission.checkInAt or mission.checkOutAt %}disabled{% endif %}
+                    >✅ Check-out</button>
+                    {% if mission.checkOutAt %}
+                        <a href="{{ path('mission_pdf_download', {'id': mission.id}) }}" class="btn-success" style="text-decoration: none;">
+                            📄 Télécharger PDF
+                        </a>
+                    {% endif %}
+                    {% if mission.finalStatus != 'ANNULÉE' %}
+                        <form method="POST" action="{{ path('aidesoingnant_missions_delete', {'id': demande.id}) }}" style="margin-left: auto; display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette mission ? Cette action est irréversible.');">
+                            <button type="submit" class="btn-danger" {% if mission.finalStatus %}disabled{% endif %}>✗ Annuler</button>
+                        </form>
+                    {% endif %}
+                {% elseif mission %}
+                    <div style="background: #FFF9C4; padding: 12px 16px; border-radius: 6px; border-left: 4px solid #FBC02D; margin-left: auto;">
+                        <strong style="color: #F57F17;">⚠️ Check-in/out disponible uniquement pour les missions acceptées</strong>
+                    </div>
+                    {% if mission.finalStatus != 'ANNULÉE' %}
+                        <form method="POST" action="{{ path('aidesoingnant_missions_delete', {'id': demande.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette mission ? Cette action est irréversible.');">
+                            <button type="submit" class="btn-danger" {% if mission.finalStatus %}disabled{% endif %}>✗ Annuler</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
             </div>
         </div>
     </main>
@@ -250,16 +356,116 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-    // Initialiser la carte
-    const map = L.map('map').setView([{{ demande.latitude }}, {{ demande.longitude }}], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        maxZoom: 19
-    }).addTo(map);
+    const mapElement = document.getElementById('map');
+    if (mapElement) {
+        const map = L.map('map').setView([{{ demande.latitude }}, {{ demande.longitude }}], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
 
-    // Ajouter le marker
-    L.marker([{{ demande.latitude }}, {{ demande.longitude }}]).addTo(map)
-        .bindPopup('<b>{{ demande.lieu ?? 'Demande d\'aide' }}</b>');
+        L.marker([{{ demande.latitude }}, {{ demande.longitude }}]).addTo(map)
+            .bindPopup('<b>{{ demande.lieu ?? 'Demande d\'aide' }}</b>');
+    }
+
+    function showTraceabilityMessage(type, message) {
+        const messageBox = document.getElementById('traceabilityMessage');
+        const toast = document.getElementById('traceabilityToast');
+
+        if (!messageBox) return;
+
+        messageBox.className = 'traceability-message';
+        messageBox.classList.add(type === 'success' ? 'traceability-message--success' : 'traceability-message--error');
+        messageBox.textContent = message;
+        messageBox.style.display = 'block';
+
+        if (toast) {
+            toast.className = 'traceability-toast';
+            toast.classList.add(type === 'success' ? 'traceability-toast--success' : 'traceability-toast--error');
+            toast.textContent = message;
+            toast.style.display = 'block';
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3500);
+        }
+    }
+
+    function getCurrentPosition() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('La géolocalisation n\'est pas supportée par votre navigateur.'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => resolve(position),
+                (error) => {
+                    if (error.code === error.PERMISSION_DENIED) {
+                        reject(new Error('Vous devez autoriser la géolocalisation pour continuer.'));
+                    } else {
+                        reject(new Error('Impossible de récupérer votre position actuelle.'));
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+    }
+
+    async function submitTraceabilityAction(buttonElement, actionLabel) {
+        try {
+            buttonElement.disabled = true;
+            const originalText = buttonElement.textContent;
+            buttonElement.textContent = actionLabel + ' en cours...';
+
+            const position = await getCurrentPosition();
+            const payload = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                consent: true
+            };
+
+            const response = await fetch(buttonElement.dataset.url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                showTraceabilityMessage('error', data.message || 'Une erreur est survenue.');
+                buttonElement.disabled = false;
+                buttonElement.textContent = originalText;
+                return;
+            }
+
+            showTraceabilityMessage('success', data.message || 'Action enregistrée avec succès.');
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (error) {
+            showTraceabilityMessage('error', error.message || 'Une erreur est survenue.');
+            buttonElement.disabled = false;
+            if (actionLabel === 'Check-in') {
+                buttonElement.textContent = '📍 Check-in';
+            } else {
+                buttonElement.textContent = '✅ Check-out';
+            }
+        }
+    }
+
+    const checkinBtn = document.getElementById('checkinBtn');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+
+    if (checkinBtn) {
+        checkinBtn.addEventListener('click', () => submitTraceabilityAction(checkinBtn, 'Check-in'));
+    }
+
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', () => submitTraceabilityAction(checkoutBtn, 'Check-out'));
+    }
 
 </script>
 {% endblock %}

@@ -100,11 +100,20 @@ final class AideSoingnantController extends BaseController
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 10;
 
+        // Get current aide-soignant
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to view missions');
+        }
+
         $qb = $entityManager->getRepository(Mission::class)->createQueryBuilder('m')
             ->leftJoin('m.demandeAide', 'd')
             ->select('m, d')
             ->andWhere('m.StatutMission = :status')
-            ->setParameter('status', 'ACCEPTÉE');
+            ->andWhere('m.finalStatus IS NULL')
+            ->andWhere('m.aideSoignant = :aideSoignant')
+            ->setParameter('status', 'ACCEPTÉE')
+            ->setParameter('aideSoignant', $aideSoignant);
 
         if (!empty($search)) {
             switch ($sortBy) {
@@ -156,7 +165,7 @@ final class AideSoingnantController extends BaseController
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
-        return $this->render('aide_soingnant/missions.html.twig', [
+        return $this->render('mission/missions_list.html.twig', [
             'missions' => $missions,
             'navigation' => $navigation,
             'search' => $search,
@@ -200,17 +209,21 @@ final class AideSoingnantController extends BaseController
         // HOMME -> M, FEMME -> F
         $aideSexeMapped = ($aideSoignant->getSexe() === 'HOMME') ? 'M' : 'F';
 
-        // Get demandes with status EN_ATTENTE (via missions) and REFUSÉE
-        // NOW: Filter only by aideChoisie = current aide-soignant
+        // Get demandes with status EN_ATTENTE (via missions)
+        // Filter: aideChoisie = current, statut = EN_ATTENTE, date not passed, not refused/expired/cancelled
+        $now = new \DateTime();
         $qb = $entityManager->getRepository(DemandeAide::class)->createQueryBuilder('d')
             ->leftJoin('d.missions', 'm')
             ->select('d')
             ->distinct()
             ->andWhere('d.aideChoisie = :aideSoignant')
             ->setParameter('aideSoignant', $aideSoignant)
-            ->andWhere('(m.StatutMission = :status OR d.statut = :refused)')
+            ->andWhere('m.StatutMission = :status')
             ->setParameter('status', 'EN_ATTENTE')
-            ->setParameter('refused', 'REFUSÉE');
+            ->andWhere('d.statut = :demandeStatus')
+            ->setParameter('demandeStatus', 'EN_ATTENTE')
+            ->andWhere('d.dateDebutSouhaitee > :now')
+            ->setParameter('now', $now);
 
         if (!empty($search)) {
             switch ($sortBy) {
@@ -280,7 +293,7 @@ final class AideSoingnantController extends BaseController
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
-        return $this->render('aide_soingnant/demandes.html.twig', [
+        return $this->render('demande_aide/demandes_list.html.twig', [
             'demandes' => $demandes,
             'navigation' => $navigation,
             'search' => $search,
@@ -360,14 +373,52 @@ final class AideSoingnantController extends BaseController
         return $this->redirectToRoute('aidesoingnant_demandes');
     }
 
+    #[Route('/aidesoingnant/demande/details/{id}', name: 'aidesoingnant_demande_details')]
+    public function showDemandeDetails(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $demande = $demandeAideRepository->find($id);
+        if (!$demande) {
+            throw $this->createNotFoundException('Demande introuvable');
+        }
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
+
+        return $this->render('demande_aide/demande_details.html.twig', [
+            'demande' => $demande,
+            'navigation' => $navigation,
+        ]);
+    }
+
     #[Route('/aidesoingnant/missions/details/{id}', name: 'aidesoingnant_missions_details')]
-    public function showMission(int $id, DemandeAideRepository $demandeAideRepository): Response
+    public function showMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
         
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
+        }
+
+        $mission = null;
+        $currentAide = $this->getCurrentAideSoignant();
+        if ($currentAide) {
+            $mission = $entityManager->getRepository(Mission::class)->findOneBy([
+                'demandeAide' => $demande,
+                'aideSoignant' => $currentAide,
+            ]);
+        }
+
+        if (!$mission) {
+            $mission = $entityManager->getRepository(Mission::class)->findOneBy([
+                'demandeAide' => $demande,
+            ]);
         }
 
         $navigation = [
@@ -378,8 +429,337 @@ final class AideSoingnantController extends BaseController
 
         return $this->render('mission/show.html.twig', [
             'demande' => $demande,
+            'mission' => $mission,
             'navigation' => $navigation,
         ]);
+    }
+
+    #[Route('/mission/{id}/checkin', name: 'mission_checkin', methods: ['POST'])]
+    public function checkInMission(int $id, Request $request, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $mission = $entityManager->getRepository(Mission::class)->find($id);
+        if (!$mission) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'MISSION_NOT_FOUND',
+                'message' => 'Mission introuvable.',
+            ], 404);
+        }
+
+        $currentAide = $this->getCurrentAideSoignant();
+        if (!$currentAide) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'AIDE_REQUIRED',
+                'message' => 'Accès réservé aux aide-soignants.',
+            ], 403);
+        }
+
+        if (!$mission->getAideSoignant() || $mission->getAideSoignant()->getId() !== $currentAide->getId()) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'NOT_OWNER',
+                'message' => 'Vous ne pouvez pas faire le check-in de cette mission.',
+            ], 403);
+        }
+
+        // Vérifier que la mission est acceptée
+        if ($mission->getStatutMission() !== 'ACCEPTÉE') {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'MISSION_NOT_ACCEPTED',
+                'message' => 'Le check-in est uniquement disponible pour les missions acceptées.',
+            ], 422);
+        }
+
+        if ($mission->getCheckInAt() !== null) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'ALREADY_CHECKED_IN',
+                'message' => 'Le check-in a déjà été effectué.',
+            ], 409);
+        }
+
+        // Validation temporelle: vérifier que le check-in est fait le bon jour et dans la fenêtre horaire
+        $now = new \DateTime();
+        $dateDebut = $mission->getDateDebut();
+        
+        if (!$dateDebut) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'NO_START_DATE',
+                'message' => 'La date de début de la mission n\'est pas définie.',
+            ], 422);
+        }
+
+        // Vérifier que c'est le bon jour
+        if ($now->format('Y-m-d') !== $dateDebut->format('Y-m-d')) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'WRONG_DAY',
+                'message' => sprintf(
+                    'Le check-in ne peut être fait que le jour de la mission (%s). Aujourd\'hui: %s',
+                    $dateDebut->format('d/m/Y'),
+                    $now->format('d/m/Y')
+                ),
+            ], 422);
+        }
+
+        // Vérifier que l'heure est dans la fenêtre ±30 minutes
+        $heureDebut = clone $dateDebut;
+        $heureMin = (clone $heureDebut)->modify('-30 minutes');
+        $heureMax = (clone $heureDebut)->modify('+30 minutes');
+
+        if ($now < $heureMin || $now > $heureMax) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'OUTSIDE_TIME_WINDOW',
+                'message' => sprintf(
+                    'Le check-in est autorisé entre %s et %s. Il est actuellement %s.',
+                    $heureMin->format('H:i'),
+                    $heureMax->format('H:i'),
+                    $now->format('H:i')
+                ),
+            ], 422);
+        }
+
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $latitude = $payload['latitude'] ?? null;
+        $longitude = $payload['longitude'] ?? null;
+        $consent = (bool) ($payload['consent'] ?? false);
+
+        if (!$consent) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'CONSENT_REQUIRED',
+                'message' => 'Le consentement de géolocalisation est obligatoire.',
+            ], 400);
+        }
+
+        if (!is_numeric($latitude) || !is_numeric($longitude)) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'INVALID_COORDINATES',
+                'message' => 'Coordonnées GPS invalides.',
+            ], 400);
+        }
+
+        $latitude = (float) $latitude;
+        $longitude = (float) $longitude;
+
+        if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'OUT_OF_RANGE_COORDINATES',
+                'message' => 'Coordonnées GPS hors limites.',
+            ], 400);
+        }
+
+        $mission->setLatitudeCheckin($latitude);
+        $mission->setLongitudeCheckin($longitude);
+        $mission->setCheckInAt(new \DateTime());
+        $mission->setStatusVerification('PENDING');
+
+        $entityManager->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Check-in enregistré avec succès.',
+            'missionId' => $mission->getId(),
+            'checkInAt' => $mission->getCheckInAt()?->format(DATE_ATOM),
+            'statusVerification' => $mission->getStatusVerification(),
+        ]);
+    }
+
+    #[Route('/mission/{id}/checkout', name: 'mission_checkout', methods: ['POST'])]
+    public function checkOutMission(int $id, Request $request, EntityManagerInterface $entityManager, \App\Service\PDFGenerator $pdfGenerator): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $mission = $entityManager->getRepository(Mission::class)->find($id);
+        if (!$mission) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'MISSION_NOT_FOUND',
+                'message' => 'Mission introuvable.',
+            ], 404);
+        }
+
+        $currentAide = $this->getCurrentAideSoignant();
+        if (!$currentAide) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'AIDE_REQUIRED',
+                'message' => 'Accès réservé aux aide-soignants.',
+            ], 403);
+        }
+
+        if (!$mission->getAideSoignant() || $mission->getAideSoignant()->getId() !== $currentAide->getId()) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'NOT_OWNER',
+                'message' => 'Vous ne pouvez pas faire le check-out de cette mission.',
+            ], 403);
+        }
+
+        // Vérifier que la mission est acceptée
+        if ($mission->getStatutMission() !== 'ACCEPTÉE') {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'MISSION_NOT_ACCEPTED',
+                'message' => 'Le check-out est uniquement disponible pour les missions acceptées.',
+            ], 422);
+        }
+
+        if ($mission->getCheckInAt() === null) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'CHECKIN_REQUIRED',
+                'message' => 'Impossible de faire le check-out sans check-in.',
+            ], 409);
+        }
+
+        if ($mission->getCheckOutAt() !== null) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'ALREADY_CHECKED_OUT',
+                'message' => 'Le check-out a déjà été effectué.',
+            ], 409);
+        }
+
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $latitude = $payload['latitude'] ?? null;
+        $longitude = $payload['longitude'] ?? null;
+        $consent = (bool) ($payload['consent'] ?? false);
+
+        if (!$consent) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'CONSENT_REQUIRED',
+                'message' => 'Le consentement de géolocalisation est obligatoire.',
+            ], 400);
+        }
+
+        if (!is_numeric($latitude) || !is_numeric($longitude)) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'INVALID_COORDINATES',
+                'message' => 'Coordonnées GPS invalides.',
+            ], 400);
+        }
+
+        $latitude = (float) $latitude;
+        $longitude = (float) $longitude;
+
+        if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'OUT_OF_RANGE_COORDINATES',
+                'message' => 'Coordonnées GPS hors limites.',
+            ], 400);
+        }
+
+        $demande = $mission->getDemandeAide();
+        if (!$demande || $demande->getLatitude() === null || $demande->getLongitude() === null) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'PATIENT_LOCATION_MISSING',
+                'message' => 'Localisation patient indisponible pour vérification.',
+            ], 422);
+        }
+
+        $distanceMeters = $this->haversineDistanceMeters(
+            $latitude,
+            $longitude,
+            $demande->getLatitude(),
+            $demande->getLongitude()
+        );
+
+        $statusVerification = $distanceMeters < 200 ? 'VALIDEE' : 'SUSPECTE';
+
+        $mission->setLatitudeCheckout($latitude);
+        $mission->setLongitudeCheckout($longitude);
+        $mission->setCheckOutAt(new \DateTime());
+        $mission->setStatusVerification($statusVerification);
+
+        $entityManager->flush();
+
+        // Auto-generate PDF report after successful checkout
+        try {
+            $pdfPath = $pdfGenerator->generateMissionReport($mission);
+            $mission->setPdfFilePath($pdfPath);
+            $entityManager->flush();
+        } catch (\Exception $e) {
+            // Log error but don't fail the checkout
+            error_log("PDF generation failed for mission {$mission->getId()}: " . $e->getMessage());
+        }
+
+        // AUTO-ARCHIVE: Mark mission as TERMINÉE after successful checkout
+        $mission->setFinalStatus('TERMINÉE');
+        $mission->setArchivedAt(new \DateTime());
+        $entityManager->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => $statusVerification === 'VALIDEE'
+                ? 'Check-out validé. Mission archivée automatiquement.'
+                : 'Check-out enregistré. Mission archivée mais marquée suspecte (distance > 200m).',
+            'missionId' => $mission->getId(),
+            'checkOutAt' => $mission->getCheckOutAt()?->format(DATE_ATOM),
+            'statusVerification' => $statusVerification,
+            'distanceMeters' => round($distanceMeters, 2),
+            'thresholdMeters' => 200,
+        ]);
+    }
+
+    private function haversineDistanceMeters(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371000;
+
+        $deltaLat = deg2rad($lat2 - $lat1);
+        $deltaLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($deltaLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($deltaLon / 2) ** 2;
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
+    }
+
+    #[Route('/mission/{id}/pdf', name: 'mission_pdf_download', methods: ['GET'])]
+    public function downloadMissionPDF(int $id, EntityManagerInterface $entityManager, \App\Service\PDFGenerator $pdfGenerator): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $mission = $entityManager->getRepository(Mission::class)->find($id);
+        if (!$mission) {
+            throw $this->createNotFoundException('Mission introuvable.');
+        }
+
+        $currentAide = $this->getCurrentAideSoignant();
+        if (!$currentAide) {
+            throw $this->createAccessDeniedException('Accès réservé aux aide-soignants.');
+        }
+
+        if (!$mission->getAideSoignant() || $mission->getAideSoignant()->getId() !== $currentAide->getId()) {
+            throw $this->createAccessDeniedException('Vous ne pouvez pas télécharger le PDF de cette mission.');
+        }
+
+        $pdfContent = $pdfGenerator->generateMissionReportForDownload($mission);
+
+        $filename = sprintf('mission_%d_rapport.pdf', $mission->getId());
+
+        return new Response(
+            $pdfContent,
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
+            ]
+        );
     }
 
     #[Route('/aidesoingnant/missions/propose-price/{id}', name: 'aidesoingnant_missions_propose_price', methods: ['POST'])]
@@ -422,15 +802,71 @@ final class AideSoingnantController extends BaseController
     {
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
-            throw $this->createNotFoundException('Demande not found');
+            $this->addFlash('error', 'Demande non trouvée');
+            return $this->redirectToRoute('aidesoingnant_missions');
         }
 
-        // Delete the demandeAide (this will cascade delete the associated mission)
-        $entityManager->remove($demande);
-        $entityManager->flush();
+        try {
+            // Physically delete all missions in this demande
+            $missions = $demande->getMissions();
+            foreach ($missions as $mission) {
+                $entityManager->remove($mission);
+            }
 
-        $this->addFlash('success', 'Mission supprimée avec succès.');
+            // Physically delete the demande itself
+            $entityManager->remove($demande);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Mission supprimée avec succès.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la suppression: ' . $e->getMessage());
+        }
 
         return $this->redirectToRoute('aidesoingnant_missions');
+    }
+
+    #[Route('/aidesoingnant/historique', name: 'aidesoingnant_history')]
+    public function history(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant');
+        }
+
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 10;
+
+        // Récupérer toutes les missions TERMINÉES, EXPIRÉES, ANNULÉES de cet aide-soignant
+        $qb = $entityManager->getRepository(Mission::class)->createQueryBuilder('m')
+            ->where('m.aideSoignant = :aideSoignant')
+            ->setParameter('aideSoignant', $aideSoignant)
+            ->andWhere('m.finalStatus IN (:statuses)')
+            ->setParameter('statuses', ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE'])
+            ->orderBy('m.archivedAt', 'DESC');
+
+        $totalCount = count($qb->getQuery()->getResult());
+        $totalPages = ceil($totalCount / $limit);
+
+        $missions = $qb->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+            ['name' => 'Historique', 'path' => $this->generateUrl('aidesoingnant_history'), 'icon' => '📚'],
+        ];
+
+        return $this->render('mission/history.html.twig', [
+            'missions' => $missions,
+            'navigation' => $navigation,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+        ]);
     }
 }

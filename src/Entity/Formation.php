@@ -18,6 +18,7 @@ class Formation
 
     public const STATUTS = [
         self::STATUT_EN_ATTENTE,
+
         self::STATUT_VALIDE,
         self::STATUT_REFUSE,
     ];

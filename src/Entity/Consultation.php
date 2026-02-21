@@ -110,7 +110,7 @@ class Consultation
         return $this->dateConsultation;
     }
 
-    public function setDateConsultation(\DateTimeInterface $dateConsultation): static
+    public function setDateConsultation(?\DateTimeInterface $dateConsultation): static
     {
         $this->dateConsultation = $dateConsultation;
         return $this;
@@ -212,6 +212,28 @@ class Consultation
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt; // createdAt is never null
+        return $this;
+    }
+
+    public function getMedecin(): ?Medecin
+    {
+        return $this->medecin;
+    }
+
+    public function setMedecin(?Medecin $medecin): static
+    {
+        $this->medecin = $medecin;
+        return $this;
+    }
+
+    public function getPatient(): ?Patient
+    {
+        return $this->patient;
+    }
+
+    public function setPatient(?Patient $patient): static
+    {
+        $this->patient = $patient;
         return $this;
     }
 

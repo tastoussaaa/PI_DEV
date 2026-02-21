@@ -23,36 +23,39 @@ class MedecinController extends BaseController
     }
 
     #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
-    public function dashboard(): Response
+    public function dashboard(ConsultationRepository $consultationRepository): Response
     {
-        // Ensure user is authenticated
-        $this->denyAccessUnlessGranted('ROLE_USER');
-        
-        // Ensure only medecins can access this dashboard
-        if (!$this->isCurrentUserMedecin()) {
-            $userType = $this->getCurrentUserType();
-            return match ($userType) {
-                'patient' => $this->redirectToRoute('app_patient_dashboard'),
-                'aidesoignant' => $this->redirectToRoute('app_aide_soignant_dashboard'),
-                'admin' => $this->redirectToRoute('app_admin_dashboard'),
-                default => $this->redirectToRoute('app_login'),
-            };
-        }
-        
         $medecin = $this->getCurrentMedecin();
         $userId = $this->getCurrentUserId();
+        
+        // Get consultations for this medecin
+        $consultations = [];
+        if ($medecin) {
+            $consultations = $medecin->getConsultations()->toArray();
+            // Sort by date descending
+            usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
+        }
+        
+        // Get upcoming consultations (next 7 days)
+        $now = new \DateTime();
+        $upcomingConsultations = array_filter($consultations, function($c) use ($now) {
+            $consultationDate = $c->getDateConsultation();
+            if (!$consultationDate) return false;
+            $consultationDt = \DateTime::createFromInterface($consultationDate);
+            return $consultationDt >= $now && $consultationDt < (clone $now)->modify('+7 days');
+        });
         
         return $this->render('medecin/dashboard.html.twig', [
             'medecin' => $medecin,
             'userId' => $userId,
+            'consultations' => $consultations,
+            'upcomingConsultations' => $upcomingConsultations,
         ]);
     }
 
     #[Route('/medecin/formations', name: 'medecin_formations')]
     public function formations(Request $request, FormationRepository $formationRepository): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-        
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
@@ -77,8 +80,6 @@ class MedecinController extends BaseController
     #[Route('/medecin/consultations', name: 'medecin_consultations')]
     public function consultations(Request $request, ConsultationRepository $repository): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-        
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
@@ -124,8 +125,6 @@ class MedecinController extends BaseController
         Request $request,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-        
         $medecin = $this->getCurrentMedecin();
         if (!$medecin) {
             throw $this->createAccessDeniedException('You must be a medecin to create formations');
@@ -154,8 +153,6 @@ class MedecinController extends BaseController
         Consultation $consultation,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         $consultation->setStatus('accepted');
         $em->flush();
 
@@ -176,8 +173,6 @@ class MedecinController extends BaseController
         Consultation $consultation,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         $consultation->setStatus('declined');
         $em->flush();
 
@@ -199,8 +194,6 @@ class MedecinController extends BaseController
         Consultation $consultation,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         if ($this->isCsrfTokenValid('delete' . $consultation->getId(), $request->request->get('_token'))) {
             $em->remove($consultation);
             $em->flush();

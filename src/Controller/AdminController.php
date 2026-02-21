@@ -8,6 +8,7 @@ use App\Repository\AideSoignantRepository;
 use App\Repository\PatientRepository;
 use App\Repository\ConsultationRepository;
 use App\Repository\ProduitRepository;
+use App\Repository\CommandeRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +18,7 @@ use App\Entity\Medecin;
 use App\Entity\AideSoignant;
 use App\Entity\Patient;
 use App\Entity\Produit;
+use App\Entity\Commande;
 use App\Form\ProduitType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -63,6 +65,8 @@ final class AdminController extends AbstractController
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
             ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
+            ['name' => 'Commandes', 'path' => $this->generateUrl('admin_commandes'), 'icon' => '📦'],
         ];
 
         return $this->render('consultation/consultations.html.twig', [
@@ -96,6 +100,7 @@ final class AdminController extends AbstractController
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
             ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
             ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
+            ['name' => 'Commandes', 'path' => $this->generateUrl('admin_commandes'), 'icon' => '📦'],
         ];
 
         return $this->render('admin/dashboard.html.twig', [
@@ -531,5 +536,90 @@ final class AdminController extends AbstractController
         $this->addFlash('success', 'Produit supprimé avec succès !');
 
         return $this->redirectToRoute('admin_produits');
+    }
+
+    #[Route('/admin/commandes', name: 'admin_commandes')]
+    public function commandes(Request $request, CommandeRepository $commandeRepository): Response
+    {
+        $statut = $request->query->get('statut', '');
+        $tri = $request->query->get('tri', 'dateCommande');
+        $ordre = $request->query->get('ordre', 'DESC');
+        $recherche = $request->query->get('recherche', '');
+
+        // Validate tri and ordre parameters
+        $tri = in_array($tri, ['dateCommande', 'montantTotal', 'statut']) ? $tri : 'dateCommande';
+        $ordre = in_array($ordre, ['ASC', 'DESC']) ? $ordre : 'DESC';
+
+        // Get all commandes with optional status filter
+        $commandes = $commandeRepository->findBy(
+            $statut ? ['statut' => $statut] : [],
+            [$tri => $ordre]
+        );
+
+        // Search filter (on product name or demandeur name)
+        if ($recherche !== null && $recherche !== '') {
+            $recherche = trim($recherche);
+            $commandes = array_filter($commandes, function ($c) use ($recherche) {
+                $nomProduit = $c->getProduit() ? $c->getProduit()->getNom() : '';
+                $nomDemandeur = $c->getDemandeur() ? $c->getDemandeur()->getFullName() : '';
+                return stripos($nomProduit, $recherche) !== false || stripos($nomDemandeur, $recherche) !== false;
+            });
+        }
+
+        $statuts = $commandeRepository->findDistinctStatuts();
+
+        $navigation = [
+            ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
+            ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
+            ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
+            ['name' => 'Commandes', 'path' => $this->generateUrl('admin_commandes'), 'icon' => '📦'],
+        ];
+
+        return $this->render('admin/commandes.html.twig', [
+            'commandes' => $commandes,
+            'statut_filtre' => $statut,
+            'statuts' => $statuts,
+            'tri' => $tri,
+            'ordre' => $ordre,
+            'recherche' => $recherche,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/commandes/{id}/accept', name: 'admin_commande_accept', methods: ['POST'])]
+    public function acceptCommande(Request $request, Commande $commande, EntityManagerInterface $em): RedirectResponse
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('accept-commande' . $commande->getId(), $token)) {
+            throw $this->createAccessDeniedException('CSRF token invalide.');
+        }
+
+        $commande->setStatut('confirmée');
+        $em->flush();
+        $this->addFlash('success', 'Commande confirmée avec succès !');
+
+        return $this->redirectToRoute('admin_commandes');
+    }
+
+    #[Route('/admin/commandes/{id}/decline', name: 'admin_commande_decline', methods: ['POST'])]
+    public function declineCommande(Request $request, Commande $commande, EntityManagerInterface $em, ProduitRepository $produitRepository): RedirectResponse
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('decline-commande' . $commande->getId(), $token)) {
+            throw $this->createAccessDeniedException('CSRF token invalide.');
+        }
+
+        // Restore stock when declining
+        $produit = $commande->getProduit();
+        if ($produit) {
+            $produit->setStock($produit->getStock() + $commande->getQuantite());
+        }
+
+        $commande->setStatut('annulée');
+        $em->flush();
+        $this->addFlash('success', 'Commande annulée avec succès ! Stock restauré.');
+
+        return $this->redirectToRoute('admin_commandes');
     }
 }

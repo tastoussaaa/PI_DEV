@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Mes commandes{% endblock %}
+{% block title %}Gestion des Commandes - Admin{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
@@ -71,9 +71,24 @@
         }
 
         /* Table Styles */
-        .table-wrap { overflow-x: auto; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07); }
-        table { width:100%; border-collapse: collapse; background: white; }
-        th, td { padding:14px 16px; text-align:left; border-bottom:1px solid #e5e7eb; }
+        .table-wrap { 
+            overflow-x: auto; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07); 
+        }
+        
+        table { 
+            width:100%; 
+            border-collapse: collapse; 
+            background: white; 
+        }
+        
+        th, td { 
+            padding:14px 16px; 
+            text-align:left; 
+            border-bottom:1px solid #e5e7eb; 
+        }
+        
         th { 
             font-weight:700; 
             color:#fff;
@@ -82,14 +97,53 @@
             font-size: 12px;
             letter-spacing: 0.5px;
         }
-        tbody tr:hover { background-color: #f9fafb; transition: background-color 0.2s ease; }
         
-        .btn-sm { padding:8px 14px; font-size:13px; border-radius:6px; text-decoration:none; display:inline-block; font-weight: 500; }
-        .btn-primary { background: linear-gradient(135deg, #13B8C2 0%, #0d9ba6 100%); color:#fff; border:none; cursor: pointer; }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(19, 184, 194, 0.3); }
-        .btn-ghost { background:transparent; color:#13B8C2; border:1.5px solid #13B8C2; }
-        .btn-ghost:hover { background: #f0fcfd; }
-        .btn-disabled { background:#f3f4f6; color:#9ca3af; border:1px solid #e5e7eb; cursor:not-allowed; }
+        tbody tr:hover { 
+            background-color: #f9fafb; 
+            transition: background-color 0.2s ease; 
+        }
+        
+        .btn-sm { 
+            padding:8px 14px; 
+            font-size:12px; 
+            border-radius:6px; 
+            text-decoration:none; 
+            display:inline-block; 
+            font-weight: 500; 
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-success { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger { 
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-ghost { 
+            background:transparent; 
+            color:#13B8C2; 
+            border:1.5px solid #13B8C2; 
+        }
+        
+        .btn-ghost:hover { 
+            background: #f0fcfd;
+        }
 
         .status-badge {
             display: inline-block;
@@ -120,14 +174,104 @@
             color: #991b1b;
         }
 
-        /* Modal */
-        .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:50; }
-        .modal { background:#fff; border-radius:12px; max-width:480px; width:100%; padding:24px; box-shadow:0 20px 25px rgba(0,0,0,.15); }
-        .modal__title { font-size:18px; font-weight:700; margin:0 0 8px; color: #1f2937; }
-        .modal__body { margin-bottom:16px; color:#6b7280; line-height: 1.5; }
-        .modal__actions { display:flex; gap:12px; justify-content:flex-end; }
+        .portal {
+            display: flex;
+        }
 
-        .note-disabled { font-size:11px; color:#9ca3af; margin-left:8px; vertical-align:middle; font-style: italic; }
+        .portal__main {
+            flex: 1;
+            padding: 24px;
+        }
+
+        .portal__top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .portal__title {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            color: #1f2937;
+        }
+
+        .portal__subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 8px 0 0;
+        }
+
+        .box {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .actions-cell form {
+            display: inline;
+        }
+
+        .demandeur-info {
+            font-size: 13px;
+        }
+
+        .demandeur-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .demandeur-type {
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        /* Modal */
+        .modal-backdrop { 
+            position:fixed; 
+            inset:0; 
+            background:rgba(0,0,0,0.45); 
+            display:none; 
+            align-items:center; 
+            justify-content:center; 
+            z-index:50; 
+        }
+        
+        .modal { 
+            background:#fff; 
+            border-radius:12px; 
+            max-width:480px; 
+            width:100%; 
+            padding:24px; 
+            box-shadow:0 20px 25px rgba(0,0,0,.15); 
+        }
+        
+        .modal__title { 
+            font-size:18px; 
+            font-weight:700; 
+            margin:0 0 8px; 
+            color: #1f2937; 
+        }
+        
+        .modal__body { 
+            margin-bottom:16px; 
+            color:#6b7280; 
+            line-height: 1.5; 
+        }
+        
+        .modal__actions { 
+            display:flex; 
+            gap:12px; 
+            justify-content:flex-end; 
+        }
     </style>
 {% endblock %}
 
@@ -137,17 +281,17 @@
     <main class="portal__main">
         <div class="portal__top">
             <div>
-                <h1 class="portal__title">Mes commandes</h1>
-                <p class="portal__subtitle">Liste de vos commandes</p>
+                <h1 class="portal__title">Gestion des Commandes</h1>
+                <p class="portal__subtitle">Liste de toutes les commandes en attente de validation</p>
             </div>
-            <a href="{{ path('commande_new') }}" class="btn btn--primary">Nouvelle commande</a>
         </div>
 
-        <form method="get" action="{{ path('commande_index') }}" class="filter-section">
+        <!-- Filter Form -->
+        <form method="get" action="{{ path('admin_commandes') }}" class="filter-section">
             <div class="filter-container">
                 <div class="form-group">
                     <label for="recherche">🔍 Recherche</label>
-                    <input type="text" id="recherche" name="recherche" value="{{ recherche }}" placeholder="Nom du produit...">
+                    <input type="text" id="recherche" name="recherche" value="{{ recherche }}" placeholder="Produit ou client...">
                 </div>
                 <div class="form-group">
                     <label for="statut">📊 Statut</label>
@@ -185,35 +329,33 @@
             </div>
         </form>
 
+        <!-- Table -->
         <div class="box">
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Depuis</th>
+                            <th>Client</th>
                             <th>Produit</th>
                             <th>Quantité</th>
-                            <th>Montant total</th>
+                            <th>Montant</th>
                             <th>Statut</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for c in commandes %}
-                            {% set diffSec = date().timestamp - (c.dateCommande ? c.dateCommande.timestamp : 0) %}
-                            {% set diffHours = (diffSec / 3600)|round(0, 'floor') %}
-                            {% set diffDays = (diffSec / 86400)|round(0, 'floor') %}
-                            {% if diffDays > 0 %}
-                                {% set depuis = diffDays ~ 'd' %}
-                            {% elseif diffHours > 0 %}
-                                {% set depuis = diffHours ~ 'h' %}
-                            {% else %}
-                                {% set depuis = '0' %}
-                            {% endif %}
                             <tr>
-                                <td>{{ c.dateCommande ? c.dateCommande|date('d/m/Y H:i') : '' }}</td>
-                                <td>{{ depuis }}</td>
+                                <td>{{ c.dateCommande ? c.dateCommande|date('d/m/Y H:i') : '-' }}</td>
+                                <td>
+                                    <div class="demandeur-info">
+                                        <div class="demandeur-name">{{ c.demandeur ? c.demandeur.fullName : 'Inconnu' }}</div>
+                                        {% if c.demandeur %}
+                                            <div class="demandeur-type">{{ c.demandeur.userType ?? '-' }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
                                 <td>{{ c.produit ? c.produit.nom : '-' }}</td>
                                 <td>{{ c.quantite }}</td>
                                 <td>{{ (c.montantTotal ?? (c.produit ? c.produit.prix * c.quantite : 0))|number_format(2, ',', ' ') }} dt</td>
@@ -227,32 +369,27 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{{ path('commande_show', { id: c.id }) }}" class="btn-sm btn-primary">Voir</a>
-                                    {# Edit allowed only within 3 hours #}
-                                    {% set allow_edit = (date().timestamp - (c.dateCommande ? c.dateCommande.timestamp : 0)) <= (3*3600) %}
-                                    {% if allow_edit %}
-                                        <a href="{{ path('commande_edit', { id: c.id }) }}" class="btn-sm btn-ghost">Modifier</a>
-                                    {% else %}
-                                        <span class="btn-sm btn-disabled" title="Modification disponible uniquement dans les 3 premières heures">Modifier</span>
-                                        <span class="note-disabled">Modification indisponible (après 3h)</span>
-                                    {% endif %}
-
-                                    {# Delete (cancel) allowed only within 24 hours - use modal confirmation #}
-                                    {% set allow_delete = (date().timestamp - (c.dateCommande ? c.dateCommande.timestamp : 0)) <= (24*3600) %}
-                                    {% if allow_delete %}
-                                        <form action="{{ path('commande_delete', { id: c.id }) }}" method="post" style="display:inline;" class="delete-form">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ c.id) }}">
-                                            <button type="button" class="btn-sm btn-ghost btn-delete" data-id="{{ c.id }}" data-produit="{{ c.produit ? c.produit.nom : '-' }}">Supprimer</button>
-                                        </form>
-                                    {% else %}
-                                        <span class="btn-sm btn-disabled" title="Annulation disponible uniquement dans les 24 premières heures">Supprimer</span>
-                                        <span class="note-disabled">Annulation indisponible (après 24h)</span>
-                                    {% endif %}
+                                    <div class="actions-cell">
+                                        {% if c.statut == 'en_attente' %}
+                                            <form action="{{ path('admin_commande_accept', { id: c.id }) }}" method="post">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('accept-commande' ~ c.id) }}">
+                                                <button type="submit" class="btn-sm btn-success" onclick="return confirm('Confirmer cette commande ?')">✓ Accepter</button>
+                                            </form>
+                                            <form action="{{ path('admin_commande_decline', { id: c.id }) }}" method="post">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('decline-commande' ~ c.id) }}">
+                                                <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Rejeter cette commande ?')">✗ Rejeter</button>
+                                            </form>
+                                        {% else %}
+                                            <span style="color: #9ca3af; font-size: 12px;">Aucune action</span>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                         {% else %}
                             <tr>
-                                <td colspan="7">Aucune commande.</td>
+                                <td colspan="7" style="text-align: center; padding: 32px; color: #9ca3af;">
+                                    Aucune commande trouvée.
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -261,56 +398,4 @@
         </div>
     </main>
 </div>
-<!-- Delete confirmation modal -->
-<div class="modal-backdrop" id="modal-backdrop">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <h3 class="modal__title" id="modal-title">Confirmer l'annulation</h3>
-        <div class="modal__body" id="modal-body">Voulez-vous vraiment annuler cette commande ?</div>
-        <div class="modal__actions">
-            <button id="modal-cancel" class="btn-sm btn-ghost">Annuler</button>
-            <button id="modal-confirm" class="btn-sm btn-primary">Confirmer l'annulation</button>
-        </div>
-    </div>
-</div>
-
-<script>
-// Modal delete handling
-(() => {
-    const backdrop = document.getElementById('modal-backdrop');
-    const body = document.getElementById('modal-body');
-    const confirmBtn = document.getElementById('modal-confirm');
-    const cancelBtn = document.getElementById('modal-cancel');
-    let currentForm = null;
-
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const produit = btn.getAttribute('data-produit') || '-';
-            body.textContent = `Confirmer l'annulation de la commande pour : ${produit} ?`;
-            // find form ancestor
-            currentForm = btn.closest('form');
-            backdrop.style.display = 'flex';
-        });
-    });
-
-    cancelBtn.addEventListener('click', () => {
-        backdrop.style.display = 'none';
-        currentForm = null;
-    });
-
-    confirmBtn.addEventListener('click', () => {
-        if (currentForm) {
-            // submit the form
-            currentForm.submit();
-        }
-    });
-
-    // close modal on ESC or click outside
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') backdrop.style.display = 'none';
-    });
-    backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) backdrop.style.display = 'none';
-    });
-})();
-</script>
 {% endblock %}

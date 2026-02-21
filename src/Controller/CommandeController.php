@@ -98,6 +98,7 @@ class CommandeController extends AbstractController
             // Decrease stock
             $produit->setStock($produit->getStock() - $quantite);
             $commande->setMontantTotal($produit->getPrix() * $quantite);
+            $commande->setStatut('en_attente');
             $em->persist($commande);
             $em->flush();
             $this->addFlash('success', 'Commande enregistrée.');

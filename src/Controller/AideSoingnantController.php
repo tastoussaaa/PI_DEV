@@ -88,17 +88,82 @@ final class AideSoingnantController extends BaseController
     }
 
     #[Route('/aidesoingnant/missions', name: 'aidesoingnant_missions')]
-    public function missions(EntityManagerInterface $entityManager): Response
+    public function missions(Request $request, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
-        // Get all missions (both EN_ATTENTE and processed ones)
-        $missions = $entityManager->getRepository(Mission::class)->findAll();
-        
-        // Sort by most recent first
-        usort($missions, function($a, $b) {
-            return $b->getId() <=> $a->getId();
-        });
+
+        // Get search and sort parameters
+        $search = $request->query->get('search', '');
+        $sortBy = $request->query->get('sort_by', 'dateCreation');
+        $sortOrder = $request->query->get('sort_order', 'desc');
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 10; // Items per page
+
+        // Build query
+        $qb = $entityManager->getRepository(Mission::class)->createQueryBuilder('m')
+            ->leftJoin('m.demandeAide', 'd')
+            ->select('m, d');
+
+        // Apply search filter
+        if (!empty($search)) {
+            switch ($sortBy) {
+                case 'dateCreation':
+                    // Handle date search
+                    $date = $this->parseDate($search);
+                    if ($date) {
+                        $qb->andWhere('DATE(d.dateCreation) = :date')
+                           ->setParameter('date', $date->format('Y-m-d'));
+                    }
+                    break;
+                case 'budgetMax':
+                    // Handle budget search
+                    if (is_numeric($search)) {
+                        $qb->andWhere('d.budgetMax = :budget')
+                           ->setParameter('budget', (int) $search);
+                    }
+                    break;
+                case 'typeDemande':
+                    $qb->andWhere('d.typeDemande LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+                    break;
+                case 'statutMission':
+                    $qb->andWhere('m.statutMission LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+                    break;
+                default:
+                    $qb->andWhere('d.descriptionBesoin LIKE :search OR d.typeDemande LIKE :search OR m.statutMission LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+            }
+        }
+
+        // Apply sorting
+        $orderDirection = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+        switch ($sortBy) {
+            case 'dateCreation':
+                $qb->orderBy('d.dateCreation', $orderDirection);
+                break;
+            case 'typeDemande':
+                $qb->orderBy('d.typeDemande', $orderDirection);
+                break;
+            case 'statutMission':
+                $qb->orderBy('m.statutMission', $orderDirection);
+                break;
+            case 'budgetMax':
+                $qb->orderBy('d.budgetMax', $orderDirection);
+                break;
+            default:
+                $qb->orderBy('m.id', 'DESC');
+        }
+
+        // Get total count for pagination
+        $totalCount = (clone $qb)->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = ceil($totalCount / $limit);
+
+        // Apply pagination
+        $qb->setFirstResult(($page - 1) * $limit)
+           ->setMaxResults($limit);
+
+        $missions = $qb->getQuery()->getResult();
 
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
@@ -106,25 +171,37 @@ final class AideSoingnantController extends BaseController
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
-        return $this->render('mission/index.html.twig', [
+        return $this->render('mission/list.html.twig', [
             'missions' => $missions,
             'navigation' => $navigation,
+            'search' => $search,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
         ]);
+    }
+
+    private function parseDate(string $dateString): ?\DateTime
+    {
+        $formats = ['Y-m-d', 'd/m/Y', 'Y/m/d', 'd-m-Y'];
+        foreach ($formats as $format) {
+            $date = \DateTime::createFromFormat($format, $dateString);
+            if ($date && $date->format($format) === $dateString) {
+                return $date;
+            }
+        }
+        return null;
     }
 
     #[Route('/aidesoingnant/missions/accept/{id}', name: 'aidesoingnant_missions_accept')]
     public function acceptMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
-        }
-
-        $mission = $entityManager->getRepository(Mission::class)->findOneBy(['demandeAide' => $demande]);
-        if (!$mission) {
-            throw $this->createNotFoundException('Mission not found');
         }
 
         // Get current aide-soignant from UserService
@@ -133,10 +210,20 @@ final class AideSoingnantController extends BaseController
             throw $this->createAccessDeniedException('You must be an aide soignant to accept missions');
         }
 
-        // Link aide-soignant to mission and update status
+        // Find the existing Mission for this demande
+        $missions = $demande->getMissions();
+        if ($missions->isEmpty()) {
+            throw $this->createNotFoundException('Mission not found for this demande');
+        }
+
+        $mission = $missions->first();
+
+        // Update the existing Mission
         $mission->setAideSoignant($aideSoignant);
-        $mission->setStatutMission('ACCEPTED');
-        $demande->setStatut('ACCEPTED');
+        $mission->setStatutMission('ACCEPTÉE');
+        $mission->setPrixFinal(0); // To be negotiated later
+
+        $demande->setStatut('ACCEPTÉE');
 
         $entityManager->flush();
 
@@ -148,15 +235,10 @@ final class AideSoingnantController extends BaseController
     public function refuseMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
-        }
-
-        $mission = $entityManager->getRepository(Mission::class)->findOneBy(['demandeAide' => $demande]);
-        if (!$mission) {
-            throw $this->createNotFoundException('Mission not found');
         }
 
         // Verify user is aide soignant
@@ -165,9 +247,18 @@ final class AideSoingnantController extends BaseController
             throw $this->createAccessDeniedException('You must be an aide soignant to refuse missions');
         }
 
-        // Update mission and demande status
-        $mission->setStatutMission('REFUSED');
-        $demande->setStatut('REFUSED');
+        // Find the existing Mission for this demande
+        $missions = $demande->getMissions();
+        if ($missions->isEmpty()) {
+            throw $this->createNotFoundException('Mission not found for this demande');
+        }
+
+        $mission = $missions->first();
+
+        // Update the existing Mission
+        $mission->setStatutMission('REFUSÉE');
+
+        $demande->setStatut('REFUSÉE');
 
         $entityManager->flush();
 
@@ -247,5 +338,63 @@ final class AideSoingnantController extends BaseController
         $this->addFlash('success', 'Mission supprimée avec succès.');
 
         return $this->redirectToRoute('aidesoingnant_missions');
+    }
+
+    #[Route('/aide-soignant/formation/{id}/apply', name: 'aidesoingnant_formation_apply', methods: ['POST'])]
+    public function applyForFormation(int $id, FormationRepository $formationRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $formation = $formationRepository->find($id);
+        if (!$formation) {
+            throw $this->createNotFoundException('Formation not found');
+        }
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to apply for formations');
+        }
+
+        // Check if already applied
+        if ($aideSoignant->getFormations()->contains($formation)) {
+            $this->addFlash('warning', 'Vous avez déjà postulé à cette formation.');
+            return $this->redirectToRoute('aidesoignant_formations');
+        }
+
+        // Add aide soignant to formation
+        $aideSoignant->addFormation($formation);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Vous avez postulé à la formation avec succès!');
+        return $this->redirectToRoute('aidesoignant_formations');
+    }
+
+    #[Route('/aide-soignant/formation/{id}/withdraw', name: 'aidesoingnant_formation_withdraw', methods: ['POST'])]
+    public function withdrawFromFormation(int $id, FormationRepository $formationRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $formation = $formationRepository->find($id);
+        if (!$formation) {
+            throw $this->createNotFoundException('Formation not found');
+        }
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to withdraw from formations');
+        }
+
+        // Check if applied
+        if (!$aideSoignant->getFormations()->contains($formation)) {
+            $this->addFlash('warning', 'Vous n\'avez pas postulé à cette formation.');
+            return $this->redirectToRoute('aidesoignant_formations');
+        }
+
+        // Remove aide soignant from formation
+        $aideSoignant->removeFormation($formation);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Vous avez retiré votre candidature avec succès!');
+        return $this->redirectToRoute('aidesoignant_formations');
     }
 }

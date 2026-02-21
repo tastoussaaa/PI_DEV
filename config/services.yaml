@@ -19,11 +19,18 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            - '../src/Service/AppScheduleProvider.php'
 
     # Configure PDFGenerator service with upload directory
     App\Service\PDFGenerator:
         arguments:
             $uploadDir: '%upload_dir%'
+
+    # Register Doctrine event listener for auto-matching (Section 4)
+    App\EventListener\DemandeAutoMatchingListener:
+        tags:
+            - { name: doctrine.event_subscriber }
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

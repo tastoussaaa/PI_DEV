@@ -38,8 +38,18 @@ final class ExpiredMissionsListener
                 continue;
             }
 
-            // Skip if check-out already done (already archived in TERMINÉE status)
+            // ✅ FIX 1: If check-out is done, mark as TERMINÉE (not EXPIRÉE)
             if ($mission->getCheckOutAt()) {
+                $mission->setFinalStatus('TERMINÉE');
+                $mission->setArchivedAt(new \DateTime());
+                $mission->setArchiveReason('Mission terminée (check-out effectué)');
+                $this->entityManager->persist($mission);
+                continue;
+            }
+
+            // ✅ FIX 2: Only mark as EXPIRÉE if mission has actually started (checkInAt exists)
+            // Don't auto-expire missions that have never been started
+            if (!$mission->getCheckInAt()) {
                 continue;
             }
 

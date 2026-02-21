@@ -1,0 +1,173 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détail Mission - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    {# Navigation #}
+    {% if navigation %}
+    <nav style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+        {% for item in navigation %}
+        <a href="{{ item.path }}" 
+           style="padding: 8px 16px; text-decoration: none; border-radius: 6px; {% if app.request.pathinfo starts with '/admin/missions' and item.name == 'Missions' %}background-color: #f0f4ff; color: #2563eb; font-weight: 600;{% else %}color: #6b7280;{% endif %} transition: all 0.3s;">
+            <span style="margin-right: 4px;">{{ item.icon }}</span>{{ item.name }}
+        </a>
+        {% endfor %}
+    </nav>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-auto">
+            <a href="{{ path('admin_missions') }}" class="btn btn-secondary">← Retour</a>
+        </div>
+        <div class="col">
+            <h1>🎯 Mission #{{ mission.id }}</h1>
+            <p class="text-muted">{{ mission.demande ? mission.demande.titreD : 'N/A' }}</p>
+        </div>
+    </div>
+
+    {# Messages Flash #}
+    {% if app.flashes %}
+        {% for type, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ type === 'success' ? 'success' : 'danger' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            {# Informations Mission #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📋 Informations de la Mission</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Statut:</strong>
+                            <p>
+                                <span class="badge bg-{{ mission.statut === 'ACCEPTÉE' ? 'success' : mission.statut === 'TERMINÉE' ? 'dark' : 'warning' }}">
+                                    {{ mission.statut }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Archived:</strong>
+                            <p>{{ mission.archivee ? '✅ Oui' : '❌ Non' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Date Début:</strong>
+                            <p>{{ mission.dateDebut ? mission.dateDebut|date('d/m/Y H:i') : '-' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Date Fin:</strong>
+                            <p>{{ mission.dateFin ? mission.dateFin|date('d/m/Y H:i') : '-' }}</p>
+                        </div>
+                    </div>
+
+                    {% if mission.checkInAt %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Check-In:</strong>
+                                <p>{{ mission.checkInAt|date('d/m/Y H:i') }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Check-Out:</strong>
+                                <p>{{ mission.checkOutAt ? mission.checkOutAt|date('d/m/Y H:i') : 'Non effectué' }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if mission.statusVerification %}
+                        <div class="mb-3">
+                            <strong>Statut Vérification:</strong>
+                            <p>
+                                <span class="badge bg-{{ mission.statusVerification === 'VALIDÉE' ? 'success' : 'warning' }}">
+                                    {{ mission.statusVerification }}
+                                </span>
+                            </p>
+                        </div>
+                    {% endif %}
+
+                    {% if mission.proofPhotoData or mission.signatureData %}
+                        <div class="mb-3">
+                            <strong>Preuves:</strong>
+                            <p>
+                                {% if mission.proofPhotoData %}
+                                    <span class="badge bg-info">📷 Photo</span>
+                                {% endif %}
+                                {% if mission.signatureData %}
+                                    <span class="badge bg-info">✍️ Signature</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Aide-Soignant #}
+            {% if mission.aide %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">👨‍⚕️ Aide-Soignant</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Nom:</strong>
+                                <p>{{ mission.aide.nom }} {{ mission.aide.prenom }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Email:</strong>
+                                <p>{{ mission.aide.user ? mission.aide.user.email : '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            {# Actions #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">⚙️ Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ path('admin_missions_edit', {id: mission.id}) }}" class="btn btn-warning w-100 mb-2">✏️ Modifier</a>
+                    
+                    <form method="post" action="{{ path('admin_missions_delete', {id: mission.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette mission ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete-mission-' ~ mission.id) }}">
+                        <button type="submit" class="btn btn-danger w-100">🗑️ Supprimer</button>
+                    </form>
+                </div>
+            </div>
+
+            {# Demande Liée #}
+            {% if mission.demande %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📋 Demande Liée</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Titre:</strong> {{ mission.demande.titreD }}</p>
+                        <p><strong>Statut:</strong> 
+                            <span class="badge bg-{{ mission.demande.statut === 'EN_ATTENTE' ? 'warning' : 'success' }}">
+                                {{ mission.demande.statut }}
+                            </span>
+                        </p>
+                        <a href="{{ path('admin_demandes_show', {id: mission.demande.id}) }}" class="btn btn-sm btn-primary w-100">Voir Demande</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

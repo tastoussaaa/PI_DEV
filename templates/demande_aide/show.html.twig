@@ -147,6 +147,24 @@
             color: #C62828;
         }
 
+        .status--completed {
+            background: #C8E6C9;
+            color: #2E7D32;
+            border: 1px solid rgba(46, 125, 50, 0.15);
+        }
+
+        .status--expired {
+            background: #FFE0B2;
+            color: #E65100;
+            border: 1px solid rgba(230, 81, 0, 0.15);
+        }
+
+        .status--cancelled {
+            background: #FFCDD2;
+            color: #C62828;
+            border: 1px solid rgba(198, 40, 40, 0.15);
+        }
+
         /* small button helpers moved to global stylesheet */
     </style>
 {% endblock %}
@@ -180,7 +198,11 @@
                     {% set statusClass = {
                         'ACCEPTÉE': 'accepted',
                         'EN_ATTENTE': 'en_attente',
-                        'REFUSÉE': 'refused'
+                        'A_REASSIGNER': 'en_attente',
+                        'REFUSÉE': 'refused',
+                        'TERMINÉE': 'completed',
+                        'EXPIRÉE': 'expired',
+                        'ANNULÉE': 'cancelled'
                     }[demande.statut] ?? demande.statut|lower|replace({'_': '_'}) %}
                     <span class="status-badge status--{{ statusClass }}">{{ demande.statut|replace({'_': ' '}) }}</span>
                 </div>
@@ -335,6 +357,7 @@
                 {% else %}
                     <div class="aides-grid">
                         {% for aide in aidesSoignantsCompatibles %}
+                            {% set rank = aidesRanking[aide.id] ?? {'score': 0, 'available': false} %}
                             <div class="aide-card">
                                 <h4>{{ aide.nom }} {{ aide.prenom }}</h4>
                                 <div class="aide-meta">📧 {{ aide.email }}</div>
@@ -344,8 +367,9 @@
                                 <div class="aide-meta">🧑‍🦳 Patients: {{ aide.typePatientsAcceptes }}</div>
                                 <div class="aide-meta">💰 Tarif min: {{ aide.tarifMin }} DT</div>
                                 <div class="aide-meta">⭐ Expérience: {{ aide.niveauExperience ?? 0 }}</div>
-                                <span class="badge-dispo {{ aide.disponible ? 'badge-dispo--ok' : 'badge-dispo--ko' }}">
-                                    {{ aide.disponible ? 'Disponible' : 'Indisponible' }}
+                                <div class="aide-meta">🎯 Score compatibilité: <strong>{{ rank.score }}/100</strong></div>
+                                <span class="badge-dispo {{ rank.available ? 'badge-dispo--ok' : 'badge-dispo--ko' }}">
+                                    {{ rank.available ? 'Disponible sur ce créneau' : 'Indisponible sur ce créneau' }}
                                 </span>
                             </div>
                         {% endfor %}
@@ -415,7 +439,7 @@
 
             <div class="actions">
                 <a href="{{ path('app_demandes_index') }}" class="btn-back">← Retour</a>
-                {% if demande.statut == 'EN_ATTENTE' %}
+                {% if demande.statut in ['EN_ATTENTE', 'A_REASSIGNER'] %}
                     <a href="{{ path('app_demande_aide_edit', {id: demande.id}) }}" class="btn-edit">✏️ Modifier</a>
                 {% endif %}
                 {% if demande.statut and demande.statut not in ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE'] %}

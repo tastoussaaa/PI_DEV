@@ -6,6 +6,8 @@ use App\Repository\FormationRepository;
 use App\Repository\MedecinRepository;
 use App\Repository\AideSoignantRepository;
 use App\Repository\ConsultationRepository;
+use App\Repository\DemandeAideRepository;
+use App\Repository\MissionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,6 +15,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Entity\Formation;
 use App\Entity\Medecin;
 use App\Entity\AideSoignant;
+use App\Entity\DemandeAide;
+use App\Entity\Mission;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class AdminController extends AbstractController
@@ -53,6 +57,8 @@ final class AdminController extends AbstractController
 
         $navigation = [
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '👥'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
             ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
         ];
@@ -77,6 +83,8 @@ final class AdminController extends AbstractController
 
         $navigation = [
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '👥'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
             ['name' => 'Formations', 'path' => $this->generateUrl('admin_formations'), 'icon' => '📚'],
         ];
@@ -186,5 +194,227 @@ final class AdminController extends AbstractController
         $this->addFlash('success', "Le statut de la formation '{$formation->getTitle()}' a été mis à jour.");
 
         return $this->redirectToRoute('admin_formations');
+    }
+
+    // ===== CRUD ADMIN DEMANDE AIDE =====
+
+    #[Route('/admin/demandes', name: 'admin_demandes')]
+    public function demandesIndex(DemandeAideRepository $demandeRepo, Request $request)
+    {
+        $search = $request->query->get('search', '');
+        $statut = $request->query->get('statut', '');
+        
+        $query = $demandeRepo->createQueryBuilder('d');
+        
+        if ($search) {
+            $query->where('d.TitreD LIKE :search OR d.descriptionBesoin LIKE :search OR d.email LIKE :search')
+                  ->setParameter('search', '%' . $search . '%');
+        }
+        
+        if ($statut) {
+            $query->andWhere('d.statut = :statut')
+                  ->setParameter('statut', $statut);
+        }
+        
+        $demandes = $query->orderBy('d.dateCreation', 'DESC')->getQuery()->getResult();
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '📊'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '🆘'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '🎯'],
+        ];
+
+        return $this->render('admin/demandes_index.html.twig', [
+            'demandes' => $demandes,
+            'search' => $search,
+            'statut' => $statut,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/demandes/{id}', name: 'admin_demandes_show')]
+    public function demandesShow(DemandeAide $demande)
+    {
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '📊'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '🆘'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '🎯'],
+        ];
+
+        return $this->render('admin/demandes_show.html.twig', [
+            'demande' => $demande,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/demandes/{id}/edit', name: 'admin_demandes_edit', methods: ['GET', 'POST'])]
+    public function demandesEdit(DemandeAide $demande, Request $request, EntityManagerInterface $em)
+    {
+        if ($request->isMethod('POST')) {
+            $token = $request->request->get('_token');
+            if (!$this->isCsrfTokenValid('edit-demande-' . $demande->getId(), $token)) {
+                throw $this->createAccessDeniedException('CSRF token invalide.');
+            }
+
+            // Update statut
+            $statut = $request->request->get('statut');
+            if ($statut) {
+                $demande->setStatut($statut);
+            }
+            
+            // Update date fin souhaitée
+            $dateFinSouhaitee = $request->request->get('dateFinSouhaitee');
+            if ($dateFinSouhaitee) {
+                $demande->setDateFinSouhaitee(new \DateTime($dateFinSouhaitee));
+            }
+
+            $em->flush();
+
+            $this->addFlash('success', "La demande a été modifiée avec succès.");
+
+            return $this->redirectToRoute('admin_demandes_show', ['id' => $demande->getId()]);
+        }
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '📊'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '🆘'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '🎯'],
+        ];
+
+        return $this->render('admin/demandes_edit.html.twig', [
+            'demande' => $demande,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/demandes/{id}/delete', name: 'admin_demandes_delete', methods: ['POST'])]
+    public function demandesDelete(DemandeAide $demande, Request $request, EntityManagerInterface $em): RedirectResponse
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('delete-demande-' . $demande->getId(), $token)) {
+            throw $this->createAccessDeniedException('CSRF token invalide.');
+        }
+
+        // Récupérer le titre avant suppression
+        $titre = $demande->getTitreD();
+        
+        $em->remove($demande);
+        $em->flush();
+
+        $this->addFlash('success', "La demande '{$titre}' a été supprimée.");
+
+        return $this->redirectToRoute('admin_demandes');
+    }
+
+    // ===== CRUD ADMIN MISSION =====
+
+    #[Route('/admin/missions', name: 'admin_missions')]
+    public function missionsIndex(MissionRepository $missionRepo, Request $request)
+    {
+        $search = $request->query->get('search', '');
+        $statut = $request->query->get('statut', '');
+        
+        $query = $missionRepo->createQueryBuilder('m');
+        
+        if ($search) {
+            $query->leftJoin('m.demande', 'd')
+                  ->where('d.TitreD LIKE :search OR d.email LIKE :search')
+                  ->setParameter('search', '%' . $search . '%');
+        }
+        
+        if ($statut) {
+            $query->andWhere('m.statut = :statut')
+                  ->setParameter('statut', $statut);
+        }
+        
+        $missions = $query->orderBy('m.dateDebut', 'DESC')->getQuery()->getResult();
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '📊'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '🆘'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '🎯'],
+        ];
+
+        return $this->render('admin/missions_index.html.twig', [
+            'missions' => $missions,
+            'search' => $search,
+            'statut' => $statut,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/missions/{id}', name: 'admin_missions_show')]
+    public function missionsShow(Mission $mission)
+    {
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '📊'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '🆘'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '🎯'],
+        ];
+
+        return $this->render('admin/missions_show.html.twig', [
+            'mission' => $mission,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/missions/{id}/edit', name: 'admin_missions_edit', methods: ['GET', 'POST'])]
+    public function missionsEdit(Mission $mission, Request $request, EntityManagerInterface $em)
+    {
+        if ($request->isMethod('POST')) {
+            $token = $request->request->get('_token');
+            if (!$this->isCsrfTokenValid('edit-mission-' . $mission->getId(), $token)) {
+                throw $this->createAccessDeniedException('CSRF token invalide.');
+            }
+
+            // Update statut
+            $statut = $request->request->get('statut');
+            if ($statut) {
+                $mission->setStatut($statut);
+            }
+            
+            // Update date fin
+            $dateFin = $request->request->get('dateFin');
+            if ($dateFin) {
+                $mission->setDateFin(new \DateTime($dateFin));
+            }
+
+            $em->flush();
+
+            $this->addFlash('success', "La mission a été modifiée avec succès.");
+
+            return $this->redirectToRoute('admin_missions_show', ['id' => $mission->getId()]);
+        }
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '📊'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('admin_demandes'), 'icon' => '🆘'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('admin_missions'), 'icon' => '🎯'],
+        ];
+
+        return $this->render('admin/missions_edit.html.twig', [
+            'mission' => $mission,
+            'navigation' => $navigation,
+        ]);
+    }
+
+    #[Route('/admin/missions/{id}/delete', name: 'admin_missions_delete', methods: ['POST'])]
+    public function missionsDelete(Mission $mission, Request $request, EntityManagerInterface $em): RedirectResponse
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('delete-mission-' . $mission->getId(), $token)) {
+            throw $this->createAccessDeniedException('CSRF token invalide.');
+        }
+
+        // Récupérer le titre de la demande avant suppression
+        $demande = $mission->getDemande();
+        $titre = $demande ? $demande->getTitreD() : 'Mission #' . $mission->getId();
+        
+        $em->remove($mission);
+        $em->flush();
+
+        $this->addFlash('success', "La mission pour '{$titre}' a été supprimée.");
+
+        return $this->redirectToRoute('admin_missions');
     }
 }

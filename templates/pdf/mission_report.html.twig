@@ -265,6 +265,31 @@
     </div>
     {% endif %}
 
+    {% if mission.proofPhotoData or mission.signatureData %}
+    <div class="section">
+        <div class="section-title">Preuves fournies</div>
+        <div class="info-grid">
+            {% if mission.proofPhotoData %}
+            <div class="info-row">
+                <div class="info-label">Photo preuve</div>
+                <div class="info-value">
+                    <img src="{{ mission.proofPhotoData }}" alt="Photo preuve" style="max-width: 260px; max-height: 180px; border:1px solid #ddd; padding:4px;">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if mission.signatureData %}
+            <div class="info-row">
+                <div class="info-label">Signature</div>
+                <div class="info-value">
+                    <img src="{{ mission.signatureData }}" alt="Signature" style="max-width: 260px; max-height: 120px; border:1px solid #ddd; padding:4px;">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="footer">
         <p><strong>Aidora</strong> — Plateforme de mise en relation patients et aides-soignants</p>
         <p>Ce document est généré automatiquement et certifie la traçabilité de la mission.</p>

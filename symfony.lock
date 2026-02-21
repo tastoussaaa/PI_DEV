@@ -35,6 +35,21 @@
             "./migrations/.gitignore"
         ]
     },
+    "phpunit/phpunit": {
+        "version": "11.5",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "11.1",
+            "ref": "1117deb12541f35793eec9fff7494d7aa12283fc"
+        },
+        "files": [
+            "./.env.test",
+            "./phpunit.dist.xml",
+            "./tests/bootstrap.php",
+            "./bin/phpunit"
+        ]
+    },
     "symfony/console": {
         "version": "7.4",
         "recipe": {
@@ -174,6 +189,18 @@
         },
         "files": [
             "./config/packages/validator.yaml"
+        ]
+    },
+    "tattali/calendar-bundle": {
+        "version": "7.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.1",
+            "ref": "0c643e17b5340747b35c2c75e11727fa31bfa9bb"
+        },
+        "files": [
+            "./config/routes/calendar.yaml"
         ]
     }
 }

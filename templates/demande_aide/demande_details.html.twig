@@ -101,6 +101,24 @@
         .btn-success:hover {
             background: #A5D6A7;
         }
+
+        .status--completed {
+            background: #C8E6C9;
+            color: #2E7D32;
+            border: 1px solid rgba(46, 125, 50, 0.15);
+        }
+
+        .status--expired {
+            background: #FFE0B2;
+            color: #E65100;
+            border: 1px solid rgba(230, 81, 0, 0.15);
+        }
+
+        .status--cancelled {
+            background: #FFCDD2;
+            color: #C62828;
+            border: 1px solid rgba(198, 40, 40, 0.15);
+        }
     </style>
 {% endblock %}
 
@@ -128,7 +146,11 @@
                     {% set statusClass = {
                         'ACCEPTÉE': 'accepted',
                         'EN_ATTENTE': 'en_attente',
-                        'REFUSÉE': 'refused'
+                        'A_REASSIGNER': 'en_attente',
+                        'REFUSÉE': 'refused',
+                        'TERMINÉE': 'completed',
+                        'EXPIRÉE': 'expired',
+                        'ANNULÉE': 'cancelled'
                     }[demande.statut] ?? demande.statut|lower|replace({'_': '_'}) %}
                     <span class="status-badge status--{{ statusClass }}">{{ demande.statut|replace({'_': ' '}) }}</span>
                 </div>

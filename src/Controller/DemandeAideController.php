@@ -7,6 +7,7 @@ use App\Entity\Mission;
 use App\Entity\AideSoignant;
 use App\Form\DemandeAideType;
 use App\Repository\DemandeAideRepository;
+use App\Service\TransitionNotificationService;
 use App\Service\UserService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,10 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class DemandeAideController extends BaseController
 {
-    public function __construct(UserService $userService)
+    public function __construct(
+        UserService $userService,
+        private TransitionNotificationService $transitionNotificationService,
+    )
     {
         parent::__construct($userService);
     }
@@ -43,8 +47,8 @@ final class DemandeAideController extends BaseController
                 $demandesAide = array_filter($allDemandes, function($d) use ($email) {
                     $de = strtolower((string) $d->getEmail());
                     $isUserDemande = $de !== '' && strcasecmp($de, $email) === 0;
-                    // Exclude archived demandes (statut ANNULÉE)
-                    $isNotArchived = !in_array($d->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE']);
+                    // Exclude archived demandes from active flow
+                    $isNotArchived = !in_array($d->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE'], true);
                     return $isUserDemande && $isNotArchived;
                 });
 
@@ -277,7 +281,7 @@ final class DemandeAideController extends BaseController
     }
 
     #[Route('/demande/{id}', name: 'app_demande_aide_show', methods: ['GET'])]
-    public function show(DemandeAide $demandeAide, EntityManagerInterface $entityManager, \App\Service\ReportAssistant $reportAssistant): Response
+    public function show(DemandeAide $demandeAide, EntityManagerInterface $entityManager, \App\Service\ReportAssistant $reportAssistant, \App\Service\CalendarBlockingService $calendarBlocker): Response
     {
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_patient_dashboard'), 'icon' => '🏠'],
@@ -311,6 +315,18 @@ final class DemandeAideController extends BaseController
             ->getQuery()
             ->getResult();
 
+        // **SECTION 3: Filtrer les aides basé sur le calendrier (CalendarBlockingService)**
+        $startDate = $demandeAide->getDateDebutSouhaitee();
+        $endDate = $demandeAide->getDateFinSouhaitee();
+        $aidesSoignantsCompatibles = $calendarBlocker->filterAvailableAides($aidesSoignantsCompatibles, $startDate, $endDate);
+
+        $aidesRanking = $this->buildAidesRanking($aidesSoignantsCompatibles, $demandeAide, $entityManager);
+        usort($aidesSoignantsCompatibles, function($a, $b) use ($aidesRanking) {
+            $scoreA = $aidesRanking[$a->getId()]['score'] ?? 0;
+            $scoreB = $aidesRanking[$b->getId()]['score'] ?? 0;
+            return $scoreB <=> $scoreA;
+        });
+
         // Generate AI-powered report
         $report = $reportAssistant->generateReport($demandeAide);
         
@@ -318,6 +334,7 @@ final class DemandeAideController extends BaseController
             'demande' => $demandeAide,
             'navigation' => $navigation,
             'aidesSoignantsCompatibles' => $aidesSoignantsCompatibles,
+            'aidesRanking' => $aidesRanking,
             'aiReport' => $report,
             'reportAssistant' => $reportAssistant,
         ]);
@@ -336,9 +353,9 @@ final class DemandeAideController extends BaseController
             ['name' => 'Mes commandes', 'path' => $this->generateUrl('commande_index'), 'icon' => '📋']
         ];
         
-        // Vérifier que la demande est EN_ATTENTE
-        if ($demandeAide->getStatut() !== 'EN_ATTENTE') {
-            $this->addFlash('error', 'Vous ne pouvez modifier que les demandes en attente.');
+        // Vérifier que la demande est modifiable
+        if (!in_array($demandeAide->getStatut(), ['EN_ATTENTE', 'A_REASSIGNER'], true)) {
+            $this->addFlash('error', 'Vous ne pouvez modifier que les demandes en attente ou à réassigner.');
             return $this->redirectToRoute('app_demandes_index');
         }
 
@@ -455,9 +472,21 @@ final class DemandeAideController extends BaseController
             ->getQuery()
             ->getResult();
 
+        $aidesRanking = $this->buildAidesRanking($aidesSoignantsCompatibles, $demandeAide, $entityManager);
+        $aidesSoignantsCompatibles = array_values(array_filter($aidesSoignantsCompatibles, function($aide) use ($aidesRanking) {
+            return (bool) ($aidesRanking[$aide->getId()]['available'] ?? false);
+        }));
+
+        usort($aidesSoignantsCompatibles, function($a, $b) use ($aidesRanking) {
+            $scoreA = $aidesRanking[$a->getId()]['score'] ?? 0;
+            $scoreB = $aidesRanking[$b->getId()]['score'] ?? 0;
+            return $scoreB <=> $scoreA;
+        });
+
         return $this->render('demande_aide/select_aide.html.twig', [
             'demande' => $demandeAide,
             'aidesSoignantsCompatibles' => $aidesSoignantsCompatibles,
+            'aidesRanking' => $aidesRanking,
             'navigation' => $navigation,
         ]);
     }
@@ -476,14 +505,18 @@ final class DemandeAideController extends BaseController
         $demandeAide->setAideChoisie($aideSoignant);
         $demandeAide->setStatut('EN_ATTENTE');
 
-        // Récupérer ou créer la mission associée
+        // Récupérer ou créer la mission active associée
         $missions = $demandeAide->getMissions();
         $mission = null;
-        
-        if ($missions->count() > 0) {
-            // La mission existe déjà (créée lors de la demande)
-            $mission = $missions->first();
-        } else {
+
+        foreach ($missions as $existingMission) {
+            if (!$existingMission->getFinalStatus()) {
+                $mission = $existingMission;
+                break;
+            }
+        }
+
+        if (!$mission) {
             // Créer une nouvelle mission
             $mission = new Mission();
             $mission->setDemandeAide($demandeAide);
@@ -495,10 +528,17 @@ final class DemandeAideController extends BaseController
             $entityManager->persist($mission);
         }
 
+        if (!$this->isAideAvailableForDemande($aideSoignant, $demandeAide, $entityManager, $mission->getId())) {
+            $this->addFlash('error', 'Cet aide-soignant n\'est plus disponible sur ce créneau. Veuillez en choisir un autre.');
+            return $this->redirectToRoute('app_demande_select_aide', ['id' => $demandeAide->getId()]);
+        }
+
         // Assigner l'aide-soignant à la mission
         $mission->setAideSoignant($aideSoignant);
 
         $entityManager->flush();
+
+        $this->transitionNotificationService->notifyCriticalTransition('DEMANDE_ASSIGNED', $demandeAide, $mission, $aideSoignant);
 
         $this->addFlash('success', 'Vous avez sélectionné ' . $aideSoignant->getNom() . ' comme aide-soignant !');
         return $this->redirectToRoute('app_demande_aide_show', ['id' => $demandeAide->getId()]);
@@ -525,6 +565,247 @@ final class DemandeAideController extends BaseController
         return $this->redirectToRoute('app_demandes_index');
     }
 
+    #[Route('/aidesoingnant/missions/accept/{id}', name: 'aidesoingnant_accept_mission')]
+    public function acceptMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $demande = $demandeAideRepository->find($id);
+        if (!$demande) {
+            throw $this->createNotFoundException('Demande not found');
+        }
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to accept missions');
+        }
+
+        $missions = $demande->getMissions();
+        $mission = null;
+        foreach ($missions as $existingMission) {
+            if (!$existingMission->getFinalStatus()) {
+                $mission = $existingMission;
+                break;
+            }
+        }
+
+        if (!$mission) {
+            // Si pas de mission trouvée, en créer une (defensif: au cas où elle aurait été supprimée)
+            $mission = new Mission();
+            $mission->setDemandeAide($demande);
+            $mission->setTitreM($demande->getTitreD());
+            $mission->setStatutMission('EN_ATTENTE');
+            $mission->setPrixFinal(0);
+            $mission->setDateDebut($demande->getDateDebutSouhaitee());
+            $mission->setDateFin($demande->getDateFinSouhaitee());
+            $entityManager->persist($mission);
+        }
+
+        if (!$this->isAideAvailableForDemande($aideSoignant, $demande, $entityManager, $mission->getId())) {
+            $this->addFlash('error', 'Vous avez déjà une mission sur ce créneau.');
+            return $this->redirectToRoute('aidesoingnant_demandes');
+        }
+
+        $mission->setAideSoignant($aideSoignant);
+        $mission->setTitreM($demande->getTitreD());
+        $mission->setStatutMission('ACCEPTÉE');
+        $mission->setPrixFinal(0);
+
+        $demande->setStatut('ACCEPTÉE');
+
+        $entityManager->flush();
+
+        $this->transitionNotificationService->notifyCriticalTransition('MISSION_ACCEPTED', $demande, $mission, $aideSoignant);
+
+        $this->addFlash('success', 'Mission acceptée avec succès!');
+        return $this->redirectToRoute('aidesoingnant_missions');
+    }
+
+    #[Route('/aidesoingnant/missions/refuse/{id}', name: 'aidesoingnant_missions_refuse')]
+    public function refuseMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $demande = $demandeAideRepository->find($id);
+        if (!$demande) {
+            throw $this->createNotFoundException('Demande not found');
+        }
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to refuse missions');
+        }
+
+        // Réassignation: la demande reste vivante pour un nouveau choix patient
+        $demande->setStatut('A_REASSIGNER');
+        $demande->setAideChoisie(null);
+
+        $missions = $demande->getMissions();
+        foreach ($missions as $mission) {
+            if (!$mission->getFinalStatus()) {
+                $mission->setAideSoignant(null);
+                $mission->setStatutMission('EN_ATTENTE');
+                $mission->setPrixFinal(0);
+            }
+        }
+
+        $entityManager->flush();
+
+        $this->transitionNotificationService->notifyCriticalTransition('DEMANDE_REASSIGNED', $demande, null, $aideSoignant);
+
+        $this->addFlash('success', 'Demande refusée. La demande est marquée à réassigner côté patient.');
+        return $this->redirectToRoute('aidesoingnant_demandes');
+    }
+
+    private function parseDate(string $dateString): ?\DateTime
+    {
+        $formats = ['Y-m-d', 'd/m/Y', 'Y/m/d', 'd-m-Y'];
+        foreach ($formats as $format) {
+            $date = \DateTime::createFromFormat($format, $dateString);
+            if ($date && $date->format($format) === $dateString) {
+                return $date;
+            }
+        }
+        return null;
+    }
+
+    #[Route('/aidesoingnant/demandes', name: 'aidesoingnant_demandes')]
+    public function demandes(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $search = $request->query->get('search', '');
+        $sortBy = $request->query->get('sort_by', 'dateCreation');
+        $sortOrder = $request->query->get('sort_order', 'desc');
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 10;
+
+        $aideSoignant = $this->getCurrentAideSoignant();
+        if (!$aideSoignant) {
+            throw $this->createAccessDeniedException('You must be an aide soignant to view demandes');
+        }
+
+        $now = new \DateTime();
+        $qb = $entityManager->getRepository(DemandeAide::class)->createQueryBuilder('d')
+            ->leftJoin('d.missions', 'm')
+            ->select('d')
+            ->distinct()
+            ->andWhere('d.aideChoisie = :aideSoignant')
+            ->setParameter('aideSoignant', $aideSoignant)
+            ->andWhere('m.StatutMission = :status')
+            ->setParameter('status', 'EN_ATTENTE')
+            ->andWhere('d.statut = :demandeStatus')
+            ->setParameter('demandeStatus', 'EN_ATTENTE')
+            ->andWhere('d.dateDebutSouhaitee > :now')
+            ->setParameter('now', $now);
+
+        if (!empty($search)) {
+            switch ($sortBy) {
+                case 'dateCreation':
+                    $date = $this->parseDate($search);
+                    if ($date) {
+                        $qb->andWhere('DATE(d.dateCreation) = :date')
+                           ->setParameter('date', $date->format('Y-m-d'));
+                    }
+                    break;
+                case 'budgetMax':
+                    if (is_numeric($search)) {
+                        $qb->andWhere('d.budgetMax = :budget')
+                           ->setParameter('budget', (int) $search);
+                    }
+                    break;
+                case 'typeDemande':
+                    $qb->andWhere('d.typeDemande LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+                    break;
+                default:
+                    $qb->andWhere('d.descriptionBesoin LIKE :search OR d.typeDemande LIKE :search OR d.titreD LIKE :search')
+                       ->setParameter('search', '%' . $search . '%');
+            }
+        }
+
+        $orderDirection = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+        switch ($sortBy) {
+            case 'dateCreation':
+                $qb->orderBy('d.dateCreation', $orderDirection);
+                break;
+            case 'typeDemande':
+                $qb->orderBy('d.typeDemande', $orderDirection);
+                break;
+            case 'budgetMax':
+                $qb->orderBy('d.budgetMax', $orderDirection);
+                break;
+            default:
+                $qb->orderBy('d.dateCreation', 'DESC');
+        }
+
+        $totalCount = (clone $qb)->select('COUNT(DISTINCT d.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = ceil($totalCount / $limit);
+
+        $qb->setFirstResult(($page - 1) * $limit)->setMaxResults($limit);
+        $demandesData = $qb->getQuery()->getResult();
+
+        $demandes = [];
+        foreach ($demandesData as $demande) {
+            $missions = $demande->getMissions();
+            $activeMission = null;
+            foreach ($missions as $candidateMission) {
+                if (!$candidateMission->getFinalStatus() && $candidateMission->getStatutMission() === 'EN_ATTENTE') {
+                    $activeMission = $candidateMission;
+                    break;
+                }
+            }
+
+            if ($activeMission) {
+                $demandes[] = $activeMission;
+            } else {
+                $mission = new Mission();
+                $mission->setDemandeAide($demande);
+                $demandes[] = $mission;
+            }
+        }
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
+
+        return $this->render('demande_aide/demandes_list.html.twig', [
+            'demandes' => $demandes,
+            'navigation' => $navigation,
+            'search' => $search,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+        ]);
+    }
+
+    #[Route('/aidesoingnant/demande/details/{id}', name: 'aidesoingnant_demande_details')]
+    public function showDemandeDetails(int $id, DemandeAideRepository $demandeAideRepository): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $demande = $demandeAideRepository->find($id);
+        if (!$demande) {
+            throw $this->createNotFoundException('Demande introuvable');
+        }
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
+
+        return $this->render('demande_aide/demande_details.html.twig', [
+            'demande' => $demande,
+            'navigation' => $navigation,
+        ]);
+    }
+
     #[Route('/demandes/historique', name: 'app_demandes_history')]
     public function history(Request $request, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
@@ -540,7 +821,7 @@ final class DemandeAideController extends BaseController
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 10;
 
-        // Récupérer toutes les demandes d'aide de ce patient avec status TERMINÉE, EXPIRÉE, ANNULÉE
+        // Récupérer toutes les demandes d'aide archivées de ce patient
         $allDemandes = $demandeAideRepository->findAll();
         $userDemandes = array_filter($allDemandes, function($d) use ($email) {
             $de = strtolower((string) $d->getEmail());
@@ -549,7 +830,7 @@ final class DemandeAideController extends BaseController
 
         // Filtrer par statuts archivés
         $archivedDemandes = array_filter($userDemandes, function($d) {
-            return in_array($d->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE']);
+            return in_array($d->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE'], true);
         });
 
         // Trier par date décroissante
@@ -575,6 +856,126 @@ final class DemandeAideController extends BaseController
             'current_page' => $page,
             'total_pages' => $totalPages,
         ]);
+    }
+
+    #[Route('/demandes/historique/delete/{id}', name: 'app_demande_aide_history_delete', methods: ['POST'])]
+    public function deleteFromHistory(DemandeAide $demandeAide, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $user = $this->getUser();
+        $email = $user ? $user->getEmail() : '';
+        if (!$email || strcasecmp((string) $demandeAide->getEmail(), (string) $email) !== 0) {
+            $this->addFlash('error', 'Vous ne pouvez pas supprimer cette demande.');
+            return $this->redirectToRoute('app_demandes_history');
+        }
+
+        if (!in_array($demandeAide->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE'], true)) {
+            $this->addFlash('error', 'Seules les demandes archivées peuvent être supprimées définitivement.');
+            return $this->redirectToRoute('app_demandes_history');
+        }
+
+        try {
+            foreach ($demandeAide->getMissions() as $mission) {
+                $entityManager->remove($mission);
+            }
+
+            $entityManager->remove($demandeAide);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Demande supprimée définitivement de l\'historique.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la suppression: ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_demandes_history');
+    }
+
+    private function buildAidesRanking(array $aides, DemandeAide $demande, EntityManagerInterface $entityManager): array
+    {
+        $ranking = [];
+        foreach ($aides as $aide) {
+            $available = $this->isAideAvailableForDemande($aide, $demande, $entityManager);
+            $score = $this->computeCompatibilityScore($aide, $demande, $entityManager, $available);
+
+            $ranking[$aide->getId()] = [
+                'available' => $available,
+                'score' => $score,
+            ];
+        }
+
+        return $ranking;
+    }
+
+    private function isAideAvailableForDemande(AideSoignant $aide, DemandeAide $demande, EntityManagerInterface $entityManager, ?int $ignoreMissionId = null): bool
+    {
+        $start = $demande->getDateDebutSouhaitee();
+        $end = $demande->getDateFinSouhaitee() ?? $start;
+
+        if (!$start || !$end || !$aide->isDisponible()) {
+            return false;
+        }
+
+        $qb = $entityManager->getRepository(Mission::class)->createQueryBuilder('m')
+            ->andWhere('m.aideSoignant = :aide')
+            ->andWhere('m.finalStatus IS NULL')
+            ->andWhere('m.StatutMission IN (:statuses)')
+            ->setParameter('aide', $aide)
+            ->setParameter('statuses', ['EN_ATTENTE', 'ACCEPTÉE'])
+            ->andWhere('m.dateDebut <= :end')
+            ->andWhere('m.dateFin >= :start')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end);
+
+        if ($ignoreMissionId !== null) {
+            $qb->andWhere('m.id != :ignoreMissionId')->setParameter('ignoreMissionId', $ignoreMissionId);
+        }
+
+        return count($qb->getQuery()->getResult()) === 0;
+    }
+
+    private function computeCompatibilityScore(AideSoignant $aide, DemandeAide $demande, EntityManagerInterface $entityManager, bool $available): int
+    {
+        $score = 0;
+
+        if ($available) {
+            $score += 30;
+        }
+
+        $score += min(20, (int) ($aide->getNiveauExperience() ?? 0) * 2);
+
+        $tarifMin = (float) ($aide->getTarifMin() ?? 0);
+        $budget = (float) ($demande->getBudgetMax() ?? 0);
+        if ($budget > 0 && $tarifMin > 0) {
+            $ratio = $tarifMin <= $budget ? 1.0 : max(0.0, 1 - (($tarifMin - $budget) / $budget));
+            $score += (int) round(20 * $ratio);
+        }
+
+        $typesAcceptes = strtoupper((string) $aide->getTypePatientsAcceptes());
+        $typePatient = strtoupper((string) $demande->getTypePatient());
+        if ($typePatient !== '' && str_contains($typesAcceptes, $typePatient)) {
+            $score += 20;
+        }
+
+        $urgency = (int) ($demande->getUrgencyScore() ?? 0);
+        $score += (int) round(min(10, $urgency / 10));
+
+        $missions = $entityManager->getRepository(Mission::class)->findBy(['aideSoignant' => $aide]);
+        if (count($missions) > 0) {
+            $completed = 0;
+            $failed = 0;
+            foreach ($missions as $mission) {
+                if ($mission->getFinalStatus() === 'TERMINÉE') {
+                    $completed++;
+                }
+                if (in_array($mission->getFinalStatus(), ['ANNULÉE', 'EXPIRÉE'])) {
+                    $failed++;
+                }
+            }
+            $score += max(0, min(20, ($completed * 2) - $failed));
+        }
+
+        return max(0, min(100, $score));
     }
 }
 

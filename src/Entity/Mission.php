@@ -15,10 +15,10 @@ class Mission
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTime $dateDebut = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTime $dateFin = null;
 
     #[ORM\Column(length: 255)]
@@ -69,6 +69,12 @@ class Mission
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $pdfFilePath = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $proofPhotoData = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $signatureData = null;
 
     // ================= ARCHIVE & HISTORIQUE =================
 
@@ -282,6 +288,30 @@ class Mission
     public function setPdfFilePath(?string $pdfFilePath): static
     {
         $this->pdfFilePath = $pdfFilePath;
+
+        return $this;
+    }
+
+    public function getProofPhotoData(): ?string
+    {
+        return $this->proofPhotoData;
+    }
+
+    public function setProofPhotoData(?string $proofPhotoData): static
+    {
+        $this->proofPhotoData = $proofPhotoData;
+
+        return $this;
+    }
+
+    public function getSignatureData(): ?string
+    {
+        return $this->signatureData;
+    }
+
+    public function setSignatureData(?string $signatureData): static
+    {
+        $this->signatureData = $signatureData;
 
         return $this;
     }

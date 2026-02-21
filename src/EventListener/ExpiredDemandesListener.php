@@ -34,7 +34,7 @@ final class ExpiredDemandesListener
 
         foreach ($demandes as $demande) {
             // Skip if already complete or refused
-            if (in_array($demande->getStatut(), ['TERMINÉE', 'EXPIRÉ', 'ANNULÉE', 'REFUSÉE'])) {
+            if (in_array($demande->getStatut(), ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE', 'REFUSÉE'], true)) {
                 continue;
             }
 
@@ -44,9 +44,9 @@ final class ExpiredDemandesListener
                 continue;
             }
 
-            // If current time is past expected start date and no acceptance happened, mark as EXPIRÉ
+            // If current time is past expected start date and no acceptance happened, mark as EXPIRÉE
             if ($nowDateTime > $dateDebut) {
-                $demande->setStatut('EXPIRÉ');
+                $demande->setStatut('EXPIRÉE');
                 $this->entityManager->persist($demande);
             }
         }

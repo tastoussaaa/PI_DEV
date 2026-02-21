@@ -200,6 +200,24 @@
             transform: none;
             box-shadow: none;
         }
+
+        .status--completed {
+            background: #C8E6C9;
+            color: #2E7D32;
+            border: 1px solid rgba(46, 125, 50, 0.15);
+        }
+
+        .status--expired {
+            background: #FFE0B2;
+            color: #E65100;
+            border: 1px solid rgba(230, 81, 0, 0.15);
+        }
+
+        .status--cancelled {
+            background: #FFCDD2;
+            color: #C62828;
+            border: 1px solid rgba(198, 40, 40, 0.15);
+        }
     </style>
 {% endblock %}
 
@@ -226,7 +244,16 @@
                 </div>
                 <div style="text-align: right;">
                     <h3 style="margin: 0 0 8px 0;">Statut</h3>
-                    <span class="status-badge status--{{ demande.statut|lower|replace({'_': '_'}) }}">{{ demande.statut|replace({'_': ' '}) }}</span>
+                    {% set statusClass = {
+                        'ACCEPTÉE': 'accepted',
+                        'EN_ATTENTE': 'en_attente',
+                        'A_REASSIGNER': 'en_attente',
+                        'REFUSÉE': 'refused',
+                        'TERMINÉE': 'completed',
+                        'EXPIRÉE': 'expired',
+                        'ANNULÉE': 'cancelled'
+                    }[demande.statut] ?? demande.statut|lower|replace({'_': '_'}) %}
+                    <span class="status-badge status--{{ statusClass }}">{{ demande.statut|replace({'_': ' '}) }}</span>
                 </div>
             </div>
 
@@ -270,8 +297,8 @@
                         <div class="detail-value">{{ demande.dateCreation ? demande.dateCreation|date('d/m/Y à H:i') : 'N/A' }}</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Début souhaitée</div>
-                        <div class="detail-value">{{ demande.dateDebutSouhaitee ? demande.dateDebutSouhaitee|date('d/m/Y à H:i') : 'N/A' }}</div>
+                        <div class="detail-label">Début mission (RDV)</div>
+                        <div class="detail-value">{{ mission and mission.dateDebut ? mission.dateDebut|date('d/m/Y à H:i') : (demande.dateDebutSouhaitee ? demande.dateDebutSouhaitee|date('d/m/Y à H:i') : 'N/A') }}</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Fin souhaitée</div>
@@ -314,16 +341,34 @@
                 </div>
             {% endif %}
 
+            {% if mission and (demande.statut == 'ACCEPTÉE' or mission.statutMission == 'ACCEPTÉE') and not mission.checkOutAt %}
+                <div class="detail-section" style="margin-bottom: 12px;">
+                    <h3>📎 Preuves optionnelles (check-out)</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label for="proofPhotoInput" style="display:block; font-weight:600; margin-bottom: 6px;">Photo preuve</label>
+                            <input id="proofPhotoInput" type="file" accept="image/*" style="width:100%;">
+                        </div>
+                        <div>
+                            <label for="signatureInput" style="display:block; font-weight:600; margin-bottom: 6px;">Signature (image)</label>
+                            <input id="signatureInput" type="file" accept="image/*" style="width:100%;">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
             <div class="actions">
                 <a href="{{ path('aidesoingnant_missions') }}" class="btn-back">← Retour</a>
                 {% if mission and (demande.statut == 'ACCEPTÉE' or mission.statutMission == 'ACCEPTÉE') %}
                     <button
+                        type="button"
                         id="checkinBtn"
                         class="btn-success"
                         data-url="{{ path('mission_checkin', {'id': mission.id}) }}"
                         {% if mission.checkInAt %}disabled{% endif %}
                     >📍 Check-in</button>
                     <button
+                        type="button"
                         id="checkoutBtn"
                         class="btn-warning"
                         data-url="{{ path('mission_checkout', {'id': mission.id}) }}"
@@ -335,7 +380,7 @@
                         </a>
                     {% endif %}
                     {% if mission.finalStatus != 'ANNULÉE' %}
-                        <form method="POST" action="{{ path('aidesoingnant_missions_delete', {'id': demande.id}) }}" style="margin-left: auto; display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette mission ? Cette action est irréversible.');">
+                        <form method="POST" action="{{ path('aidesoingnant_missions_cancel', {'id': demande.id}) }}" style="margin-left: auto; display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette mission ?');">
                             <button type="submit" class="btn-danger" {% if mission.finalStatus %}disabled{% endif %}>✗ Annuler</button>
                         </form>
                     {% endif %}
@@ -344,7 +389,7 @@
                         <strong style="color: #F57F17;">⚠️ Check-in/out disponible uniquement pour les missions acceptées</strong>
                     </div>
                     {% if mission.finalStatus != 'ANNULÉE' %}
-                        <form method="POST" action="{{ path('aidesoingnant_missions_delete', {'id': demande.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette mission ? Cette action est irréversible.');">
+                        <form method="POST" action="{{ path('aidesoingnant_missions_cancel', {'id': demande.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette mission ?');">
                             <button type="submit" class="btn-danger" {% if mission.finalStatus %}disabled{% endif %}>✗ Annuler</button>
                         </form>
                     {% endif %}
@@ -425,6 +470,19 @@
                 consent: true
             };
 
+            if (actionLabel === 'Check-out') {
+                const proofPhotoInput = document.getElementById('proofPhotoInput');
+                const signatureInput = document.getElementById('signatureInput');
+
+                if (proofPhotoInput && proofPhotoInput.files && proofPhotoInput.files[0]) {
+                    payload.proofPhotoData = await fileToDataUrl(proofPhotoInput.files[0]);
+                }
+
+                if (signatureInput && signatureInput.files && signatureInput.files[0]) {
+                    payload.signatureData = await fileToDataUrl(signatureInput.files[0]);
+                }
+            }
+
             const response = await fetch(buttonElement.dataset.url, {
                 method: 'POST',
                 headers: {
@@ -434,7 +492,19 @@
                 body: JSON.stringify(payload)
             });
 
-            const data = await response.json();
+            const rawBody = await response.text();
+            let data = null;
+
+            try {
+                data = JSON.parse(rawBody);
+            } catch (_e) {
+                data = {
+                    success: false,
+                    message: response.ok
+                        ? 'Réponse serveur invalide (JSON attendu).'
+                        : 'Erreur serveur inattendue. Veuillez réessayer.'
+                };
+            }
 
             if (!response.ok || !data.success) {
                 showTraceabilityMessage('error', data.message || 'Une erreur est survenue.');
@@ -459,12 +529,27 @@
     const checkinBtn = document.getElementById('checkinBtn');
     const checkoutBtn = document.getElementById('checkoutBtn');
 
+    function fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Impossible de lire le fichier de preuve.'));
+            reader.readAsDataURL(file);
+        });
+    }
+
     if (checkinBtn) {
-        checkinBtn.addEventListener('click', () => submitTraceabilityAction(checkinBtn, 'Check-in'));
+        checkinBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            submitTraceabilityAction(checkinBtn, 'Check-in');
+        });
     }
 
     if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', () => submitTraceabilityAction(checkoutBtn, 'Check-out'));
+        checkoutBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            submitTraceabilityAction(checkoutBtn, 'Check-out');
+        });
     }
 
 </script>

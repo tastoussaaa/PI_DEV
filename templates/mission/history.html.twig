@@ -64,6 +64,26 @@
             white-space: nowrap;
         }
 
+        .history-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-delete {
+            background: #FFCDD2;
+            color: #C62828;
+            border: 1px solid #EF9A9A;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-delete:hover {
+            background: #EF9A9A;
+        }
+
         .status-completed {
             background: #C8E6C9;
             color: #2E7D32;
@@ -146,15 +166,20 @@
                                     <p style="font-size: 13px; color: #666; margin: 8px 0 0 0;">{{ mission.archiveReason }}</p>
                                 {% endif %}
                             </div>
-                            <span class="history-status status-{{ mission.finalStatus|lower }}">
-                                {% if mission.finalStatus == 'TERMINÉE' %}
-                                    ✓ Terminée
-                                {% elseif mission.finalStatus == 'EXPIRÉE' %}
-                                    ⏰ Expirée
-                                {% elseif mission.finalStatus == 'ANNULÉE' %}
-                                    ✕ Annulée
-                                {% endif %}
-                            </span>
+                            <div class="history-actions">
+                                <span class="history-status status-{{ mission.finalStatus|lower }}">
+                                    {% if mission.finalStatus == 'TERMINÉE' %}
+                                        ✓ Terminée
+                                    {% elseif mission.finalStatus == 'EXPIRÉE' %}
+                                        ⏰ Expirée
+                                    {% elseif mission.finalStatus == 'ANNULÉE' %}
+                                        ✕ Annulée
+                                    {% endif %}
+                                </span>
+                                <form method="POST" action="{{ path('aidesoingnant_missions_delete', {id: mission.id}) }}" onsubmit="return confirm('Supprimer définitivement cette mission de la base ?');">
+                                    <button type="submit" class="btn-delete">🗑️ Supprimer</button>
+                                </form>
+                            </div>
                         </div>
                     {% endfor %}
                 </div>

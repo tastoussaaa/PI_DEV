@@ -65,6 +65,26 @@
             white-space: nowrap;
         }
 
+        .history-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-delete {
+            background: #FFCDD2;
+            color: #C62828;
+            border: 1px solid #EF9A9A;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-delete:hover {
+            background: #EF9A9A;
+        }
+
         .status-completed {
             background: #C8E6C9;
             color: #2E7D32;
@@ -141,17 +161,22 @@
                                 </div>
                             </div>
                             {% set statusClass = demande.statut == 'TERMINÉE' ? 'completed' : (demande.statut == 'EXPIRÉE' ? 'expired' : 'cancelled') %}
-                            <span class="history-status status-{{ statusClass }}">
-                                {% if demande.statut == 'TERMINÉE' %}
-                                    ✓ Terminée
-                                {% elseif demande.statut == 'EXPIRÉE' %}
-                                    ⏰ Expirée
-                                {% elseif demande.statut == 'ANNULÉE' %}
-                                    ✕ Annulée
-                                {% else %}
-                                    {{ demande.statut|replace({'_': ' '}) }}
-                                {% endif %}
-                            </span>
+                            <div class="history-actions">
+                                <span class="history-status status-{{ statusClass }}">
+                                    {% if demande.statut == 'TERMINÉE' %}
+                                        ✓ Terminée
+                                    {% elseif demande.statut == 'EXPIRÉE' %}
+                                        ⏰ Expirée
+                                    {% elseif demande.statut == 'ANNULÉE' %}
+                                        ✕ Annulée
+                                    {% else %}
+                                        {{ demande.statut|replace({'_': ' '}) }}
+                                    {% endif %}
+                                </span>
+                                <form method="POST" action="{{ path('app_demande_aide_history_delete', {id: demande.id}) }}" onsubmit="return confirm('Supprimer définitivement cette demande de la base ?');">
+                                    <button type="submit" class="btn-delete">🗑️ Supprimer</button>
+                                </form>
+                            </div>
                         </div>
                     {% endfor %}
                 </div>

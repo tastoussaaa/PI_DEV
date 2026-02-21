@@ -96,6 +96,18 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(198, 40, 40, 0.2);
         }
+
+        .btn--warning {
+            background: #FFE0B2;
+            color: #E65100;
+            border: none;
+        }
+
+        .btn--warning:hover {
+            background: #FFCC80;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(230, 81, 0, 0.2);
+        }
         
         .card__status {
             display: inline-block;
@@ -310,8 +322,9 @@
 
                             <div class="card__actions">
                                 <a href="{{ path('aidesoingnant_missions_details', {id: mission.demandeAide.id}) }}" class="btn btn--info">👁️ Voir détails</a>
-                                <form method="POST" action="{{ path('aidesoingnant_missions_delete', {id: mission.demandeAide.id}) }}" style="flex: 1;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette mission ?');">
-                                    <button type="submit" class="btn btn--danger" style="width: 100%;">❌ Supprimer</button>
+                                <a href="{{ path('aidesoingnant_missions_edit', {id: mission.id}) }}" class="btn btn--warning">✏️ Modifier</a>
+                                    <form method="POST" action="{{ path('aidesoingnant_missions_cancel', {id: mission.demandeAide.id}) }}" style="flex: 1;" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette mission ?');">
+                                       <button type="submit" class="btn btn--danger" style="width: 100%;">❌ Annuler</button>
                                 </form>
                             </div>
                         </div>

@@ -102,6 +102,12 @@ class DemandeAide
     #[ORM\Column(nullable: true)]
     private ?int $urgencyScore = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $suggestedAideIds = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $autoMatchingTriggeredAt = null;
+
     public function __construct()
     {
         $this->missions = new ArrayCollection();
@@ -351,6 +357,28 @@ class DemandeAide
     public function setUrgencyScore(?int $urgencyScore): static
     {
         $this->urgencyScore = $urgencyScore;
+        return $this;
+    }
+
+    public function getSuggestedAideIds(): ?string
+    {
+        return $this->suggestedAideIds;
+    }
+
+    public function setSuggestedAideIds(?string $suggestedAideIds): static
+    {
+        $this->suggestedAideIds = $suggestedAideIds;
+        return $this;
+    }
+
+    public function getAutoMatchingTriggeredAt(): ?\DateTimeInterface
+    {
+        return $this->autoMatchingTriggeredAt;
+    }
+
+    public function setAutoMatchingTriggeredAt(?\DateTimeInterface $autoMatchingTriggeredAt): static
+    {
+        $this->autoMatchingTriggeredAt = $autoMatchingTriggeredAt;
         return $this;
     }
 }

@@ -1,0 +1,114 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Demandes d'Aide - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {# Navigation #}
+    {% if navigation %}
+    <nav style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+        {% for item in navigation %}
+        <a href="{{ item.path }}" 
+           style="padding: 8px 16px; text-decoration: none; border-radius: 6px; {% if app.request.pathinfo starts with '/admin/demandes' and item.name == 'Demandes' %}background-color: #f0f4ff; color: #2563eb; font-weight: 600;{% else %}color: #6b7280;{% endif %} transition: all 0.3s;">
+            <span style="margin-right: 4px;">{{ item.icon }}</span>{{ item.name }}
+        </a>
+        {% endfor %}
+    </nav>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>📋 Gestion des Demandes d'Aide</h1>
+        </div>
+    </div>
+
+    {# Messages Flash #}
+    {% if app.flashes %}
+        {% for type, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ type === 'success' ? 'success' : 'danger' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
+    {# Filter Form #}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="{{ search }}">
+                </div>
+                <div class="col-md-4">
+                    <select name="statut" class="form-select">
+                        <option value="">Tous les statuts</option>
+                        <option value="EN_ATTENTE" {{ statut === 'EN_ATTENTE' ? 'selected' : '' }}>En attente</option>
+                        <option value="ACCEPTÉE" {{ statut === 'ACCEPTÉE' ? 'selected' : '' }}>Acceptée</option>
+                        <option value="A_REASSIGNER" {{ statut === 'A_REASSIGNER' ? 'selected' : '' }}>À réassigner</option>
+                        <option value="EXPIRÉE" {{ statut === 'EXPIRÉE' ? 'selected' : '' }}>Expirée</option>
+                        <option value="ANNULÉE" {{ statut === 'ANNULÉE' ? 'selected' : '' }}>Annulée</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Demandes Table #}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Titre</th>
+                        <th>Patient</th>
+                        <th>Statut</th>
+                        <th>Date Début</th>
+                        <th>Budget</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if demandes|length > 0 %}
+                        {% for demande in demandes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ demande.titreD|truncate(30) }}</strong>
+                                </td>
+                                <td>{{ demande.email }}</td>
+                                <td>
+                                    <span class="badge bg-{{ demande.statut === 'EN_ATTENTE' ? 'warning' : demande.statut === 'ACCEPTÉE' ? 'success' : 'danger' }}">
+                                        {{ demande.statut }}
+                                    </span>
+                                </td>
+                                <td>{{ demande.dateDebutSouhaitee ? demande.dateDebutSouhaitee|date('d/m/Y') : '-' }}</td>
+                                <td>{{ demande.budgetMax ? demande.budgetMax ~ ' DT' : '-' }}</td>
+                                <td>
+                                    <a href="{{ path('admin_demandes_show', {id: demande.id}) }}" class="btn btn-sm btn-info" title="Voir">👁️</a>
+                                    <a href="{{ path('admin_demandes_edit', {id: demande.id}) }}" class="btn btn-sm btn-warning" title="Modifier">✏️</a>
+                                    <form method="post" action="{{ path('admin_demandes_delete', {id: demande.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete-demande-' ~ demande.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Supprimer">🗑️</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Aucune demande trouvée</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+</style>
+{% endblock %}

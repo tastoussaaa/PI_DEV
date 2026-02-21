@@ -181,6 +181,24 @@
             border: 1px solid rgba(211, 47, 47, 0.15);
         }
 
+        .status--completed {
+            background: #C8E6C9;
+            color: #2E7D32;
+            border: 1px solid rgba(46, 125, 50, 0.15);
+        }
+
+        .status--expired {
+            background: #FFE0B2;
+            color: #E65100;
+            border: 1px solid rgba(230, 81, 0, 0.15);
+        }
+
+        .status--cancelled {
+            background: #FFCDD2;
+            color: #C62828;
+            border: 1px solid rgba(198, 40, 40, 0.15);
+        }
+
         .urgency-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -361,7 +379,11 @@
                                 {% set statusClass = {
                                     'ACCEPTÉE': 'accepted',
                                     'EN_ATTENTE': 'en_attente',
-                                    'REFUSÉE': 'refused'
+                                    'A_REASSIGNER': 'en_attente',
+                                    'REFUSÉE': 'refused',
+                                    'TERMINÉE': 'completed',
+                                    'EXPIRÉE': 'expired',
+                                    'ANNULÉE': 'cancelled'
                                 }[demande.statut] ?? demande.statut|lower|replace({'_': '_'}) %}
                                 <span class="card__status status--{{ statusClass }}">{{ demande.statut|replace({'_': ' '}) }}</span>
                             </div>
@@ -384,16 +406,18 @@
                             </div>
 
                             <div class="card__actions">
-                                {% if demande.statut == 'EN_ATTENTE' and not demande.aideChoisie %}
+                                {% if demande.statut in ['EN_ATTENTE', 'A_REASSIGNER'] and not demande.aideChoisie %}
                                     <a href="{{ path('app_demande_select_aide', {id: demande.id}) }}" class="btn btn--select">👥 Sélectionner un aide</a>
                                 {% endif %}
-                                {% if demande.statut == 'EN_ATTENTE' %}
+                                {% if demande.statut in ['EN_ATTENTE', 'A_REASSIGNER'] %}
                                     <a href="{{ path('app_demande_aide_edit', {id: demande.id}) }}" class="btn btn--edit">✏️ Modifier</a>
                                 {% endif %}
                                 <a href="{{ path('app_demande_aide_show', {id: demande.id}) }}" class="btn btn--info">👁️ Suivre</a>
-                                <form method="POST" action="{{ path('app_demande_aide_delete', {id: demande.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?');">
-                                    <button type="submit" class="btn btn--danger">❌ Annuler</button>
-                                </form>
+                                {% if demande.statut not in ['TERMINÉE', 'EXPIRÉE', 'ANNULÉE'] %}
+                                    <form method="POST" action="{{ path('app_demande_aide_delete', {id: demande.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?');">
+                                        <button type="submit" class="btn btn--danger">❌ Annuler</button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
                     {% endfor %}

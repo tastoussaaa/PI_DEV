@@ -4,6 +4,7 @@
 
 {% block stylesheets %}
 <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
 <style>
     /* --- Container & Header --- */
     .select-aide__container {
@@ -244,6 +245,54 @@
         margin-bottom: 8px;
     }
 
+    #availability-calendar {
+        min-height: 460px;
+        background: #fff;
+        border: 1px solid #D0CBE6;
+        border-radius: 12px;
+        padding: 12px;
+    }
+
+    .calendar-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .calendar-filter-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .calendar-filter-btn {
+        border: 1px solid #D0CBE6;
+        background: #fff;
+        color: #4B4A5B;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .calendar-filter-btn:hover {
+        background: #F8F8FB;
+    }
+
+    .calendar-filter-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #4B4A5B;
+        background: #fff;
+        border: 1px solid #D0CBE6;
+        border-radius: 999px;
+        padding: 6px 10px;
+    }
+
     /* --- Responsive --- */
     @media (max-width: 768px) {
         .aide-info {
@@ -301,19 +350,36 @@
                 </div>
             </div>
 
+            <div class="demande-info__box">
+                <h3 class="demande-info__title">🧠 Top 5 suggéré (API Serializer)</h3>
+                <div id="top-aides-api" class="demande-info__value">Chargement des suggestions...</div>
+            </div>
+
+            <div class="demande-info__box">
+                <h3 class="demande-info__title">📅 Calendrier des créneaux occupés</h3>
+                <div class="calendar-filter-actions">
+                    <button type="button" id="calendar-select-all" class="calendar-filter-btn">Tout cocher</button>
+                    <button type="button" id="calendar-unselect-all" class="calendar-filter-btn">Tout décocher</button>
+                </div>
+                <div id="calendar-aide-filters" class="calendar-filters"></div>
+                <div id="availability-calendar"></div>
+            </div>
+
             <!-- Grille aides-soignants -->
             {% if aidesSoignantsCompatibles|length > 0 %}
             <div class="aides-grid">
                 {% for aide in aidesSoignantsCompatibles %}
                 <div class="aide-card">
+                    {% set rank = aidesRanking[aide.id] ?? {'score': 0, 'available': false} %}
                     <div>
                         <h3>{{ aide.nom|capitalize }} {{ aide.prenom|capitalize }}</h3>
                         <p>Aide-soignant(e) professionnel(le)</p>
-                        {% if aide.disponible %}
+                        {% if rank.available %}
                         <span class="aide-badge badge--available">✓ Disponible</span>
                         {% else %}
                         <span class="aide-badge badge--unavailable">✗ Non disponible</span>
                         {% endif %}
+                        <span class="aide-badge" style="margin-left: 8px; background: #EDE7F6; color: #5E35B1;">🎯 Score: {{ rank.score }}/100</span>
                     </div>
 
                     <div class="aide-info">
@@ -352,11 +418,17 @@
 
                     <div class="aide-tarif">💰 {{ aide.tarifMin }} DT/h</div>
 
-                    <div class="aide-card__actions">
-                        <form method="POST" action="{{ path('app_demande_select_aide_post', {id: demande.id, aideId: aide.id}) }}">
-                            <button type="submit" class="btn--choisir">✓ Choisir cet aide-soignant</button>
-                        </form>
-                    </div>
+                    {% if rank.available %}
+                        <div class="aide-card__actions">
+                            <form method="POST" action="{{ path('app_demande_select_aide_post', {id: demande.id, aideId: aide.id}) }}">
+                                <button type="submit" class="btn--choisir">✓ Choisir cet aide-soignant</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="aide-card__actions">
+                            <button type="button" class="btn--choisir" style="background:#E0E0E0;color:#777;cursor:not-allowed;" disabled>Indisponible sur ce créneau</button>
+                        </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -374,5 +446,152 @@
         </div>
     </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const container = document.getElementById('top-aides-api');
+    if (!container) {
+        return;
+    }
+
+    try {
+        const response = await fetch('{{ path('api_serialize_demande_top_aides', {id: demande.id}) }}', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            container.textContent = 'Impossible de charger les suggestions pour le moment.';
+            return;
+        }
+
+        const topAides = await response.json();
+        if (!Array.isArray(topAides) || topAides.length === 0) {
+            container.textContent = 'Aucune suggestion disponible pour cette demande.';
+            return;
+        }
+
+        container.innerHTML = topAides.map((aide, index) => {
+            const nom = `${aide.prenom ?? ''} ${aide.nom ?? ''}`.trim();
+            const ville = aide.villeIntervention ?? 'N/A';
+            const score = Number.isFinite(aide.score) ? aide.score : 0;
+            const dispo = aide.available ? 'Disponible' : 'Indisponible';
+            return `<div style="padding:8px 0;border-bottom:1px solid #eee;"><strong>#${index + 1}</strong> ${nom} — 🎯 ${score}/100 — 📍 ${ville} — ${dispo}</div>`;
+        }).join('');
+    } catch (error) {
+        container.textContent = 'Erreur réseau lors du chargement des suggestions.';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const calendarEl = document.getElementById('availability-calendar');
+    const filtersEl = document.getElementById('calendar-aide-filters');
+    const selectAllBtn = document.getElementById('calendar-select-all');
+    const unselectAllBtn = document.getElementById('calendar-unselect-all');
+    if (!calendarEl || typeof FullCalendar === 'undefined') {
+        return;
+    }
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'fr',
+        headerToolbar: {
+            start: 'prev,next today',
+            center: 'title',
+            end: 'dayGridMonth,timeGridWeek'
+        },
+        eventDisplay: 'block',
+        events: []
+    });
+
+    calendar.render();
+
+    try {
+        const response = await fetch('{{ path('api_serialize_demande_calendar_slots', {id: demande.id}) }}', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const slots = await response.json();
+        if (!Array.isArray(slots)) {
+            return;
+        }
+
+        const uniqueAides = [];
+        const seenAides = new Set();
+        slots.forEach((slot) => {
+            if (!seenAides.has(slot.aideId)) {
+                seenAides.add(slot.aideId);
+                uniqueAides.push({ id: slot.aideId, name: slot.aideName });
+            }
+        });
+
+        const selectedAides = new Set(uniqueAides.map((aide) => aide.id));
+
+        const renderEvents = () => {
+            const visibleSlots = slots.filter((slot) => selectedAides.has(slot.aideId));
+            const events = visibleSlots.map((slot) => ({
+                id: String(slot.missionId),
+                title: `${slot.aideName} — ${slot.status ?? 'N/A'}`,
+                start: slot.startAt,
+                end: slot.endAt,
+                allDay: true,
+                backgroundColor: slot.color,
+                borderColor: slot.color,
+            }));
+
+            calendar.removeAllEvents();
+            events.forEach((eventItem) => calendar.addEvent(eventItem));
+        };
+
+        if (filtersEl) {
+            filtersEl.innerHTML = uniqueAides.map((aide) => `
+                <label class="calendar-filter-item">
+                    <input type="checkbox" value="${aide.id}" checked>
+                    <span>${aide.name}</span>
+                </label>
+            `).join('');
+
+            const checkboxes = Array.from(filtersEl.querySelectorAll('input[type="checkbox"]'));
+
+            const toggleAll = (checked) => {
+                selectedAides.clear();
+                checkboxes.forEach((checkbox) => {
+                    checkbox.checked = checked;
+                    if (checked) {
+                        selectedAides.add(Number(checkbox.value));
+                    }
+                });
+                renderEvents();
+            };
+
+            selectAllBtn?.addEventListener('click', () => toggleAll(true));
+            unselectAllBtn?.addEventListener('click', () => toggleAll(false));
+
+            checkboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    const aideId = Number(checkbox.value);
+                    if (checkbox.checked) {
+                        selectedAides.add(aideId);
+                    } else {
+                        selectedAides.delete(aideId);
+                    }
+                    renderEvents();
+                });
+            });
+        }
+
+        renderEvents();
+    } catch (error) {
+    }
+});
+</script>
 
 {% endblock %}

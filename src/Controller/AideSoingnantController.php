@@ -13,7 +13,6 @@ use App\Repository\DemandeAideRepository;
 use App\Repository\AideSoignantRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Mission;
-use App\Entity\Formation;
 
 final class AideSoingnantController extends BaseController
 {
@@ -55,52 +54,36 @@ final class AideSoingnantController extends BaseController
         ]);
     }
 
- #[Route('/aide-soignant/formations', name: 'aidesoignant_formations')]
-public function formations(Request $request, FormationRepository $formationRepository): Response
-{
-    $this->denyAccessUnlessGranted('ROLE_USER');
-    
-    $userId = $this->getCurrentUserId();
-    $aideSoignant = $this->getCurrentAideSoignant();
-    
-    $selectedCategory = $request->query->get('category');
-    $searchTerm = $request->query->get('search');
-
-    $formations = $formationRepository->findValidatedByCategory($selectedCategory, $searchTerm);
-    $categories = $formationRepository->findAllCategories();
-
-    $navigation = [
-        ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
-        ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
-        ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
-    ];
-
-    // ✅ If AJAX request → return only cards
-    if ($request->isXmlHttpRequest()) {
-        return $this->render('formation/_formations_list.html.twig', [
-            'formations' => $formations,
-            'current_user_type' => 'aidesoignant',
-        ]);
-    }
-
-    // ✅ Normal page load
-    return $this->render('formation/aidesoingnant_formations_list.html.twig', [
-        'formations' => $formations,
-        'categories' => $categories,
-        'selectedCategory' => $selectedCategory,
-        'searchTerm' => $searchTerm,
-        'userId' => $userId,
-        'aideSoignant' => $aideSoignant,
-        'navigation' => $navigation,
-        'current_user_type' => 'aidesoignant',
-    ]);
-}
-
- #[Route('/formation/{id}', name: 'formation_details')]
-    public function details(Formation $formation): Response
+    #[Route('/aide-soignant/formations', name: 'aidesoignant_formations')]
+    public function formations(Request $request, FormationRepository $formationRepository): Response
     {
-        return $this->render('formation/aideSoingnantFormation.html.twig', [
-            'formation' => $formation
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        
+        $userId = $this->getCurrentUserId();
+        $aideSoignant = $this->getCurrentAideSoignant();
+        
+        // Get selected category from query parameter (e.g., ?category=Urgence)
+        $selectedCategory = $request->query->get('category');
+
+        // Get formations filtered by category (or all if none selected)
+        $formations = $formationRepository->findValidatedByCategory($selectedCategory);
+
+        // Get all categories for dropdown
+        $categories = $formationRepository->findAllCategories();
+
+        $navigation = [
+            ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
+            ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
+        ];
+
+        return $this->render('formation/formations.html.twig', [
+            'formations' => $formations,
+            'categories' => $categories,
+            'selectedCategory' => $selectedCategory,
+            'userId' => $userId,
+            'aideSoignant' => $aideSoignant,
+            'navigation' => $navigation,
         ]);
     }
 

@@ -105,82 +105,17 @@ public function formations(Request $request, FormationRepository $formationRepos
     }
 
     #[Route('/aidesoingnant/missions', name: 'aidesoingnant_missions')]
-    public function missions(Request $request, EntityManagerInterface $entityManager): Response
+    public function missions(EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-
-        // Get search and sort parameters
-        $search = $request->query->get('search', '');
-        $sortBy = $request->query->get('sort_by', 'dateCreation');
-        $sortOrder = $request->query->get('sort_order', 'desc');
-        $page = max(1, (int) $request->query->get('page', 1));
-        $limit = 10; // Items per page
-
-        // Build query
-        $qb = $entityManager->getRepository(Mission::class)->createQueryBuilder('m')
-            ->leftJoin('m.demandeAide', 'd')
-            ->select('m, d');
-
-        // Apply search filter
-        if (!empty($search)) {
-            switch ($sortBy) {
-                case 'dateCreation':
-                    // Handle date search
-                    $date = $this->parseDate($search);
-                    if ($date) {
-                        $qb->andWhere('DATE(d.dateCreation) = :date')
-                           ->setParameter('date', $date->format('Y-m-d'));
-                    }
-                    break;
-                case 'budgetMax':
-                    // Handle budget search
-                    if (is_numeric($search)) {
-                        $qb->andWhere('d.budgetMax = :budget')
-                           ->setParameter('budget', (int) $search);
-                    }
-                    break;
-                case 'typeDemande':
-                    $qb->andWhere('d.typeDemande LIKE :search')
-                       ->setParameter('search', '%' . $search . '%');
-                    break;
-                case 'statutMission':
-                    $qb->andWhere('m.statutMission LIKE :search')
-                       ->setParameter('search', '%' . $search . '%');
-                    break;
-                default:
-                    $qb->andWhere('d.descriptionBesoin LIKE :search OR d.typeDemande LIKE :search OR m.statutMission LIKE :search')
-                       ->setParameter('search', '%' . $search . '%');
-            }
-        }
-
-        // Apply sorting
-        $orderDirection = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
-        switch ($sortBy) {
-            case 'dateCreation':
-                $qb->orderBy('d.dateCreation', $orderDirection);
-                break;
-            case 'typeDemande':
-                $qb->orderBy('d.typeDemande', $orderDirection);
-                break;
-            case 'statutMission':
-                $qb->orderBy('m.statutMission', $orderDirection);
-                break;
-            case 'budgetMax':
-                $qb->orderBy('d.budgetMax', $orderDirection);
-                break;
-            default:
-                $qb->orderBy('m.id', 'DESC');
-        }
-
-        // Get total count for pagination
-        $totalCount = (clone $qb)->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
-        $totalPages = ceil($totalCount / $limit);
-
-        // Apply pagination
-        $qb->setFirstResult(($page - 1) * $limit)
-           ->setMaxResults($limit);
-
-        $missions = $qb->getQuery()->getResult();
+        
+        // Get all missions (both EN_ATTENTE and processed ones)
+        $missions = $entityManager->getRepository(Mission::class)->findAll();
+        
+        // Sort by most recent first
+        usort($missions, function($a, $b) {
+            return $b->getId() <=> $a->getId();
+        });
 
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
@@ -188,37 +123,25 @@ public function formations(Request $request, FormationRepository $formationRepos
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
 
-        return $this->render('mission/list.html.twig', [
+        return $this->render('mission/index.html.twig', [
             'missions' => $missions,
             'navigation' => $navigation,
-            'search' => $search,
-            'sort_by' => $sortBy,
-            'sort_order' => $sortOrder,
-            'current_page' => $page,
-            'total_pages' => $totalPages,
         ]);
-    }
-
-    private function parseDate(string $dateString): ?\DateTime
-    {
-        $formats = ['Y-m-d', 'd/m/Y', 'Y/m/d', 'd-m-Y'];
-        foreach ($formats as $format) {
-            $date = \DateTime::createFromFormat($format, $dateString);
-            if ($date && $date->format($format) === $dateString) {
-                return $date;
-            }
-        }
-        return null;
     }
 
     #[Route('/aidesoingnant/missions/accept/{id}', name: 'aidesoingnant_missions_accept')]
     public function acceptMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-
+        
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
+        }
+
+        $mission = $entityManager->getRepository(Mission::class)->findOneBy(['demandeAide' => $demande]);
+        if (!$mission) {
+            throw $this->createNotFoundException('Mission not found');
         }
 
         // Get current aide-soignant from UserService
@@ -227,20 +150,10 @@ public function formations(Request $request, FormationRepository $formationRepos
             throw $this->createAccessDeniedException('You must be an aide soignant to accept missions');
         }
 
-        // Find the existing Mission for this demande
-        $missions = $demande->getMissions();
-        if ($missions->isEmpty()) {
-            throw $this->createNotFoundException('Mission not found for this demande');
-        }
-
-        $mission = $missions->first();
-
-        // Update the existing Mission
+        // Link aide-soignant to mission and update status
         $mission->setAideSoignant($aideSoignant);
-        $mission->setStatutMission('ACCEPTÉE');
-        $mission->setPrixFinal(0); // To be negotiated later
-
-        $demande->setStatut('ACCEPTÉE');
+        $mission->setStatutMission('ACCEPTED');
+        $demande->setStatut('ACCEPTED');
 
         $entityManager->flush();
 
@@ -252,10 +165,15 @@ public function formations(Request $request, FormationRepository $formationRepos
     public function refuseMission(int $id, DemandeAideRepository $demandeAideRepository, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-
+        
         $demande = $demandeAideRepository->find($id);
         if (!$demande) {
             throw $this->createNotFoundException('Demande not found');
+        }
+
+        $mission = $entityManager->getRepository(Mission::class)->findOneBy(['demandeAide' => $demande]);
+        if (!$mission) {
+            throw $this->createNotFoundException('Mission not found');
         }
 
         // Verify user is aide soignant
@@ -264,18 +182,9 @@ public function formations(Request $request, FormationRepository $formationRepos
             throw $this->createAccessDeniedException('You must be an aide soignant to refuse missions');
         }
 
-        // Find the existing Mission for this demande
-        $missions = $demande->getMissions();
-        if ($missions->isEmpty()) {
-            throw $this->createNotFoundException('Mission not found for this demande');
-        }
-
-        $mission = $missions->first();
-
-        // Update the existing Mission
-        $mission->setStatutMission('REFUSÉE');
-
-        $demande->setStatut('REFUSÉE');
+        // Update mission and demande status
+        $mission->setStatutMission('REFUSED');
+        $demande->setStatut('REFUSED');
 
         $entityManager->flush();
 

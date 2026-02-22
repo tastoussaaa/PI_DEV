@@ -4,6 +4,12 @@
 parameters:
     pdf_directory: '%kernel.project_dir%/public/uploads/pdfs%'
     api_key: '%env(GSK_API_KEY)%' # <-- your Groq API key
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+# Twilio credentials should be provided via environment variables for local
+# development and production. Do NOT hard-code secrets here.
+# Expected env vars: TWILIO_SID, TWILIO_TOKEN
+# Optional: TWILIO_FROM (specific phone number) or TWILIO_MESSAGING_SERVICE_SID (Messaging Service)
+# Use MessagingServiceSid for better management of phone numbers and scaling
 
 services:
     # default configuration for services in *this* file
@@ -19,3 +25,16 @@ services:
     App\Service\AiDescriptionService:
         arguments:
             $apiKey: '%env(GROQ_API_KEY)%'
+    App\Service\TwilioSmsService:
+        arguments:
+            $sid: '%env(string:TWILIO_SID)%'
+            $token: '%env(string:TWILIO_TOKEN)%'
+            $from: '%env(string:TWILIO_FROM)%'
+            $messagingServiceSid: '%env(TWILIO_MESSAGING_SERVICE_SID)%'
+
+    App\Service\OpenAIService:
+        arguments:
+            $apiKey: '%env(string:OPENAI_API_KEY)%'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones

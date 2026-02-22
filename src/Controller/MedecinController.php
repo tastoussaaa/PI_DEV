@@ -12,28 +12,27 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use App\Service\AiDescriptionService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class MedecinController extends BaseController
-{  
+{
+          private AiDescriptionService $aiService;
 
-
-      private AiDescriptionService $aiService;
-
-    public function __construct(
-        UserService $userService,
-        AiDescriptionService $aiService   // 👈 inject it here
-    ) {
+    public function __construct(UserService $userService, private MailerInterface $mailer, AiDescriptionService $aiService)
+    {
         parent::__construct($userService);
         $this->aiService = $aiService;    // 👈 store it
     }
 
 
+
     
 
     #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
-    public function dashboard(): Response
+    public function dashboard(ConsultationRepository $consultationRepository): Response
     {
         // Ensure user is authenticated
         $this->denyAccessUnlessGranted('ROLE_USER');
@@ -52,9 +51,31 @@ class MedecinController extends BaseController
         $medecin = $this->getCurrentMedecin();
         $userId = $this->getCurrentUserId();
 
+        $medecin = $this->getCurrentMedecin();
+        $userId = $this->getCurrentUserId();
+        
+        // Get consultations for this medecin
+        $consultations = [];
+        if ($medecin) {
+            $consultations = $medecin->getConsultations()->toArray();
+            // Sort by date descending
+            usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
+        }
+        
+        // Get upcoming consultations (next 7 days)
+        $now = new \DateTime();
+        $upcomingConsultations = array_filter($consultations, function($c) use ($now) {
+            $consultationDate = $c->getDateConsultation();
+            if (!$consultationDate) return false;
+            $consultationDt = \DateTime::createFromInterface($consultationDate);
+            return $consultationDt >= $now && $consultationDt < (clone $now)->modify('+7 days');
+        });
+        
         return $this->render('medecin/dashboard.html.twig', [
             'medecin' => $medecin,
             'userId' => $userId,
+            'consultations' => $consultations,
+            'upcomingConsultations' => $upcomingConsultations,
         ]);
     }
 
@@ -188,10 +209,16 @@ class MedecinController extends BaseController
         Consultation $consultation,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         $consultation->setStatus('accepted');
         $em->flush();
+
+        // Send email notification to patient
+        try {
+            $this->sendConsultationStatusEmail($consultation, 'accepted');
+        } catch (\Exception $e) {
+            // Log the error but don't fail the acceptance
+            error_log('Failed to send acceptance email: ' . $e->getMessage());
+        }
 
         $this->addFlash('success', 'Consultation accepted successfully!');
         return $this->redirectToRoute('medecin_consultations');
@@ -202,10 +229,16 @@ class MedecinController extends BaseController
         Consultation $consultation,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         $consultation->setStatus('declined');
         $em->flush();
+
+        // Send email notification to patient
+        try {
+            $this->sendConsultationStatusEmail($consultation, 'declined');
+        } catch (\Exception $e) {
+            // Log the error but don't fail the decline
+            error_log('Failed to send decline email: ' . $e->getMessage());
+        }
 
         $this->addFlash('success', 'Consultation declined successfully!');
         return $this->redirectToRoute('medecin_consultations');
@@ -217,8 +250,6 @@ class MedecinController extends BaseController
         Consultation $consultation,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         if ($this->isCsrfTokenValid('delete' . $consultation->getId(), $request->request->get('_token'))) {
             $em->remove($consultation);
             $em->flush();

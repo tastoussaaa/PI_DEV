@@ -1,13 +1,24 @@
-# TODO: Implement "Mes Missions" for Aide-Soignants
+# TODO List
 
-- [x] Update src/Entity/Mission.php: Add ManyToOne relation to AideSoignant
-- [x] Update src/Entity/AideSoignant.php: Add OneToMany relation to Mission
-- [x] Generate Doctrine migration for new relation
-- [x] Update templates/side_bar.html.twig: Add "Mes Missions" link for aide-soignants
-- [x] Add route in config/routes.yaml for /aidesoingnant/missions
-- [x] Update src/Controller/AideSoingnantController.php: Add missions() method to list filtered DemandeAide
-- [x] Create templates/aide_soingnant/missions.html.twig: Template with list and accept/refuse buttons
-- [x] Add acceptMission() and refuseMission() methods in controller
-- [x] Run Doctrine migration
-- [x] Fix bugs: server errors, price validation, button functionality
-- [x] Test the feature
+## Fix: Warning Undefined array key "conceptProperties"
+
+### Problem
+In `src/Service/MedicationApiService.php`, the `searchMedications` method tries to access `$group['conceptProperties']` without checking if the key exists, causing PHP warnings when the RxNorm API returns concept groups without this key.
+
+### Plan
+- [x] Identify the issue in `searchMedications` method (line 28)
+- [x] Fix the issue by adding proper isset check before accessing conceptProperties
+
+### Fix Details
+In `searchMedications` method, add isset check before the foreach loop that accesses conceptProperties:
+```
+php
+// Before (problematic):
+foreach ($group['conceptProperties'] as $concept) {
+
+// After (fixed):
+if (isset($group['conceptProperties'])) {
+    foreach ($group['conceptProperties'] as $concept) {
+```
+
+Note: The `getMedicationDetails` method already has this fix properly implemented.

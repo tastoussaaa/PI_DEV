@@ -172,8 +172,12 @@
 {% block body %}
 
 {% set navigation = [
-    { path: '/demandes', name: 'Mes demandes', icon: '📋' },
-    { path: '/demande/aide', name: 'Créer une demande d\'aide', icon: '➕' }
+    {'name': 'Dashboard', 'path': path('app_patient_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('patient_consultations'), 'icon': '🩺'},
+    {'name': 'Nouvelle consultation', 'path': path('consultation_new'), 'icon': '➕'},
+    {'name': 'Demandes', 'path': path('app_demandes_index'), 'icon': '📝'},
+    {'name': 'Produits', 'path': path('produit_list'), 'icon': '🛒'},
+    {'name': 'Mes commandes', 'path': path('commande_index'), 'icon': '📋'}
 ] %}
 
 <div class="portal">
@@ -187,6 +191,106 @@
             </div>
             <a href="{{ path('app_demande_aide') }}" class="btn btn--primary">+ Créer une demande</a>
         </div>
+
+        <!-- Search and Sort Form -->
+        <div class="portal__filters" style="margin-bottom: 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <form method="GET" id="searchForm" style="display: flex; gap: 12px; align-items: center; flex: 1;">
+                <div style="flex: 1; max-width: 400px;">
+                    <input type="text" name="search" value="{{ search }}" id="searchInput" placeholder="Rechercher par description, type..." class="form-control" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                </div>
+                <select name="sort_by" id="sortBySelect" class="form-control" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    <option value="dateCreation" {{ sort_by == 'dateCreation' ? 'selected' : '' }}>Trier par date</option>
+                    <option value="typeDemande" {{ sort_by == 'typeDemande' ? 'selected' : '' }}>Trier par type</option>
+                    <option value="statut" {{ sort_by == 'statut' ? 'selected' : '' }}>Trier par statut</option>
+                    <option value="budgetMax" {{ sort_by == 'budgetMax' ? 'selected' : '' }}>Trier par budget</option>
+                </select>
+                <select name="sort_order" class="form-control" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    <option value="desc" {{ sort_order == 'desc' ? 'selected' : '' }}>Décroissant</option>
+                    <option value="asc" {{ sort_order == 'asc' ? 'selected' : '' }}>Croissant</option>
+                </select>
+                <button type="submit" class="btn btn--primary" style="padding: 10px 16px;">Rechercher</button>
+                <a href="{{ path('app_demandes_index') }}" class="btn btn--secondary" style="padding: 10px 16px; background: #6c757d; color: white; text-decoration: none;">Réinitialiser</a>
+            </form>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const sortBySelect = document.getElementById('sortBySelect');
+                const searchInput = document.getElementById('searchInput');
+                const searchForm = document.getElementById('searchForm');
+
+                function updatePlaceholder() {
+                    const selectedValue = sortBySelect.value;
+                    switch(selectedValue) {
+                        case 'dateCreation':
+                            searchInput.placeholder = 'Rechercher par date (YYYY-MM-DD ou DD/MM/YYYY)';
+                            searchInput.type = 'text';
+                            searchInput.pattern = '\\d{4}-\\d{2}-\\d{2}|\\d{2}/\\d{2}/\\d{4}';
+                            break;
+                        case 'budgetMax':
+                            searchInput.placeholder = 'Rechercher par budget (nombre entier)';
+                            searchInput.type = 'number';
+                            searchInput.min = '0';
+                            searchInput.step = '1';
+                            break;
+                        case 'typeDemande':
+                            searchInput.placeholder = 'Rechercher par type de demande';
+                            searchInput.type = 'text';
+                            searchInput.removeAttribute('pattern');
+                            searchInput.removeAttribute('min');
+                            searchInput.removeAttribute('step');
+                            break;
+                        case 'statut':
+                            searchInput.placeholder = 'Rechercher par statut';
+                            searchInput.type = 'text';
+                            searchInput.removeAttribute('pattern');
+                            searchInput.removeAttribute('min');
+                            searchInput.removeAttribute('step');
+                            break;
+                        default:
+                            searchInput.placeholder = 'Rechercher par description, type...';
+                            searchInput.type = 'text';
+                            searchInput.removeAttribute('pattern');
+                            searchInput.removeAttribute('min');
+                            searchInput.removeAttribute('step');
+                    }
+                }
+
+                function validateInput() {
+                    const selectedValue = sortBySelect.value;
+                    const value = searchInput.value.trim();
+
+                    if (value === '') return true; // Empty is allowed
+
+                    switch(selectedValue) {
+                        case 'dateCreation':
+                            const dateRegex = /^\d{4}-\d{2}-\d{2}$|^\d{2}\/\d{2}\/\d{4}$/;
+                            if (!dateRegex.test(value)) {
+                                alert('Format de date invalide. Utilisez YYYY-MM-DD ou DD/MM/YYYY');
+                                return false;
+                            }
+                            break;
+                        case 'budgetMax':
+                            if (!Number.isInteger(Number(value)) || Number(value) < 0) {
+                                alert('Le budget doit être un nombre entier positif');
+                                return false;
+                            }
+                            break;
+                    }
+                    return true;
+                }
+
+                sortBySelect.addEventListener('change', updatePlaceholder);
+                searchForm.addEventListener('submit', function(e) {
+                    if (!validateInput()) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+
+                updatePlaceholder(); // Initialize on page load
+            });
+        </script>
 
         {% if demandesAide is empty %}
             <div class="box">
@@ -207,9 +311,9 @@
                                 </div>
                                 <span class="card__status status--{{ demande.statut|lower|replace({'_': '_'}) }}">{{ demande.statut|replace({'_': ' '}) }}</span>
                             </div>
-                            
+
                             <p style="margin: 12px 0; color: #666; line-height: 1.5;">{{ demande.descriptionBesoin|length > 120 ? demande.descriptionBesoin|slice(0, 120) ~ '…' : demande.descriptionBesoin }}</p>
-                            
+
                             <div class="card__info">
                                 <div>
                                     <strong>Type de patient:</strong><br>{{ demande.typePatient|replace({'_': ' '}) }}
@@ -224,7 +328,7 @@
                                     <strong>Créée:</strong><br>{{ demande.dateCreation ? demande.dateCreation|date('d/m/Y H:i') : 'N/A' }}
                                 </div>
                             </div>
-                            
+
                             <div class="card__actions">
                                 {% if demande.statut == 'EN_ATTENTE' %}
                                     <a href="{{ path('app_demande_aide_edit', {id: demande.id}) }}" class="btn btn--edit">✏️ Modifier</a>
@@ -238,6 +342,27 @@
                     {% endfor %}
                 </div>
             </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+                <div class="pagination" style="margin-top: 32px; display: flex; justify-content: center; gap: 8px;">
+                    {% if current_page > 1 %}
+                        <a href="{{ path('app_demandes_index', {'page': current_page - 1, 'search': search, 'sort_by': sort_by, 'sort_order': sort_order}) }}" class="btn btn--secondary" style="padding: 8px 12px;">Précédent</a>
+                    {% endif %}
+
+                    {% for page_num in range(max(1, current_page - 2), min(total_pages, current_page + 2)) %}
+                        {% if page_num == current_page %}
+                            <span class="btn btn--primary" style="padding: 8px 12px; background: #007bff;">{{ page_num }}</span>
+                        {% else %}
+                            <a href="{{ path('app_demandes_index', {'page': page_num, 'search': search, 'sort_by': sort_by, 'sort_order': sort_order}) }}" class="btn btn--secondary" style="padding: 8px 12px;">{{ page_num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if current_page < total_pages %}
+                        <a href="{{ path('app_demandes_index', {'page': current_page + 1, 'search': search, 'sort_by': sort_by, 'sort_order': sort_order}) }}" class="btn btn--secondary" style="padding: 8px 12px;">Suivant</a>
+                    {% endif %}
+                </div>
+            {% endif %}
         {% endif %}
     </main>
 </div>

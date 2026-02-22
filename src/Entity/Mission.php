@@ -99,9 +99,10 @@ class Mission
         return $this->Note;
     }
 
-    public function setNote(int $Note): static
+    public function setNote(?int $Note): static
     {
         $this->Note = $Note;
+
         return $this;
     }
 
@@ -110,9 +111,10 @@ class Mission
         return $this->Commentaire;
     }
 
-    public function setCommentaire(string $Commentaire): static
+    public function setCommentaire(?string $Commentaire): static
     {
         $this->Commentaire = $Commentaire;
+
         return $this;
     }
 

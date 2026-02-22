@@ -8,6 +8,7 @@ use App\Form\FormationType;
 use App\Repository\ConsultationRepository;
 use App\Repository\FormationRepository;
 use App\Service\UserService;
+use App\Service\RiskScoringService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,9 +18,12 @@ use Symfony\Component\Mime\Email;
 
 class MedecinController extends BaseController
 {
-    public function __construct(UserService $userService, private MailerInterface $mailer)
+    private RiskScoringService $riskService;
+
+    public function __construct(UserService $userService, private MailerInterface $mailer, RiskScoringService $riskService)
     {
         parent::__construct($userService);
+        $this->riskService = $riskService;
     }
 
     #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
@@ -104,6 +108,52 @@ class MedecinController extends BaseController
             usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
         }
 
+        // Compute risk scores for each consultation using heuristics when necessary
+        $riskScores = [];
+        foreach ($consultations as $c) {
+            $age = $c->getAge() ?? 0;
+
+            $motif = strtolower((string) $c->getMotif());
+            // Simple heuristic for symptom severity (1-10)
+            $urgentKeywords = ['chest', 'shortness', 'breath', 'bleed', 'unconscious', 'severe', 'loss of consciousness', 'palpitations'];
+            $weights = ['fever' => 7, 'pain' => 6, 'headache' => 4, 'cough' => 3, 'nausea' => 2, 'vomit' => 3, 'dizziness' => 5];
+
+            $severity = 1;
+            foreach ($weights as $k => $w) {
+                if (str_contains($motif, $k)) {
+                    $severity = max($severity, min(10, $w));
+                }
+            }
+            foreach ($urgentKeywords as $kw) {
+                if (str_contains($motif, $kw)) {
+                    $severity = max($severity, 9);
+                }
+            }
+            if (strlen($motif) > 80 && $severity < 5) {
+                $severity = min(8, (int) ceil(strlen($motif) / 40));
+            }
+
+            // Chronic count heuristic from patient.pathologie (comma separated)
+            $chronic = 0;
+            $patient = $c->getPatient();
+            if ($patient && $patient->getPathologie()) {
+                $parts = preg_split('/[,;]+/', $patient->getPathologie());
+                $chronic = count(array_filter(array_map('trim', $parts)));
+            }
+
+            // AI probability heuristic (higher if urgent keywords present)
+            $aiProb = 0.15;
+            foreach ($urgentKeywords as $kw) {
+                if (str_contains($motif, $kw)) {
+                    $aiProb = 0.85;
+                    break;
+                }
+            }
+
+            $res = $this->riskService->calculate((int)$age, (int)$severity, (int)$chronic, (float)$aiProb);
+            $riskScores[$c->getId()] = $res;
+        }
+
         return $this->render('consultation/consultations.html.twig', [
             'consultations' => $consultations,
             'search' => $search,
@@ -117,6 +167,7 @@ class MedecinController extends BaseController
                 ['name' => 'Ordonnances', 'path' => $this->generateUrl('Ordonnance_new'), 'icon' => '💊']
             ],
             'context' => 'medecin'
+            , 'riskScores' => $riskScores
         ]);
     }
 

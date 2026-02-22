@@ -135,6 +135,14 @@
             border-radius: 4px;
             border-left: 3px solid #dc3545;
         }
+        /* Compact form layout */
+        .form__fields { display: block; gap: 12px; }
+        .form__fields .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form__fields .grid-three { display: grid; grid-template-columns: 1fr 120px 80px; gap: 12px; align-items: end; }
+        .form__fields .full-width { grid-column: 1 / -1; }
+        .motif-guidance { font-size: 13px; background: #fbfdff; border-radius: 8px; padding:10px; }
+        /* Tidy buttons */
+        .form__actions { display:flex; gap:12px; align-items:center; margin-top:18px }
     </style>
 {% endblock %}
 
@@ -383,15 +391,40 @@
             {{ form_start(form, {'attr': {'class': 'form', 'novalidate': 'novalidate'}}) }}
 
                 <div class="form__fields" id="consultation-form-fields">
-                    {{ form_row(form.dateConsultation) }}
-                    {{ form_row(form.timeSlot) }}
+                    <div class="grid-two">
+                        <div>{{ form_row(form.dateConsultation) }}</div>
+                        <div>{{ form_row(form.timeSlot) }}</div>
+                    </div>
+
                     {% include 'consultation/slots-helper.html.twig' %}
-                    {{ form_row(form.motif) }}
-                    {{ form_row(form.name) }}
-                    {{ form_row(form.familyName) }}
-                    {{ form_row(form.email) }}
-                    {{ form_row(form.sex) }}
-                    {{ form_row(form.age) }}
+
+                    <div class="full-width">{{ form_row(form.motif) }}</div>
+
+                    <div class="motif-guidance" style="margin-top:10px;padding:12px;border:1px dashed rgba(7,19,31,0.06);border-radius:8px;background:#fafafa;font-size:14px;color:#333">
+                        <strong>Besoin d'aide pour décrire votre problème ?</strong>
+                        <p style="margin:6px 0 8px 0">Écrivez une phrase claire en précisant : <em>quoi</em>, <em>depuis quand</em>, <em>intensité</em>, <em>symptômes associés</em>, <em>maladies chroniques</em> et <em>médicaments</em> si applicable.</p>
+                        <div style="font-size:13px;color:#555">
+                            <div><strong>Modèle à copier :</strong></div>
+                            <div style="margin:6px 0">« J’ai [symptôme principal] depuis [durée], intensité [faible/modérée/forte], accompagné de [autres symptômes], j’ai [maladies chroniques si oui] et je prends [médicaments si oui]. »</div>
+                            <div style="margin-top:6px"><strong>Exemples :</strong></div>
+                            <ul style="margin:6px 0 0 18px;color:#555">
+                                <li>« Mal de gorge depuis 2 jours, toux sèche légère, pas de maladies chroniques. »</li>
+                                <li>« Fièvre 38.5°C depuis 3 jours, céphalées modérées, je suis diabétique. »</li>
+                                <li>« Douleur thoracique forte et essoufflement depuis 1 heure, antécédents d’hypertension — urgence. »</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="grid-two">
+                        <div>{{ form_row(form.name) }}</div>
+                        <div>{{ form_row(form.familyName) }}</div>
+                    </div>
+
+                    <div class="grid-three">
+                        <div>{{ form_row(form.email) }}</div>
+                        <div>{{ form_row(form.sex) }}</div>
+                        <div>{{ form_row(form.age) }}</div>
+                    </div>
                 </div>
 
                 <div class="form__actions">

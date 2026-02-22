@@ -41,7 +41,8 @@ final class AdminController extends AbstractController
         $search = $request->query->get('search', '');
         $sort = $request->query->get('sort', 'date');
         
-        $consultations = $consultationRepository->findAll();
+        $allConsultations = $consultationRepository->findAll();
+        $consultations = $allConsultations;
         
         // Filter by search term
         if ($search) {
@@ -59,6 +60,11 @@ final class AdminController extends AbstractController
             usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
         }
 
+        // Generate consultation data for charts
+        $consultationsByDay = $this->generateConsultationsByDayData($allConsultations);
+        $acceptanceData = $this->calculateAcceptanceRate($allConsultations);
+        $urgentData = $this->calculateUrgentCases($allConsultations);
+
         $navigation = [
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
@@ -70,12 +76,15 @@ final class AdminController extends AbstractController
             'search' => $search,
             'sort' => $sort,
             'navigation' => $navigation,
-            'context' => 'admin'
+            'context' => 'admin',
+            'consultationsByDay' => $consultationsByDay,
+            'acceptanceData' => $acceptanceData,
+            'urgentData' => $urgentData,
         ]);
     }
 
     #[Route('/admin', name: 'app_admin_dashboard')]
-    public function dashboard(MedecinRepository $medecinRepository, AideSoignantRepository $aideRepo, PatientRepository $patientRepo)
+    public function dashboard(MedecinRepository $medecinRepository, AideSoignantRepository $aideRepo, PatientRepository $patientRepo, ConsultationRepository $consultationRepo)
     {
         // Médecins
         $pendingMedecins = $medecinRepository->findBy(['isValidated' => false]);
@@ -91,6 +100,18 @@ final class AdminController extends AbstractController
         $activePatients = $patientRepo->findBy(['isActive' => true]);
         $disabledPatients = $patientRepo->findBy(['isActive' => false]);
 
+        // Get consultations data for charts
+        $allConsultations = $consultationRepo->findAll();
+        
+        // Generate consultation data by day (last 30 days)
+        $consultationsByDay = $this->generateConsultationsByDayData($allConsultations);
+        
+        // Calculate acceptance rate
+        $acceptanceData = $this->calculateAcceptanceRate($allConsultations);
+        
+        // Calculate urgent cases percentage
+        $urgentData = $this->calculateUrgentCases($allConsultations);
+
         $navigation = [
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
@@ -98,7 +119,7 @@ final class AdminController extends AbstractController
             ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
         ];
 
-        return $this->render('admin/dashboard.html.twig', [
+        return $this->render('admin/dashboard_analytics.html.twig', [
             'pendingMedecins' => $pendingMedecins,
             'validatedMedecins' => $validatedMedecins,
             'disabledMedecins' => $disabledMedecins,
@@ -107,8 +128,144 @@ final class AdminController extends AbstractController
             'disabledAideSoignants' => $disabledAideSoignants,
             'activePatients' => $activePatients,
             'disabledPatients' => $disabledPatients,
+            'consultationsByDay' => $consultationsByDay,
+            'acceptanceData' => $acceptanceData,
+            'urgentData' => $urgentData,
             'navigation' => $navigation,
         ]);
+    }
+
+    /**
+     * Generate consultations per day data for the last 30 days
+     */
+    private function generateConsultationsByDayData(array $consultations): array
+    {
+        $days = [];
+        $counts = [];
+        
+        // Generate last 30 days
+        for ($i = 29; $i >= 0; $i--) {
+            $date = new \DateTime();
+            $date->modify("-$i days");
+            $dayKey = $date->format('Y-m-d');
+            $days[] = $date->format('d/m');
+            $counts[$dayKey] = 0;
+        }
+        
+        // Count consultations per day
+        foreach ($consultations as $consultation) {
+            if ($consultation->getDateConsultation()) {
+                $dayKey = $consultation->getDateConsultation()->format('Y-m-d');
+                if (isset($counts[$dayKey])) {
+                    $counts[$dayKey]++;
+                }
+            }
+        }
+        
+        return [
+            'labels' => $days,
+            'data' => array_values($counts),
+            'total' => count($consultations)
+        ];
+    }
+
+    /**
+     * Calculate acceptance rate
+     */
+    private function calculateAcceptanceRate(array $consultations): array
+    {
+        if (empty($consultations)) {
+            return [
+                'accepted' => 0,
+                'pending' => 0,
+                'rejected' => 0,
+                'acceptanceRate' => 0,
+                'total' => 0
+            ];
+        }
+        
+        $accepted = 0;
+        $pending = 0;
+        $rejected = 0;
+        
+        foreach ($consultations as $consultation) {
+            // Assuming consultations with a date/time slot are "accepted"
+            if ($consultation->getDateConsultation() && $consultation->getTimeSlot()) {
+                $accepted++;
+            } else {
+                $pending++;
+            }
+        }
+        
+        $total = count($consultations);
+        $acceptanceRate = $total > 0 ? round(($accepted / $total) * 100, 1) : 0;
+        
+        return [
+            'accepted' => $accepted,
+            'pending' => $pending,
+            'rejected' => $rejected,
+            'acceptanceRate' => $acceptanceRate,
+            'total' => $total,
+            'labels' => ['Acceptées', 'En attente'],
+            'data' => [$accepted, $pending]
+        ];
+    }
+
+    /**
+     * Calculate urgent cases percentage
+     */
+    private function calculateUrgentCases(array $consultations): array
+    {
+        if (empty($consultations)) {
+            return [
+                'urgent' => 0,
+                'moderate' => 0,
+                'low' => 0,
+                'urgentPercentage' => 0,
+                'total' => 0
+            ];
+        }
+        
+        $urgent = 0;
+        $moderate = 0;
+        $low = 0;
+        
+        foreach ($consultations as $consultation) {
+            $motif = strtolower($consultation->getMotif() ?? '');
+            
+            // Check for urgent keywords
+            $urgentKeywords = ['douleur', 'urgent', 'grave', 'saignement', 'respiration', 'crise', 'inconscient', 'thoracique', 'accident', 'fracture'];
+            $isUrgent = false;
+            
+            foreach ($urgentKeywords as $keyword) {
+                if (strpos($motif, $keyword) !== false) {
+                    $isUrgent = true;
+                    break;
+                }
+            }
+            
+            if ($isUrgent) {
+                $urgent++;
+            } elseif (stripos($motif, 'routine') !== false || stripos($motif, 'bilan') !== false || stripos($motif, 'check') !== false) {
+                $low++;
+            } else {
+                $moderate++;
+            }
+        }
+        
+        $total = count($consultations);
+        $urgentPercentage = $total > 0 ? round(($urgent / $total) * 100, 1) : 0;
+        
+        return [
+            'urgent' => $urgent,
+            'moderate' => $moderate,
+            'low' => $low,
+            'urgentPercentage' => $urgentPercentage,
+            'total' => $total,
+            'labels' => ['Urgentes', 'Modérées', 'Routine'],
+            'data' => [$urgent, $moderate, $low],
+            'colors' => ['#dc2626', '#f59e0b', '#10b981']
+        ];
     }
 
     #[Route('/admin/medecin/{id}/validate', name: 'admin_medecin_validate', methods: ['POST'])]

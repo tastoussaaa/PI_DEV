@@ -517,3 +517,77 @@ a{text-decoration:none;color:inherit}
   .portal__side{ height:auto; position:relative; }
   .boxGrid{ grid-template-columns: 1fr; }
 }
+
+/* ==============================
+   RESSOURCES SECTION
+============================== */
+
+.ressources-section{
+  background: rgba(255,255,255,.9);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:20px;
+  box-shadow: var(--shadow2);
+  margin-top:20px;
+}
+
+.ressources-section h3{
+  margin:0 0 16px;
+  font-weight:980;
+  letter-spacing:-.3px;
+}
+
+/* list container */
+.ressources-list{
+  display:grid;
+  gap:12px;
+}
+
+/* each resource card */
+.ressource-item{
+  padding:16px;
+  border-radius:18px;
+  border:1px solid var(--border);
+  background: rgba(233,253,255,.55);
+  transition:.18s ease;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.ressource-item:hover{
+  transform:translateY(-4px);
+  box-shadow: var(--shadow2);
+}
+
+/* text part */
+.ressource-info{
+  display:grid;
+  gap:6px;
+}
+
+.ressource-title{
+  font-weight:950;
+  font-size:14px;
+}
+
+.ressource-desc{
+  font-size:13px;
+  color:var(--muted);
+}
+
+/* download / action button */
+.ressource-action a{
+  padding:8px 14px;
+  border-radius:999px;
+  font-weight:900;
+  font-size:12px;
+  text-decoration:none;
+  background: linear-gradient(135deg, rgba(24,191,234,.22), rgba(168,120,255,.18));
+  border:1px solid rgba(24,191,234,.25);
+  transition:.18s ease;
+}
+
+.ressource-action a:hover{
+  box-shadow:0 0 0 6px rgba(24,191,234,.12);
+}

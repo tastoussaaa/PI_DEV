@@ -57,7 +57,7 @@ class FormationRepository extends ServiceEntityRepository
     }
 
 
-    public function findValidatedByCategory(?string $category = null): array
+    public function findValidatedByCategory(?string $category = null, ?string $search = null): array
     {
         $qb = $this->createQueryBuilder('f')
             ->andWhere('f.statut = :statut')
@@ -71,10 +71,16 @@ class FormationRepository extends ServiceEntityRepository
                 ->setParameter('category', $category);
         }
 
+        if ($search) {
+            $qb->andWhere('LOWER(f.title) LIKE :search')
+                ->setParameter('search', '%' . strtolower($search) . '%');
+        }
+
         return $qb->getQuery()->getResult();
     }
 
-    public function findAllCategories(): array
+
+ /*    public function findAllCategories(): array
     {
         $result = $this->createQueryBuilder('f')
             ->select('DISTINCT f.category')
@@ -83,5 +89,17 @@ class FormationRepository extends ServiceEntityRepository
 
         // Flatten array of arrays to a simple array of strings
         return array_map(fn($c) => $c['category'], $result);
-    }
+    } */
+   public function findAllCategories(): array
+{
+    // Select category as scalar to avoid Doctrine trying to hydrate objects
+    $result = $this->createQueryBuilder('f')
+        ->select('DISTINCT f.category AS category') // add "AS category"
+        ->getQuery()
+        ->getScalarResult(); // <-- get scalar results
+
+    // Flatten array of arrays to a simple array of strings
+    return array_map(fn($c) => $c['category'], $result);
+}
+
 }

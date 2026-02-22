@@ -14,17 +14,43 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
+use App\Service\AiDescriptionService;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class MedecinController extends BaseController
 {
-    public function __construct(UserService $userService, private MailerInterface $mailer)
+          private AiDescriptionService $aiService;
+
+    public function __construct(UserService $userService, private MailerInterface $mailer, AiDescriptionService $aiService)
     {
         parent::__construct($userService);
+        $this->aiService = $aiService;    // 👈 store it
     }
+
+
+
+    
 
     #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
     public function dashboard(ConsultationRepository $consultationRepository): Response
     {
+        // Ensure user is authenticated
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        // Ensure only medecins can access this dashboard
+        if (!$this->isCurrentUserMedecin()) {
+            $userType = $this->getCurrentUserType();
+            return match ($userType) {
+                'patient' => $this->redirectToRoute('app_patient_dashboard'),
+                'aidesoignant' => $this->redirectToRoute('app_aide_soignant_dashboard'),
+                'admin' => $this->redirectToRoute('app_admin_dashboard'),
+                default => $this->redirectToRoute('app_login'),
+            };
+        }
+
+        $medecin = $this->getCurrentMedecin();
+        $userId = $this->getCurrentUserId();
+
         $medecin = $this->getCurrentMedecin();
         $userId = $this->getCurrentUserId();
         
@@ -56,47 +82,54 @@ class MedecinController extends BaseController
     #[Route('/medecin/formations', name: 'medecin_formations')]
     public function formations(Request $request, FormationRepository $formationRepository): Response
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
-        // Get selected category from query parameter (e.g., ?category=Urgence)
+        // Récupérer le filtre catégorie et le terme de recherche depuis l'URL
         $selectedCategory = $request->query->get('category');
+        $searchTerm = $request->query->get('search');
 
-        // Get formations filtered by category (or all if none selected)
-        $formations = $formationRepository->findValidatedByCategory($selectedCategory);
+        // Récupérer les formations filtrées par catégorie et par nom
+        $formations = $formationRepository->findValidatedByCategory($selectedCategory, $searchTerm);
 
-        // Get all categories for dropdown
+        // Récupérer toutes les catégories pour le dropdown
         $categories = $formationRepository->findAllCategories();
 
         return $this->render('formation/formations.html.twig', [
-            'formations' => $formations,          // filtered list
-            'categories' => $categories,          // list of all categories
-            'selectedCategory' => $selectedCategory, // currently selected category
+            'formations' => $formations,
+            'categories' => $categories,
+            'selectedCategory' => $selectedCategory,
+            'searchTerm' => $searchTerm,            // pour pré-remplir le champ de recherche
             'userId' => $userId,
             'medecin' => $medecin,
+            'current_user_type' => 'medecin',      // nécessaire pour le template
         ]);
     }
 
     #[Route('/medecin/consultations', name: 'medecin_consultations')]
     public function consultations(Request $request, ConsultationRepository $repository): Response
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
         $search = $request->query->get('search', '');
         $sort = $request->query->get('sort', 'date');
-        
+
         $consultations = $repository->findAll();
-        
+
         // Filter by search term
         if ($search) {
-            $consultations = array_filter($consultations, function($c) use ($search) {
-                return stripos($c->getMotif(), $search) !== false || 
-                       stripos($c->getName() ?? '', $search) !== false ||
-                       stripos($c->getFamilyName() ?? '', $search) !== false;
+            $consultations = array_filter($consultations, function ($c) use ($search) {
+                return stripos($c->getMotif(), $search) !== false ||
+                    stripos($c->getName() ?? '', $search) !== false ||
+                    stripos($c->getFamilyName() ?? '', $search) !== false;
             });
         }
-        
+
         // Sort
         if ($sort === 'motif') {
             usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
@@ -119,12 +152,28 @@ class MedecinController extends BaseController
             'context' => 'medecin'
         ]);
     }
+ #[Route('/medecin/generate-description', name: 'medecin_formation_generate_description', methods: ['POST'])]   
+     public function generateDescription(Request $request): JsonResponse
+    {
+        $data = [
+            'title' => $request->request->get('title', ''),
+            'category' => $request->request->get('category', ''),
+            'startDate' => $request->request->get('startDate', ''),
+            'endDate' => $request->request->get('endDate', ''),
+        ];
 
+        // Generate AI description
+       $description = $this->aiService->generateDescription($data);
+
+        return new JsonResponse(['description' => $description]);
+    }
     #[Route('/medecin/formations/new', name: 'medecin_formation_new')]
     public function newFormation(
         Request $request,
         EntityManagerInterface $em
     ): Response {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
         $medecin = $this->getCurrentMedecin();
         if (!$medecin) {
             throw $this->createAccessDeniedException('You must be a medecin to create formations');
@@ -139,6 +188,13 @@ class MedecinController extends BaseController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($formation);
             $em->flush();
+
+            $this->addFlash('formation_success', [
+                'title' => $formation->getTitle(),
+                'description' => $formation->getDescription(),
+                'start' => $formation->getStartDate()->format('Ymd\THis') . 'Z',
+                'end' => $formation->getEndDate()->format('Ymd\THis') . 'Z',
+            ]);
 
             return $this->redirectToRoute('medecin_formations');
         }
@@ -202,27 +258,23 @@ class MedecinController extends BaseController
         return $this->redirectToRoute('medecin_consultations');
     }
 
-    /**
-     * Send consultation status email to patient
-     */
-    private function sendConsultationStatusEmail(Consultation $consultation, string $status): void
+
+    /*     #[Route('/google/connect', name: 'google_connect')]
+    public function connect(GoogleCalendarService $googleService)
     {
-        $patientName = $consultation->getName() . ' ' . $consultation->getFamilyName();
-        $date = $consultation->getDateConsultation() ? $consultation->getDateConsultation()->format('d/m/Y') : 'TBD';
-        $time = $consultation->getTimeSlot() ?: 'TBD';
-        $consultationDate = $date . ' at ' . $time;
-
-        $email = (new Email())
-            ->from('noreply@aidora.com')
-            ->to($consultation->getEmail() ?? 'contact@aidora.com')
-            ->subject('Mise à jour de votre consultation')
-            ->html($this->renderView('email/consultation_status.html.twig', [
-                'patientName' => $patientName,
-                'consultationDate' => $consultationDate,
-                'status' => $status,
-            ]));
-
-        $this->mailer->send($email);
+        $client = $googleService->getClient();
+        return $this->redirect($client->createAuthUrl());
     }
-}
 
+    #[Route('/google/callback', name: 'google_callback')]
+    public function callback(Request $request, GoogleCalendarService $googleService)
+    {
+        $client = $googleService->getClient();
+        $token = $client->fetchAccessTokenWithAuthCode($request->get('code'));
+        $client->setAccessToken($token);
+
+        $this->get('session')->set('google_token', $token);
+
+        return $this->redirectToRoute('dashboard');
+    } */
+}

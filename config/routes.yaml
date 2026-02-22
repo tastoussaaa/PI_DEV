@@ -25,3 +25,4 @@ aidesoingnant_missions_details:
 aidesoingnant_missions:
     path: /aidesoingnant/missions
     controller: App\Controller\AideSoingnantController::missions
+

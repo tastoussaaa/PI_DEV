@@ -15,9 +15,35 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\AiDescriptionService;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class FormationController extends AbstractController
+
+class FormationController extends AbstractController
 {
+    private AiDescriptionService $aiService;
+
+    public function __construct(AiDescriptionService $aiService)
+    {
+        $this->aiService = $aiService;
+    }
+
+
+    #[Route('/formation/generate-description', name: 'formation_generate_description', methods: ['POST'])]   
+     public function generateDescription(Request $request): JsonResponse
+    {
+        $data = [
+            'title' => $request->request->get('title', ''),
+            'category' => $request->request->get('category', ''),
+            'startDate' => $request->request->get('startDate', ''),
+            'endDate' => $request->request->get('endDate', ''),
+        ];
+
+        // Generate AI description
+        $description = $this->aiService->generateDescription($data);
+
+        return new JsonResponse(['description' => $description]);
+    }
     #[Route('/formation', name: 'app_formation')]
     public function index(): Response
     {

@@ -196,11 +196,13 @@
                 {{ form_label(form.category) }}
                 {{ form_widget(form.category) }}
             </div>
-
-            <div class="form-group">
-                {{ form_label(form.description) }}
-                {{ form_widget(form.description) }}
-            </div>
+<div class="form-group">
+    {{ form_label(form.description) }}
+    {{ form_widget(form.description) }}
+    <button type="button" id="generate-description-btn" class="btn btn--secondary" style="margin-top:5px;">
+        Générer description
+    </button>
+</div>
 
             <div class="form-group">
                 {{ form_label(form.startDate) }}
@@ -260,5 +262,50 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
 
+    const generateBtn = document.getElementById('generate-description-btn');
+
+    generateBtn.addEventListener('click', function() {
+        // Get form values
+        const title = document.getElementById('{{ form.title.vars.id }}').value;
+        const category = document.getElementById('{{ form.category.vars.id }}').value;
+        const startDate = document.getElementById('{{ form.startDate.vars.id }}').value;
+        const endDate = document.getElementById('{{ form.endDate.vars.id }}').value;
+
+        // Prepare data
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('category', category);
+        formData.append('startDate', startDate);
+        formData.append('endDate', endDate);
+
+        // Call your Symfony route via fetch
+     fetch('{{ path("medecin_formation_generate_description") }}', {
+    method: 'POST',
+    body: formData,
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+})
+        .then(response => response.json())
+        .then(data => {
+            // Populate the description field
+            const descriptionField = document.getElementById('{{ form.description.vars.id }}');
+
+            // If using CKEditor
+            if (descriptionField.classList.contains('ckeditor')) {
+                ClassicEditor
+                    .create(descriptionField)
+                    .then(editor => {
+                        editor.setData(data.description);
+                    })
+                    .catch(error => console.error(error));
+            } else {
+                descriptionField.value = data.description;
+            }
+        })
+        .catch(error => console.error('Error generating description:', error));
+    });
+});
+</script>
 {% endblock %}

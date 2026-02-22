@@ -8,4 +8,29 @@
 /public/bundles/
 /var/
 /vendor/
-###< symfony/framework-bundle ###
+
+# Assets and user uploads
+/web/bundles/
+/web/uploads/
+
+# PHPUnit
+/app/phpunit.xml
+/phpunit.xml
+
+# Build data
+/build/
+
+# Composer PHAR
+/composer.phar
+
+# Backup entities generated with doctrine:generate:entities command
+**/Entity/*~
+
+# Embedded web-server pid file
+/.web-server-pid
+
+### Symfony Patch ###
+/web/css/
+/web/js/
+
+# End of https://www.toptal.com/developers/gitignore/api/symfony

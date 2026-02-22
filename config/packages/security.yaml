@@ -42,9 +42,8 @@ security:
         
         # Admin routes
         - { path: ^/admin, roles: ROLE_ADMIN }
+    
         
-        # Medecin routes
-        - { path: ^/medecin, roles: ROLE_USER }
         
         # Patient routes
         - { path: ^/patient, roles: ROLE_USER }
@@ -55,8 +54,7 @@ security:
         - { path: ^/aidesoignant, roles: ROLE_USER }
         - { path: ^/aide-soignant, roles: ROLE_USER }
         
-        # Require authentication for most routes
-        - { path: ^/, roles: ROLE_USER }
+
 
 when@test:
     security:

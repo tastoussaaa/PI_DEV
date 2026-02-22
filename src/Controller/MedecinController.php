@@ -12,13 +12,25 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use App\Service\AiDescriptionService;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class MedecinController extends BaseController
-{
-    public function __construct(UserService $userService)
-    {
+{  
+
+
+      private AiDescriptionService $aiService;
+
+    public function __construct(
+        UserService $userService,
+        AiDescriptionService $aiService   // 👈 inject it here
+    ) {
         parent::__construct($userService);
+        $this->aiService = $aiService;    // 👈 store it
     }
+
+
+    
 
     #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
     public function dashboard(): Response
@@ -119,7 +131,21 @@ class MedecinController extends BaseController
             'context' => 'medecin'
         ]);
     }
+ #[Route('/medecin/generate-description', name: 'medecin_formation_generate_description', methods: ['POST'])]   
+     public function generateDescription(Request $request): JsonResponse
+    {
+        $data = [
+            'title' => $request->request->get('title', ''),
+            'category' => $request->request->get('category', ''),
+            'startDate' => $request->request->get('startDate', ''),
+            'endDate' => $request->request->get('endDate', ''),
+        ];
 
+        // Generate AI description
+       $description = $this->aiService->generateDescription($data);
+
+        return new JsonResponse(['description' => $description]);
+    }
     #[Route('/medecin/formations/new', name: 'medecin_formation_new')]
     public function newFormation(
         Request $request,

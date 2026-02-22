@@ -4,15 +4,12 @@ namespace App\Form;
 
 use App\Entity\Formation;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
-
 
 class FormationType extends AbstractType
 {
@@ -31,15 +28,9 @@ class FormationType extends AbstractType
                     ])
                 ]
             ])
-
-            ->add('statut', ChoiceType::class, [
-                'choices' => array_combine(Formation::STATUTS, Formation::STATUTS),
-            ])
-
-
             ->add('description', TextareaType::class, [
                 'label' => 'Description',
-                'attr' => [  'class' => 'ckeditor'],
+                'attr' => ['rows' => 4],
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'La description est obligatoire.']),
                     new Assert\Length([
@@ -58,23 +49,23 @@ class FormationType extends AbstractType
                     ])
                 ]
             ])
-                ->add('startDate', DateTimeType::class, [
-                    'widget' => 'single_text',
-                    'label' => 'Date de début',
-                    'constraints' => [
-                        new Assert\NotBlank(['message' => 'La date de début est obligatoire.']),
-                        new Assert\GreaterThanOrEqual([
-                            'value' => 'now',
-                            'message' => 'La date de début doit être aujourd’hui ou dans le futur.'
-                        ])
-                    ]
-            ])
-            ->add('endDate', DateTimeType::class, [
+            ->add('startDate', DateType::class, [
+                'label' => 'Date de début',
                 'widget' => 'single_text',
+                'constraints' => [
+                    new Assert\NotBlank(['message' => 'La date de début est obligatoire.']),
+                    new Assert\GreaterThanOrEqual([
+                        'value' => 'today',
+                        'message' => 'La date de début doit être aujourd’hui ou dans le futur.'
+                    ])
+                ]
+            ])
+            ->add('endDate', DateType::class, [
                 'label' => 'Date de fin',
+                'widget' => 'single_text',
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'La date de fin est obligatoire.']),
-                    new Assert\Callback(function ($endDate, $context) {
+                    new Assert\Callback(function($endDate, $context) {
                         $startDate = $context->getRoot()->get('startDate')->getData();
                         if ($startDate && $endDate <= $startDate) {
                             $context->buildViolation('La date de fin doit être après la date de début.')

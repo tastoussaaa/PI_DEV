@@ -47,7 +47,6 @@ security:
         
         # Admin routes
         - { path: ^/admin, roles: ROLE_ADMIN }
-    
         
         # AideSoignant routes
         - { path: ^/aidesoingnant, roles: ROLE_USER }

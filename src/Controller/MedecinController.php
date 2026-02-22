@@ -25,7 +25,7 @@ class MedecinController extends BaseController
     {
         // Ensure user is authenticated
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         // Ensure only medecins can access this dashboard
         if (!$this->isCurrentUserMedecin()) {
             $userType = $this->getCurrentUserType();
@@ -36,10 +36,10 @@ class MedecinController extends BaseController
                 default => $this->redirectToRoute('app_login'),
             };
         }
-        
+
         $medecin = $this->getCurrentMedecin();
         $userId = $this->getCurrentUserId();
-        
+
         return $this->render('medecin/dashboard.html.twig', [
             'medecin' => $medecin,
             'userId' => $userId,
@@ -50,25 +50,28 @@ class MedecinController extends BaseController
     public function formations(Request $request, FormationRepository $formationRepository): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
-        // Get selected category from query parameter (e.g., ?category=Urgence)
+        // Récupérer le filtre catégorie et le terme de recherche depuis l'URL
         $selectedCategory = $request->query->get('category');
+        $searchTerm = $request->query->get('search');
 
-        // Get formations filtered by category (or all if none selected)
-        $formations = $formationRepository->findValidatedByCategory($selectedCategory);
+        // Récupérer les formations filtrées par catégorie et par nom
+        $formations = $formationRepository->findValidatedByCategory($selectedCategory, $searchTerm);
 
-        // Get all categories for dropdown
+        // Récupérer toutes les catégories pour le dropdown
         $categories = $formationRepository->findAllCategories();
 
         return $this->render('formation/formations.html.twig', [
-            'formations' => $formations,          // filtered list
-            'categories' => $categories,          // list of all categories
-            'selectedCategory' => $selectedCategory, // currently selected category
+            'formations' => $formations,
+            'categories' => $categories,
+            'selectedCategory' => $selectedCategory,
+            'searchTerm' => $searchTerm,            // pour pré-remplir le champ de recherche
             'userId' => $userId,
             'medecin' => $medecin,
+            'current_user_type' => 'medecin',      // nécessaire pour le template
         ]);
     }
 
@@ -76,24 +79,24 @@ class MedecinController extends BaseController
     public function consultations(Request $request, ConsultationRepository $repository): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
         $search = $request->query->get('search', '');
         $sort = $request->query->get('sort', 'date');
-        
+
         $consultations = $repository->findAll();
-        
+
         // Filter by search term
         if ($search) {
-            $consultations = array_filter($consultations, function($c) use ($search) {
-                return stripos($c->getMotif(), $search) !== false || 
-                       stripos($c->getName() ?? '', $search) !== false ||
-                       stripos($c->getFamilyName() ?? '', $search) !== false;
+            $consultations = array_filter($consultations, function ($c) use ($search) {
+                return stripos($c->getMotif(), $search) !== false ||
+                    stripos($c->getName() ?? '', $search) !== false ||
+                    stripos($c->getFamilyName() ?? '', $search) !== false;
             });
         }
-        
+
         // Sort
         if ($sort === 'motif') {
             usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
@@ -123,7 +126,7 @@ class MedecinController extends BaseController
         EntityManagerInterface $em
     ): Response {
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         $medecin = $this->getCurrentMedecin();
         if (!$medecin) {
             throw $this->createAccessDeniedException('You must be a medecin to create formations');
@@ -138,6 +141,13 @@ class MedecinController extends BaseController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($formation);
             $em->flush();
+
+            $this->addFlash('formation_success', [
+                'title' => $formation->getTitle(),
+                'description' => $formation->getDescription(),
+                'start' => $formation->getStartDate()->format('Ymd\THis') . 'Z',
+                'end' => $formation->getEndDate()->format('Ymd\THis') . 'Z',
+            ]);
 
             return $this->redirectToRoute('medecin_formations');
         }
@@ -190,5 +200,24 @@ class MedecinController extends BaseController
 
         return $this->redirectToRoute('medecin_consultations');
     }
-}
 
+
+    /*     #[Route('/google/connect', name: 'google_connect')]
+    public function connect(GoogleCalendarService $googleService)
+    {
+        $client = $googleService->getClient();
+        return $this->redirect($client->createAuthUrl());
+    }
+
+    #[Route('/google/callback', name: 'google_callback')]
+    public function callback(Request $request, GoogleCalendarService $googleService)
+    {
+        $client = $googleService->getClient();
+        $token = $client->fetchAccessTokenWithAuthCode($request->get('code'));
+        $client->setAccessToken($token);
+
+        $this->get('session')->set('google_token', $token);
+
+        return $this->redirectToRoute('dashboard');
+    } */
+}

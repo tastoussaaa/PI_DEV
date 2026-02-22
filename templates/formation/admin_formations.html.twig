@@ -48,7 +48,7 @@
 								</td>
 								<td>
 									{% if formation.statut|upper == constant('App\\Entity\\Formation::STATUT_EN_ATTENTE') %}
-										<div style="display:flex; gap:6px;">
+										<div style="display:flex; gap:6px; flex-wrap: wrap;">
 											<form method="post" action="{{ path('admin_formation_update_status', {id: formation.id}) }}">
 												<input type="hidden" name="statut" value="{{ constant('App\\Entity\\Formation::STATUT_VALIDE') }}">
 												<input type="hidden" name="_token" value="{{ csrf_token('update-status-' ~ formation.id) }}">
@@ -61,10 +61,18 @@
 												<button class="btn btn--danger">❌ Refuser</button>
 											</form>
 										</div>
-									{% else %}
-										—
 									{% endif %}
+									<a href="{{ path('admin_formation_edit', {'id': formation.id}) }}" class="btn btn--secondary">
+										✏️ Modifier
+									</a>
+
+									{# Resource management button (always visible) #}
+									<a href="{{ path('admin_formation_resources', {id: formation.id}) }}" class="btn btn--secondary" style="margin-top:4px;">
+										📂 Ressources
+									</a>
+
 								</td>
+
 
 							</tr>
 						{% else %}

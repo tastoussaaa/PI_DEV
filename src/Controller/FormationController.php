@@ -123,6 +123,9 @@ final class FormationController extends AbstractController
             $groupedApplications[strtolower($app->getStatus())][] = $app;
         }
 
+        // Fetch formation resources
+        $ressources = $formation->getRessources(); // assuming you have a OneToMany relation in Formation entity
+
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_medecin_dashboard'), 'icon' => '🏠'],
             ['name' => 'Formations', 'path' => $this->generateUrl('medecin_formations'), 'icon' => '📚'],
@@ -131,9 +134,11 @@ final class FormationController extends AbstractController
         return $this->render('formation/applicants.html.twig', [
             'formation' => $formation,
             'applications' => $groupedApplications,
+            'ressources' => $ressources,
             'navigation' => $navigation,
         ]);
     }
+
 
     #[Route('/medecin/applications/{id}/accept', name: 'medecin_accept_application', methods: ['POST'])]
     public function acceptApplication(

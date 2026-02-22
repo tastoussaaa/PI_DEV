@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         .view-toggle {
             display: flex;
@@ -94,6 +95,59 @@
             background-color: #dc3545 !important;
             border-color: #dc3545 !important;
         }
+
+        /* Analytics Styles */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .chart-card {
+            background: white;
+            border: 1px solid rgba(7, 19, 31, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+        
+        .mini-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(7, 19, 31, 0.1);
+            font-size: 14px;
+        }
+        
+        .mini-stat:last-child {
+            border-bottom: none;
+        }
+        
+        .mini-stat strong {
+            color: #1f2937;
+        }
+        
+        .mini-stat-value {
+            color: #6b7280;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
     </style>
 {% endblock %}
 
@@ -123,6 +177,58 @@
         </div>
 
         <div class="portal__content">
+
+            <!-- ANALYTICS SECTION (ADMIN ONLY) -->
+            {% if context == 'admin' and consultationsByDay is defined %}
+            <div class="analytics-grid">
+                <!-- Consultations Per Day Chart -->
+                <div class="chart-card full-width">
+                    <h3>📈 Consultations par Jour (30 derniers jours)</h3>
+                    <div class="chart-container">
+                        <canvas id="consultationsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Acceptance Rate Chart -->
+                <div class="chart-card">
+                    <h3>✅ Taux d'Acceptation</h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="acceptanceChart"></canvas>
+                    </div>
+                    <div style="margin-top: 16px;">
+                        {% for item, value in acceptanceData.data|keys %}
+                            <div class="mini-stat">
+                                <strong>{{ acceptanceData.labels[item] }}</strong>
+                                <span class="mini-stat-value">{{ value }} ({{ (value / acceptanceData.total * 100)|round(1) }}%)</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Urgent Cases Chart -->
+                <div class="chart-card">
+                    <h3>🚨 Répartition par Urgence</h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="urgentChart"></canvas>
+                    </div>
+                    <div style="margin-top: 16px;">
+                        <div class="mini-stat">
+                            <strong>Urgentes</strong>
+                            <span class="mini-stat-value">{{ urgentData.urgent }}</span>
+                        </div>
+                        <div class="mini-stat">
+                            <strong>Modérées</strong>
+                            <span class="mini-stat-value">{{ urgentData.moderate }}</span>
+                        </div>
+                        <div class="mini-stat">
+                            <strong>Routine</strong>
+                            <span class="mini-stat-value">{{ urgentData.low }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid rgba(7, 19, 31, 0.1);">
+            {% endif %}
 
             <!-- LIST VIEW -->
             <div class="list-container" id="listView">
@@ -266,6 +372,109 @@ document.addEventListener('DOMContentLoaded', function() {
 
         calendar.render();
     }
+
+    // Initialize Charts (Admin only)
+    const context = '{{ context }}';
+    {% if context == 'admin' and consultationsByDay is defined %}
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
+    });
+
+    function initializeCharts() {
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            }
+        };
+
+        // 1. Consultations Per Day Chart (Line Chart)
+        const consultationsCtx = document.getElementById('consultationsChart');
+        if (consultationsCtx) {
+            new Chart(consultationsCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ consultationsByDay.labels|json_encode|raw }},
+                    datasets: [{
+                        label: 'Consultations',
+                        data: {{ consultationsByDay.data|json_encode|raw }},
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                    }]
+                },
+                options: {
+                    ...chartConfig,
+                    interaction: { intersect: false, mode: 'index' },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 },
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 2. Acceptance Rate Chart (Doughnut Chart)
+        const acceptanceCtx = document.getElementById('acceptanceChart');
+        if (acceptanceCtx) {
+            new Chart(acceptanceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: {{ acceptanceData.labels|json_encode|raw }},
+                    datasets: [{
+                        data: {{ acceptanceData.data|json_encode|raw }},
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    ...chartConfig,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // 3. Urgent Cases Chart (Doughnut Chart)
+        const urgentCtx = document.getElementById('urgentChart');
+        if (urgentCtx) {
+            new Chart(urgentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: {{ urgentData.labels|json_encode|raw }},
+                    datasets: [{
+                        data: {{ urgentData.data|json_encode|raw }},
+                        backgroundColor: {{ urgentData.colors|json_encode|raw }},
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    ...chartConfig,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+    }
+    {% endif %}
 });
 </script>
 

@@ -50,5 +50,16 @@ services:
     App\Service\RiskSupervisionService:
         public: true
 
+    App\Service\OpenAIService:
+        arguments:
+            $apiKey: '%env(string:OPENAI_API_KEY)%'
+
+    App\Service\TwilioSmsService:
+        arguments:
+            $sid: '%env(string:TWILIO_SID)%'
+            $token: '%env(string:TWILIO_TOKEN)%'
+            $from: '%env(string:TWILIO_FROM)%'
+            $messagingServiceSid: '%env(default::TWILIO_MESSAGING_SERVICE_SID)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

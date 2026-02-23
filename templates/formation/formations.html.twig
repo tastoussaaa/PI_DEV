@@ -303,22 +303,7 @@ html, body {
 										-
 										{{ formation.endDate ? formation.endDate|date('d/m/Y') : '' }}</span>
 								</div>
-					{% if aideSoignant %}
-						{% set hasApplied = aideSoignant.formations.contains(formation) %}
-						{% if hasApplied %}
-							<form method="post" action="{{ path('aidesoingnant_formation_withdraw', {'id': formation.id}) }}" style="flex: 1;">
-								<button type="submit" class="btn btn--secondary" style="width: 100%;">
-									✓ Candidature validée
-								</button>
-							</form>
-						{% else %}
-							<form method="post" action="{{ path('aidesoingnant_formation_apply', {'id': formation.id}) }}" style="flex: 1;">
-								<button type="submit" class="btn btn--primary" style="width: 100%;">
-									✉️ Postuler
-								</button>
-							</form>
-						{% endif %}
-					{% else %}
+			
 						<a href="{{ path('medecin_formation_applicants', {'id': formation.id}) }}" class="btn btn--primary" style="flex: 1; text-align: center;">
 							✉️ Postuler
 						</a>
@@ -327,7 +312,7 @@ html, body {
 								👥 View Applicants
 							</a>
 						</div>
-					{% endif %}
+					
 							</div>
 						{% endfor %}
 					</div>

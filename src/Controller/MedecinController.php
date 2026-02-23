@@ -156,11 +156,11 @@ class MedecinController extends BaseController
 
             // Chronic count heuristic from patient.pathologie (comma separated)
             $chronic = 0;
-            $patient = $c->getPatient();
+        /*     $patient = $c->getPatient();
             if ($patient && $patient->getPathologie()) {
                 $parts = preg_split('/[,;]+/', $patient->getPathologie());
                 $chronic = count(array_filter(array_map('trim', $parts)));
-            }
+            } */
 
             // AI probability heuristic (higher if urgent keywords present)
             $aiProb = 0.15;

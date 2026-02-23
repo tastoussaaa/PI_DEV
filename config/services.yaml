@@ -30,13 +30,6 @@ services:
     App\Service\AiDescriptionService:
         arguments:
             $apiKey: '%env(GROQ_API_KEY)%'
-    App\Service\TwilioSmsService:
-        arguments:
-            $sid: '%env(string:TWILIO_SID)%'
-            $token: '%env(string:TWILIO_TOKEN)%'
-            $from: '%env(string:TWILIO_FROM)%'
-            $messagingServiceSid: '%env(TWILIO_MESSAGING_SERVICE_SID)%'
-
     App\Service\OpenAIService:
         arguments:
             $apiKey: '%env(string:OPENAI_API_KEY)%'

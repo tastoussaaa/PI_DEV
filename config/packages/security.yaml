@@ -42,7 +42,6 @@ security:
         
         # Admin routes
         - { path: ^/admin, roles: ROLE_ADMIN }
-    
         
         
         # Patient routes

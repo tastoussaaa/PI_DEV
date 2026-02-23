@@ -22,188 +22,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\String\Slugger\SluggerInterface;
-use App\Entity\Ressource;
-use App\Form\FormationType;
-use App\Form\RessourceType;
-
 
 final class AdminController extends AbstractController
 {
-
-
-    #[Route('/admin/formation/{id}/edit', name: 'admin_formation_edit', methods: ['GET', 'POST'])]
-    public function editFormation(Request $request, Formation $formation, EntityManagerInterface $em): Response
-    {
-        $form = $this->createForm(FormationType::class, $formation);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-
-            $this->addFlash('success', "Formation mise à jour avec succès !");
-            return $this->redirectToRoute('admin_formations');
-        }
-
-        return $this->render('admin/formation_edit.html.twig', [
-            'form' => $form->createView(),
-            'formation' => $formation,
-        ]);
-    }
-
-    #[Route('/admin/formation/{id}/resources', name: 'admin_formation_resources', methods: ['GET', 'POST'])]
-    public function formationResources(Formation $formation, Request $request, EntityManagerInterface $em): Response
-    {
-        $ressource = new Ressource();
-        $ressource->setFormation($formation);
-
-        $form = $this->createForm(RessourceType::class, $ressource);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-    $em->persist($ressource);
-    $em->flush();
-
-    $this->addFlash('ressource_success', [
-    'title' => $ressource->getTitle(),
-    'description' => $ressource->getDescription(),
-]);
-
-    return $this->redirectToRoute('admin_formation_resources', ['id' => $formation->getId()]);
-}
-
-        $ressources = $formation->getRessources();
-
-        return $this->render('admin/formation_resources.html.twig', [
-            'formation' => $formation,
-            'ressources' => $ressources,
-            'form' => $form->createView(),
-        ]);
-    }
-
-#[Route('/admin/formation/{id}/ressource/new', name: 'admin_ressource_new')]
-public function new(Request $request, Formation $formation, EntityManagerInterface $em): Response
-{
-    $ressource = new Ressource();
-    $ressource->setFormation($formation);
-
-    $form = $this->createForm(RessourceType::class, $ressource);
-    $form->handleRequest($request);
-
-    if ($form->isSubmitted() && $form->isValid()) {
-
-        /** @var UploadedFile|null $pdfFile */
-        $pdfFile = $form->get('pdfFile')->getData();
-
-        if (!$pdfFile) {
-            $this->addFlash('error', 'Veuillez uploader un fichier PDF.');
-
-            return $this->render('admin/ressource_form.html.twig', [  // ✅ same template as edit
-                'form' => $form->createView(),
-                'formation' => $formation,
-                'ressource' => null,
-            ]);
-        }
-
-        $originalFilename = pathinfo($pdfFile->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = transliterator_transliterate(
-            'Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()',
-            $originalFilename
-        );
-        $newFilename = $safeFilename . '-' . uniqid() . '.' . $pdfFile->guessExtension();
-
-        $pdfDirectory = $this->getParameter('pdf_directory');
-        if (!is_dir($pdfDirectory)) {
-            mkdir($pdfDirectory, 0775, true);
-        }
-
-        $pdfFile->move($pdfDirectory, $newFilename);
-        $ressource->setFileName($newFilename);
-
-        $em->persist($ressource);
-        $em->flush();
-
-        $this->addFlash('success', 'Ressource ajoutée avec succès !');
-
-        return $this->redirectToRoute('admin_formation_resources', [
-            'id' => $formation->getId(),
-        ]);
-    }
-
-    // ✅ Use the dedicated form template, not the list page
-    return $this->render('admin/ressource_form.html.twig', [
-        'form' => $form->createView(),
-        'formation' => $formation,
-        'ressource' => null,  // null = creation mode, the template handles this already
-    ]);
-}
-
-    #[Route('/admin/ressource/{id}/edit', name: 'admin_ressource_edit')]
-    public function edit(
-        Ressource $ressource,
-        Request $request,
-        EntityManagerInterface $em
-    ): Response {
-
-        $form = $this->createForm(RessourceType::class, $ressource);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-
-            $pdfFile = $form->get('pdfFile')->getData();
-
-            if ($pdfFile) {
-
-                // 🧹 Delete old file if exists
-                if ($ressource->getFileName()) {
-                    $oldPath = $this->getParameter('pdf_directory') . '/' . $ressource->getFileName();
-                    if (file_exists($oldPath)) {
-                        unlink($oldPath);
-                    }
-                }
-
-                $newFilename = uniqid() . '.' . $pdfFile->guessExtension();
-
-                $pdfFile->move(
-                    $this->getParameter('pdf_directory'),
-                    $newFilename
-                );
-
-                $ressource->setFileName($newFilename);
-            }
-
-            $em->flush();
-
-            $this->addFlash('success', 'Ressource modifiée avec succès !');
-
-            return $this->redirectToRoute('admin_formation_resources', [
-                'id' => $ressource->getFormation()->getId()
-            ]);
-        }
-
-        return $this->render('admin/ressource_form.html.twig', [
-            'form' => $form->createView(),
-            'formation' => $ressource->getFormation(),
-            'ressource' => $ressource
-        ]);
-    }
-
-
-    #[Route('/admin/ressource/{id}/delete', name: 'admin_ressource_delete', methods: ['POST'])]
-    public function deleteRessource(Request $request, Ressource $ressource, EntityManagerInterface $em): RedirectResponse
-    {
-        $token = $request->request->get('_token');
-        if (!$this->isCsrfTokenValid('delete-ressource-' . $ressource->getId(), $token)) {
-            throw $this->createAccessDeniedException('CSRF token invalide.');
-        }
-
-        $formationId = $ressource->getFormation()->getId();
-        $em->remove($ressource);
-        $em->flush();
-
-        $this->addFlash('success', 'Ressource supprimée !');
-        return $this->redirectToRoute('admin_formation_resources', ['id' => $formationId]);
-    }
-
     #[Route('/admin/formations', name: 'admin_formations')]
     public function formations(FormationRepository $formationRepository)
     {
@@ -219,24 +40,30 @@ public function new(Request $request, Formation $formation, EntityManagerInterfa
     {
         $search = $request->query->get('search', '');
         $sort = $request->query->get('sort', 'date');
-
-        $consultations = $consultationRepository->findAll();
-
+        
+        $allConsultations = $consultationRepository->findAll();
+        $consultations = $allConsultations;
+        
         // Filter by search term
         if ($search) {
-            $consultations = array_filter($consultations, function ($c) use ($search) {
-                return stripos($c->getMotif(), $search) !== false ||
-                    stripos($c->getName() ?? '', $search) !== false ||
-                    stripos($c->getFamilyName() ?? '', $search) !== false;
+            $consultations = array_filter($consultations, function($c) use ($search) {
+                return stripos($c->getMotif(), $search) !== false || 
+                       stripos($c->getName() ?? '', $search) !== false ||
+                       stripos($c->getFamilyName() ?? '', $search) !== false;
             });
         }
-
+        
         // Sort
         if ($sort === 'motif') {
             usort($consultations, fn($a, $b) => strcmp($a->getMotif(), $b->getMotif()));
         } elseif ($sort === 'date') {
             usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
         }
+
+        // Generate consultation data for charts
+        $consultationsByDay = $this->generateConsultationsByDayData($allConsultations);
+        $acceptanceData = $this->calculateAcceptanceRate($allConsultations);
+        $urgentData = $this->calculateUrgentCases($allConsultations);
 
         $navigation = [
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
@@ -249,12 +76,15 @@ public function new(Request $request, Formation $formation, EntityManagerInterfa
             'search' => $search,
             'sort' => $sort,
             'navigation' => $navigation,
-            'context' => 'admin'
+            'context' => 'admin',
+            'consultationsByDay' => $consultationsByDay,
+            'acceptanceData' => $acceptanceData,
+            'urgentData' => $urgentData,
         ]);
     }
 
     #[Route('/admin', name: 'app_admin_dashboard')]
-    public function dashboard(MedecinRepository $medecinRepository, AideSoignantRepository $aideRepo, PatientRepository $patientRepo)
+    public function dashboard(MedecinRepository $medecinRepository, AideSoignantRepository $aideRepo, PatientRepository $patientRepo, ConsultationRepository $consultationRepo)
     {
         // Médecins
         $pendingMedecins = $medecinRepository->findBy(['isValidated' => false]);
@@ -270,6 +100,18 @@ public function new(Request $request, Formation $formation, EntityManagerInterfa
         $activePatients = $patientRepo->findBy(['isActive' => true]);
         $disabledPatients = $patientRepo->findBy(['isActive' => false]);
 
+        // Get consultations data for charts
+        $allConsultations = $consultationRepo->findAll();
+        
+        // Generate consultation data by day (last 30 days)
+        $consultationsByDay = $this->generateConsultationsByDayData($allConsultations);
+        
+        // Calculate acceptance rate
+        $acceptanceData = $this->calculateAcceptanceRate($allConsultations);
+        
+        // Calculate urgent cases percentage
+        $urgentData = $this->calculateUrgentCases($allConsultations);
+
         $navigation = [
             ['name' => 'Validation des Comptes', 'path' => $this->generateUrl('app_admin_dashboard'), 'icon' => '✓'],
             ['name' => 'Consultations', 'path' => $this->generateUrl('admin_consultations'), 'icon' => '🩺'],
@@ -277,7 +119,7 @@ public function new(Request $request, Formation $formation, EntityManagerInterfa
             ['name' => 'Produits', 'path' => $this->generateUrl('admin_produits'), 'icon' => '🛍️'],
         ];
 
-        return $this->render('admin/dashboard.html.twig', [
+        return $this->render('admin/dashboard_analytics.html.twig', [
             'pendingMedecins' => $pendingMedecins,
             'validatedMedecins' => $validatedMedecins,
             'disabledMedecins' => $disabledMedecins,
@@ -286,8 +128,144 @@ public function new(Request $request, Formation $formation, EntityManagerInterfa
             'disabledAideSoignants' => $disabledAideSoignants,
             'activePatients' => $activePatients,
             'disabledPatients' => $disabledPatients,
+            'consultationsByDay' => $consultationsByDay,
+            'acceptanceData' => $acceptanceData,
+            'urgentData' => $urgentData,
             'navigation' => $navigation,
         ]);
+    }
+
+    /**
+     * Generate consultations per day data for the last 30 days
+     */
+    private function generateConsultationsByDayData(array $consultations): array
+    {
+        $days = [];
+        $counts = [];
+        
+        // Generate last 30 days
+        for ($i = 29; $i >= 0; $i--) {
+            $date = new \DateTime();
+            $date->modify("-$i days");
+            $dayKey = $date->format('Y-m-d');
+            $days[] = $date->format('d/m');
+            $counts[$dayKey] = 0;
+        }
+        
+        // Count consultations per day
+        foreach ($consultations as $consultation) {
+            if ($consultation->getDateConsultation()) {
+                $dayKey = $consultation->getDateConsultation()->format('Y-m-d');
+                if (isset($counts[$dayKey])) {
+                    $counts[$dayKey]++;
+                }
+            }
+        }
+        
+        return [
+            'labels' => $days,
+            'data' => array_values($counts),
+            'total' => count($consultations)
+        ];
+    }
+
+    /**
+     * Calculate acceptance rate
+     */
+    private function calculateAcceptanceRate(array $consultations): array
+    {
+        if (empty($consultations)) {
+            return [
+                'accepted' => 0,
+                'pending' => 0,
+                'rejected' => 0,
+                'acceptanceRate' => 0,
+                'total' => 0
+            ];
+        }
+        
+        $accepted = 0;
+        $pending = 0;
+        $rejected = 0;
+        
+        foreach ($consultations as $consultation) {
+            // Assuming consultations with a date/time slot are "accepted"
+            if ($consultation->getDateConsultation() && $consultation->getTimeSlot()) {
+                $accepted++;
+            } else {
+                $pending++;
+            }
+        }
+        
+        $total = count($consultations);
+        $acceptanceRate = $total > 0 ? round(($accepted / $total) * 100, 1) : 0;
+        
+        return [
+            'accepted' => $accepted,
+            'pending' => $pending,
+            'rejected' => $rejected,
+            'acceptanceRate' => $acceptanceRate,
+            'total' => $total,
+            'labels' => ['Acceptées', 'En attente'],
+            'data' => [$accepted, $pending]
+        ];
+    }
+
+    /**
+     * Calculate urgent cases percentage
+     */
+    private function calculateUrgentCases(array $consultations): array
+    {
+        if (empty($consultations)) {
+            return [
+                'urgent' => 0,
+                'moderate' => 0,
+                'low' => 0,
+                'urgentPercentage' => 0,
+                'total' => 0
+            ];
+        }
+        
+        $urgent = 0;
+        $moderate = 0;
+        $low = 0;
+        
+        foreach ($consultations as $consultation) {
+            $motif = strtolower($consultation->getMotif() ?? '');
+            
+            // Check for urgent keywords
+            $urgentKeywords = ['douleur', 'urgent', 'grave', 'saignement', 'respiration', 'crise', 'inconscient', 'thoracique', 'accident', 'fracture'];
+            $isUrgent = false;
+            
+            foreach ($urgentKeywords as $keyword) {
+                if (strpos($motif, $keyword) !== false) {
+                    $isUrgent = true;
+                    break;
+                }
+            }
+            
+            if ($isUrgent) {
+                $urgent++;
+            } elseif (stripos($motif, 'routine') !== false || stripos($motif, 'bilan') !== false || stripos($motif, 'check') !== false) {
+                $low++;
+            } else {
+                $moderate++;
+            }
+        }
+        
+        $total = count($consultations);
+        $urgentPercentage = $total > 0 ? round(($urgent / $total) * 100, 1) : 0;
+        
+        return [
+            'urgent' => $urgent,
+            'moderate' => $moderate,
+            'low' => $low,
+            'urgentPercentage' => $urgentPercentage,
+            'total' => $total,
+            'labels' => ['Urgentes', 'Modérées', 'Routine'],
+            'data' => [$urgent, $moderate, $low],
+            'colors' => ['#dc2626', '#f59e0b', '#10b981']
+        ];
     }
 
     #[Route('/admin/medecin/{id}/validate', name: 'admin_medecin_validate', methods: ['POST'])]

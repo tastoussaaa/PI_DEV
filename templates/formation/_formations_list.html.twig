@@ -9,6 +9,13 @@
                 {% for formation in formations %}
                     <div class="card">
                         <h3>{{ formation.title }}</h3>
+                        {% if formation.objective %}
+                            <p class="objective" style="font-style:italic; color:#555;">
+                                {{ formation.objective|striptags|length > 100
+                                    ? formation.objective|striptags|slice(0, 100) ~ '…'
+                                    : formation.objective|striptags }}
+                            </p>
+                        {% endif %}
                         <p>
                             {{ formation.description|length > 100
                                 ? formation.description|slice(0, 100) ~ '…'

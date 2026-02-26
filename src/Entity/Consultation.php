@@ -69,6 +69,20 @@ class Consultation
     private ?\DateTimeImmutable $createdAt = null;
 
     // -----------------------
+    // Relation with Patient
+    // -----------------------
+    #[ORM\ManyToOne(targetEntity: Patient::class, inversedBy: 'consultations')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Patient $patient = null;
+
+    // -----------------------
+    // Relation with Medecin
+    // -----------------------
+    #[ORM\ManyToOne(targetEntity: Medecin::class, inversedBy: 'consultations')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Medecin $medecin = null;
+
+    // -----------------------
     // Relation with Ordonnance
     // -----------------------
     // One Consultation can have many Ordonnances
@@ -206,6 +220,28 @@ class Consultation
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt; // createdAt is never null
+        return $this;
+    }
+
+    public function getPatient(): ?Patient
+    {
+        return $this->patient;
+    }
+
+    public function setPatient(?Patient $patient): static
+    {
+        $this->patient = $patient;
+        return $this;
+    }
+
+    public function getMedecin(): ?Medecin
+    {
+        return $this->medecin;
+    }
+
+    public function setMedecin(?Medecin $medecin): static
+    {
+        $this->medecin = $medecin;
         return $this;
     }
 

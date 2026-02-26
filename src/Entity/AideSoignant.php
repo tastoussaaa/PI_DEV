@@ -328,6 +328,10 @@ class AideSoignant
     public function setTarifMin(float $tarifMin): static
     {
         $this->tarifMin = $tarifMin;
+
+        return $this;
+    }
+
     public function isActive(): bool
     {
         return $this->isActive;

@@ -332,6 +332,8 @@ class Patient
     public function isProfileComplete(): bool
     {
         return $this->calculateCompletionScore() === 100;
+    }
+
     public function isActive(): bool
     {
         return $this->isActive;

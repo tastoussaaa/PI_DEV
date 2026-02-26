@@ -17,9 +17,11 @@
                             </p>
                         {% endif %}
                         <p>
-                            {{ formation.description|length > 100
-                                ? formation.description|slice(0, 100) ~ '…'
-                                : formation.description }}
+                            {# normalize HTML description to plain text for summary #}
+                            {% set plainDesc = formation.description|striptags %}
+                            {{ plainDesc|length > 100
+                                ? plainDesc|slice(0, 100) ~ '…'
+                                : plainDesc }}
                         </p>
                         <div class="card__footer">
                             <span class="pill">{{ formation.category }}</span>

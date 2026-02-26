@@ -46,9 +46,13 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('admin_formations');
         }
 
+        // Pass related ressources so the template can render the resources list
+        $ressources = $formation->getRessources();
+
         return $this->render('admin/formation_edit.html.twig', [
             'form' => $form->createView(),
             'formation' => $formation,
+            'ressources' => $ressources,
         ]);
     }
      #[Route('/admin/formation/{id}/resources', name: 'admin_formation_resources', methods: ['GET', 'POST'])]

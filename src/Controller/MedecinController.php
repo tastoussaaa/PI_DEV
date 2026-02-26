@@ -30,6 +30,7 @@ class MedecinController extends BaseController
     }
 
 
+        
     
 
     #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
@@ -192,11 +193,13 @@ class MedecinController extends BaseController
         ]);
     }
 
-    #[Route('/medecin/formations/new', name: 'medecin_formation_new')]
+ #[Route('/medecin/formations/new', name: 'medecin_formation_new')]
     public function newFormation(
         Request $request,
         EntityManagerInterface $em
     ): Response {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
         $medecin = $this->getCurrentMedecin();
         if (!$medecin) {
             throw $this->createAccessDeniedException('You must be a medecin to create formations');
@@ -211,6 +214,13 @@ class MedecinController extends BaseController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($formation);
             $em->flush();
+
+            $this->addFlash('formation_success', [
+                'title' => $formation->getTitle(),
+                'description' => $formation->getDescription(),
+                'start' => $formation->getStartDate()->format('Ymd\THis') . 'Z',
+                'end' => $formation->getEndDate()->format('Ymd\THis') . 'Z',
+            ]);
 
             return $this->redirectToRoute('medecin_formations');
         }
@@ -285,6 +295,23 @@ class MedecinController extends BaseController
             ]));
 
         $this->mailer->send($email);
+    }
+
+
+    #[Route('/medecin/generate-description', name: 'medecin_formation_generate_description', methods: ['POST'])]   
+     public function generateDescription(Request $request): JsonResponse
+    {
+        $data = [
+            'title' => $request->request->get('title', ''),
+            'category' => $request->request->get('category', ''),
+            'startDate' => $request->request->get('startDate', ''),
+            'endDate' => $request->request->get('endDate', ''),
+        ];
+
+        // Generate AI description
+       $description = $this->aiService->generateDescription($data);
+
+        return new JsonResponse(['description' => $description]);
     }
 }
 

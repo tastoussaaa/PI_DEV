@@ -267,8 +267,8 @@ html, body {
 ] %}
 
 	<div class="portal">
-		{% for data in app.flashes('formation_success') %}
-			<div id="calendar-popup" class="popup-success">
+        {% for data in app.flashes('formation_success') %}
+            <div id="calendar-popup" class="popup-success" style="display:flex;">
 				<div class="popup-content">
 					<h3>✅ Formation créée avec succès</h3>
 					<p>Voulez-vous l'ajouter à votre Google Calendar ?</p>
@@ -284,8 +284,38 @@ html, body {
 						</button>
 					</div>
 				</div>
-			</div>
-		{% endfor %}
+            </div>
+        {% endfor %}
+
+        <script>
+            // Debug: log the formation_success flash data and ensure popup sits on top
+            document.addEventListener('DOMContentLoaded', function () {
+                try {
+                    const formationFlash = {{ app.flashes('formation_success')|json_encode|raw }};
+                    console.log('formation_success flash:', formationFlash);
+
+                    if (formationFlash && formationFlash.length > 0) {
+                        let popup = document.getElementById('calendar-popup');
+                        if (popup) {
+                            // Move popup to body to avoid being clipped by layout containers
+                            if (popup.parentElement !== document.body) {
+                                document.body.appendChild(popup);
+                            }
+                            // Force visible and ensure it's above other widgets
+                            popup.style.display = 'flex';
+                            popup.style.zIndex = '100000';
+                            const content = popup.querySelector('.popup-content');
+                            if (content) content.style.zIndex = '100001';
+                            console.log('calendar-popup moved to body and shown');
+                        } else {
+                            console.warn('calendar-popup element not found in DOM');
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error handling formation flash:', e);
+                }
+            });
+        </script>
 
 		{# Sidebar #}
 		{% include 'side_bar.html.twig' %}

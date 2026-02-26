@@ -5,14 +5,9 @@ namespace App\Controller;
 use App\Service\UserService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 use App\Repository\FormationRepository;
-use App\Repository\DemandeAideRepository;
-use App\Repository\AideSoignantRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use App\Entity\Mission;
 
 final class AideSoingnantController extends BaseController
 {
@@ -44,13 +39,14 @@ final class AideSoingnantController extends BaseController
         $navigation = [
             ['name' => 'Dashboard', 'path' => $this->generateUrl('app_aide_soignant_dashboard'), 'icon' => '🏠'],
             ['name' => 'Formation', 'path' => $this->generateUrl('aidesoingnant_formation'), 'icon' => '📚'],
+            ['name' => 'Demandes', 'path' => $this->generateUrl('aidesoingnant_demandes'), 'icon' => '📋'],
             ['name' => 'Missions', 'path' => $this->generateUrl('aidesoingnant_missions'), 'icon' => '💼'],
         ];
-        
+
         return $this->render('aide_soingnant/aideSoignantDashboard.html.twig', [
+            'navigation' => $navigation,
             'aideSoignant' => $aideSoignant,
             'userId' => $userId,
-            'navigation' => $navigation,
         ]);
     }
 

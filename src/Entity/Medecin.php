@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Entity;
-
+use App\Entity\AideSoignant;
 use App\Repository\MedecinRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -42,6 +42,9 @@ class Medecin
 
     #[ORM\Column]
     private ?bool $isValidated = false;
+
+    #[ORM\Column]
+    private bool $isActive = true;
 
     /**
      * @var Collection<int, Consultation>
@@ -288,6 +291,18 @@ class Medecin
     public function setIsValidated(bool $isValidated): static
     {
         $this->isValidated = $isValidated;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
 
         return $this;
     }

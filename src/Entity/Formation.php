@@ -21,6 +21,7 @@ class Formation
         self::STATUT_VALIDE,
         self::STATUT_REFUSE,
     ];
+    
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -45,15 +46,16 @@ class Formation
     )]
     private ?string $description = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     #[Assert\NotBlank(message: 'La date de début est obligatoire.')]
     #[Assert\GreaterThanOrEqual(
-        'today',
-        message: 'La date de début doit être aujourd’hui ou dans le futur.'
+        'now',
+        message: 'La date de début doit être maintenant ou dans le futur.'
     )]
     private ?\DateTimeInterface $startDate = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     #[Assert\NotBlank(message: 'La date de fin est obligatoire.')]
     #[Assert\GreaterThan(
         propertyPath: 'startDate',
@@ -82,10 +84,17 @@ class Formation
     #[ORM\Column(length: 20)]
     private string $statut = self::STATUT_EN_ATTENTE;
 
+    /**
+     * @var Collection<int, Ressource>
+     */
+    #[ORM\OneToMany(targetEntity: Ressource::class, mappedBy: 'formation')]
+    private Collection $ressources;
+
     public function __construct()
     {
         $this->aideSoignants = new ArrayCollection();
         $this->statut = self::STATUT_EN_ATTENTE;
+        $this->ressources = new ArrayCollection();
     }
 
     // -------- Getters & Setters --------
@@ -136,6 +145,36 @@ class Formation
             throw new \InvalidArgumentException("Statut invalide");
         }
         $this->statut = $statut;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Ressource>
+     */
+    public function getRessources(): Collection
+    {
+        return $this->ressources;
+    }
+
+    public function addRessource(Ressource $ressource): static
+    {
+        if (!$this->ressources->contains($ressource)) {
+            $this->ressources->add($ressource);
+            $ressource->setFormation($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRessource(Ressource $ressource): static
+    {
+        if ($this->ressources->removeElement($ressource)) {
+            // set the owning side to null (unless already changed)
+            if ($ressource->getFormation() === $this) {
+                $ressource->setFormation(null);
+            }
+        }
+
         return $this;
     }
 }

@@ -5,11 +5,261 @@
 
 {% block stylesheets %}
 	<link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
+	<style>
+
+/* ==============================
+   GLOBAL FIX
+============================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden; /* 🔥 prevents right cut */
+}
+
+
+/* ==============================
+   PORTAL LAYOUT FIX
+============================== */
+
+.portal {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Sidebar (adjust width if needed) */
+.portal aside,
+.portal .sidebar {
+    width: 260px;
+    min-width: 260px;
+    flex-shrink: 0;
+}
+
+/* Main content */
+.portal__main {
+    flex: 1;
+    width: 100%;
+    max-width: 100%;
+    padding: 30px 35px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+
+/* ==============================
+   TOP HEADER
+============================== */
+
+.portal__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.portal__title {
+    margin: 0;
+}
+
+.portal__subtitle {
+    margin: 5px 0 0 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+
+/* ==============================
+   FILTER BAR
+============================== */
+
+.filter {
+    background: rgba(255, 255, 255, .95);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 20px;
+    box-shadow: var(--shadow2);
+    margin-bottom: 25px;
+}
+
+.filter form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: flex-end;
+}
+
+.filter .field {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 220px;
+}
+
+.filter label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.filter input,
+.filter select {
+    padding: 11px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: rgba(233, 253, 255, .55);
+    font-size: 13px;
+    font-family: inherit;
+    transition: 0.2s ease;
+}
+
+.filter input:focus,
+.filter select:focus {
+    outline: none;
+    border: 1px solid rgba(24, 191, 234, .4);
+    box-shadow: 0 0 0 4px rgba(24, 191, 234, .12);
+}
+
+
+/* ==============================
+   CARDS GRID FIX
+============================== */
+
+.cards {
+    width: 100%;
+}
+
+.cards__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 22px;
+    width: 100%;
+}
+
+
+/* ==============================
+   CARD DESIGN
+============================== */
+
+.card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 22px;
+    padding: 22px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: 0.2s ease;
+    cursor: pointer;
+    height: 100%;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+}
+
+.card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 18px;
+    flex-grow: 1;
+}
+
+
+/* Footer */
+.card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    gap: 10px;
+    margin-top: auto;
+}
+
+/* Category pill */
+.pill {
+    background: rgba(24, 191, 234, 0.12);
+    color: #18bfea;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.card__footer span:last-child {
+    color: var(--muted);
+    text-align: right;
+}
+
+
+/* ==============================
+   POPUP FIX
+============================== */
+
+.popup-success {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.popup-content {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    width: 420px;
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+
+/* ==============================
+   RESPONSIVE FIX
+============================== */
+
+@media (max-width: 1024px) {
+    .portal {
+        flex-direction: column;
+    }
+
+    .portal aside,
+    .portal .sidebar {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .portal__main {
+        padding: 20px;
+    }
+}
+	</style>
+
 {% endblock %}
 
 {% block body %}
 
-	<div class="portal">
+	<div
+		class="portal">
 
 		{# Sidebar #}
 		{% include 'side_bar.html.twig' %}
@@ -53,11 +303,16 @@
 										-
 										{{ formation.endDate ? formation.endDate|date('d/m/Y') : '' }}</span>
 								</div>
-								<div style="margin-top: 15px; display: flex; gap: 10px;">
-									<a href="{{ path('medecin_formation_applicants', {'id': formation.id}) }}" class="btn btn--secondary" style="flex: 1; text-align: center;">
-										👥 View Applicants
-									</a>
-								</div>
+			
+						<a href="{{ path('medecin_formation_applicants', {'id': formation.id}) }}" class="btn btn--primary" style="flex: 1; text-align: center;">
+							✉️ Postuler
+						</a>
+						<div style="margin-top: 15px; display: flex; gap: 10px;">
+							<a href="{{ path('medecin_formation_applicants', {'id': formation.id}) }}" class="btn btn--secondary" style="flex: 1; text-align: center;">
+								👥 View Applicants
+							</a>
+						</div>
+					
 							</div>
 						{% endfor %}
 					</div>

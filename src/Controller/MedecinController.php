@@ -8,24 +8,36 @@ use App\Form\FormationType;
 use App\Repository\ConsultationRepository;
 use App\Repository\FormationRepository;
 use App\Service\UserService;
+use App\Service\RiskScoringService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
+use App\Service\AiDescriptionService;
+use Symfony\Component\HttpFoundation\JsonResponse;
 class MedecinController extends BaseController
 {
-    public function __construct(UserService $userService)
+    private RiskScoringService $riskService;
+    private AiDescriptionService $aiService;
+
+    public function __construct(UserService $userService, private MailerInterface $mailer, RiskScoringService $riskService, AiDescriptionService $aiService)
     {
         parent::__construct($userService);
+        $this->riskService = $riskService;
+        $this->aiService = $aiService;
     }
+
+
+    
 
     #[Route('/medecin/dashboard', name: 'app_medecin_dashboard')]
     public function dashboard(): Response
     {
         // Ensure user is authenticated
         $this->denyAccessUnlessGranted('ROLE_USER');
-        
+
         // Ensure only medecins can access this dashboard
         if (!$this->isCurrentUserMedecin()) {
             $userType = $this->getCurrentUserType();
@@ -36,9 +48,29 @@ class MedecinController extends BaseController
                 default => $this->redirectToRoute('app_login'),
             };
         }
-        
+
         $medecin = $this->getCurrentMedecin();
         $userId = $this->getCurrentUserId();
+
+        $medecin = $this->getCurrentMedecin();
+        $userId = $this->getCurrentUserId();
+        
+        // Get consultations for this medecin
+        $consultations = [];
+        if ($medecin) {
+            $consultations = $medecin->getConsultations()->toArray();
+            // Sort by date descending
+            usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
+        }
+        
+        // Get upcoming consultations (next 7 days)
+        $now = new \DateTime();
+        $upcomingConsultations = array_filter($consultations, function($c) use ($now) {
+            $consultationDate = $c->getDateConsultation();
+            if (!$consultationDate) return false;
+            $consultationDt = \DateTime::createFromInterface($consultationDate);
+            return $consultationDt >= $now && $consultationDt < (clone $now)->modify('+7 days');
+        });
         
         return $this->render('medecin/dashboard.html.twig', [
             'medecin' => $medecin,
@@ -49,8 +81,6 @@ class MedecinController extends BaseController
     #[Route('/medecin/formations', name: 'medecin_formations')]
     public function formations(Request $request, FormationRepository $formationRepository): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-        
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
@@ -75,8 +105,6 @@ class MedecinController extends BaseController
     #[Route('/medecin/consultations', name: 'medecin_consultations')]
     public function consultations(Request $request, ConsultationRepository $repository): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-        
         $userId = $this->getCurrentUserId();
         $medecin = $this->getCurrentMedecin();
 
@@ -101,6 +129,52 @@ class MedecinController extends BaseController
             usort($consultations, fn($a, $b) => $b->getDateConsultation() <=> $a->getDateConsultation());
         }
 
+        // Compute risk scores for each consultation using heuristics when necessary
+        $riskScores = [];
+        foreach ($consultations as $c) {
+            $age = $c->getAge() ?? 0;
+
+            $motif = strtolower((string) $c->getMotif());
+            // Simple heuristic for symptom severity (1-10)
+            $urgentKeywords = ['chest', 'shortness', 'breath', 'bleed', 'unconscious', 'severe', 'loss of consciousness', 'palpitations'];
+            $weights = ['fever' => 7, 'pain' => 6, 'headache' => 4, 'cough' => 3, 'nausea' => 2, 'vomit' => 3, 'dizziness' => 5];
+
+            $severity = 1;
+            foreach ($weights as $k => $w) {
+                if (str_contains($motif, $k)) {
+                    $severity = max($severity, min(10, $w));
+                }
+            }
+            foreach ($urgentKeywords as $kw) {
+                if (str_contains($motif, $kw)) {
+                    $severity = max($severity, 9);
+                }
+            }
+            if (strlen($motif) > 80 && $severity < 5) {
+                $severity = min(8, (int) ceil(strlen($motif) / 40));
+            }
+
+            // Chronic count heuristic from patient.pathologie (comma separated)
+            $chronic = 0;
+        /*     $patient = $c->getPatient();
+            if ($patient && $patient->getPathologie()) {
+                $parts = preg_split('/[,;]+/', $patient->getPathologie());
+                $chronic = count(array_filter(array_map('trim', $parts)));
+            } */
+
+            // AI probability heuristic (higher if urgent keywords present)
+            $aiProb = 0.15;
+            foreach ($urgentKeywords as $kw) {
+                if (str_contains($motif, $kw)) {
+                    $aiProb = 0.85;
+                    break;
+                }
+            }
+
+            $res = $this->riskService->calculate((int)$age, (int)$severity, (int)$chronic, (float)$aiProb);
+            $riskScores[$c->getId()] = $res;
+        }
+
         return $this->render('consultation/consultations.html.twig', [
             'consultations' => $consultations,
             'search' => $search,
@@ -114,6 +188,7 @@ class MedecinController extends BaseController
                 ['name' => 'Ordonnances', 'path' => $this->generateUrl('Ordonnance_new'), 'icon' => '💊']
             ],
             'context' => 'medecin'
+            , 'riskScores' => $riskScores
         ]);
     }
 
@@ -122,8 +197,6 @@ class MedecinController extends BaseController
         Request $request,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-        
         $medecin = $this->getCurrentMedecin();
         if (!$medecin) {
             throw $this->createAccessDeniedException('You must be a medecin to create formations');
@@ -189,6 +262,29 @@ class MedecinController extends BaseController
         }
 
         return $this->redirectToRoute('medecin_consultations');
+    }
+
+    /**
+     * Send consultation status email to patient
+     */
+    private function sendConsultationStatusEmail(Consultation $consultation, string $status): void
+    {
+        $patientName = $consultation->getName() . ' ' . $consultation->getFamilyName();
+        $date = $consultation->getDateConsultation() ? $consultation->getDateConsultation()->format('d/m/Y') : 'TBD';
+        $time = $consultation->getTimeSlot() ?: 'TBD';
+        $consultationDate = $date . ' at ' . $time;
+
+        $email = (new Email())
+            ->from('noreply@aidora.com')
+            ->to($consultation->getEmail() ?? 'contact@aidora.com')
+            ->subject('Mise à jour de votre consultation')
+            ->html($this->renderView('email/consultation_status.html.twig', [
+                'patientName' => $patientName,
+                'consultationDate' => $consultationDate,
+                'status' => $status,
+            ]));
+
+        $this->mailer->send($email);
     }
 }
 

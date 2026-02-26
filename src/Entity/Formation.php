@@ -46,6 +46,9 @@ class Formation
     )]
     private ?string $description = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $objective = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     #[Assert\NotBlank(message: 'La date de début est obligatoire.')]
     #[Assert\GreaterThanOrEqual(
@@ -106,6 +109,9 @@ class Formation
 
     public function getDescription(): ?string { return $this->description; }
     public function setDescription(string $description): static { $this->description = $description; return $this; }
+
+    public function getObjective(): ?string { return $this->objective; }
+    public function setObjective(?string $objective): static { $this->objective = $objective; return $this; }
 
     public function getStartDate(): ?\DateTimeInterface { return $this->startDate; }
     public function setStartDate(\DateTimeInterface $startDate): static { $this->startDate = $startDate; return $this; }

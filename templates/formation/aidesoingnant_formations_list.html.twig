@@ -344,9 +344,10 @@ html, body {
                             {% endif %}
 
                             <p>
-                                {{ formation.description|length > 100
-                                    ? formation.description|slice(0, 100) ~ '…'
-                                    : formation.description }}
+                                {% set plainDesc = formation.description|striptags %}
+                                {{ plainDesc|length > 100
+                                    ? plainDesc|slice(0, 100) ~ '…'
+                                    : plainDesc }}
                             </p>
 
                             <div class="card__footer">

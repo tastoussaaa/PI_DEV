@@ -184,7 +184,7 @@
                                     {% endif %}
 
                                     <div class="medicament-item-content">
-                                        {{ form_row(medicament_form.medicament) }}
+                                        {{ form_row(medicament_form.medicament, {'errors': false}) }}
                                         <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
                                             <button type="button" class="lookup-dosage-btn">🔎 Lookup dosage</button>
                                             <small class="lookup-status" style="color:#666">Idle</small>
@@ -351,28 +351,58 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = medInput.value.trim();
             if(!name) { status.textContent = 'Enter a drug name'; return; }
             status.textContent = 'Looking up...';
-            const base = 'https://api.fda.gov/drug/label.json?limit=1&search=';
-            const q1 = 'openfda.brand_name:"' + name + '"';
-            const q2 = 'openfda.substance_name:"' + name + '"';
-            fetch(base + encodeURIComponent(q1)).then(r=>r.json()).then(function(j){
-                if(j && j.results && j.results.length){
-                    const suggested = extractSuggestedDosageFromLabel(j.results[0]);
-                    if(suggested && dosageInput) dosageInput.value = suggested;
-                    if(j.results[0].warnings && instructionsInput) instructionsInput.value = (Array.isArray(j.results[0].warnings)?j.results[0].warnings.join(' '): j.results[0].warnings);
-                    status.textContent = 'Found (brand)';
-                } else {
-                    fetch(base + encodeURIComponent(q2)).then(r2=>r2.json()).then(function(j2){
-                        if(j2 && j2.results && j2.results.length){
-                            const suggested = extractSuggestedDosageFromLabel(j2.results[0]);
-                            if(suggested && dosageInput) dosageInput.value = suggested;
-                            if(j2.results[0].warnings && instructionsInput) instructionsInput.value = (Array.isArray(j2.results[0].warnings)?j2.results[0].warnings.join(' '): j2.results[0].warnings);
-                            status.textContent = 'Found (substance)';
-                        } else {
-                            status.textContent = 'No label data found';
+            
+            // Use the new API endpoint that uses RxNorm with fallback data
+            fetch('/api/medication/dosage?name=' + encodeURIComponent(name))
+                .then(r => r.json())
+                .then(function(data){
+                    if(data.error) {
+                        status.textContent = data.error;
+                        return;
+                    }
+                    
+                    // Set dosage from strengths if available
+                    if(data.strengths && data.strengths.length > 0) {
+                        const firstStrength = data.strengths[0];
+                        if(dosageInput) {
+                            dosageInput.value = firstStrength.strength + ' ' + firstStrength.unit.toUpperCase();
                         }
-                    }).catch(function(){ status.textContent = 'openFDA error'; });
-                }
-            }).catch(function(){ status.textContent = 'openFDA error'; });
+                    }
+                    
+                    // Set instructions from dosage_instructions if available
+                    if(data.dosage_instructions && data.dosage_instructions.length > 0) {
+                        if(instructionsInput) {
+                            instructionsInput.value = data.dosage_instructions.join('; ');
+                        }
+                        status.textContent = 'Found: ' + data.strengths.length + ' strength(s)';
+                    } else if (data.found) {
+                        status.textContent = 'Found: ' + data.strengths.length + ' strength(s) - no specific instructions';
+                    } else {
+                        // Fallback to common instructions for known medications
+                        const commonInstructions = {
+                            'morphine': '10-30 mg every 4 hours as needed for pain. May cause drowsiness.',
+                            'oxycodone': '5-15 mg every 4-6 hours as needed. Take with food.',
+                            'ibuprofen': '200-400 mg every 4-6 hours with food',
+                            'aspirin': '325-650 mg every 4-6 hours with food',
+                            'acetaminophen': '325-650 mg every 4-6 hours',
+                            'amoxicillin': '250-500 mg three times daily',
+                            'metformin': '500 mg twice daily with meals'
+                        };
+                        
+                        const lowerName = name.toLowerCase();
+                        for (const [key, instr] of Object.entries(commonInstructions)) {
+                            if (lowerName.includes(key)) {
+                                if(instructionsInput) instructionsInput.value = instr;
+                                status.textContent = 'Found (common dosage)';
+                                return;
+                            }
+                        }
+                        status.textContent = 'Medication found, enter dosage manually';
+                    }
+                })
+                .catch(function(err) { 
+                    status.textContent = 'API error: ' + err.message; 
+                });
         });
     }
 

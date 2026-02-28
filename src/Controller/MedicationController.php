@@ -146,4 +146,30 @@ class MedicationController extends AbstractController
             ], 500);
         }
     }
+
+    /**
+     * Get dosage information for a medication
+     * GET /api/medication/dosage?name=ibuprofen
+     */
+    #[Route('/dosage', name: 'medication_dosage', methods: ['GET'])]
+    public function getDosage(Request $request): JsonResponse
+    {
+        $name = $request->query->get('name', '');
+
+        if (strlen($name) < 2) {
+            return $this->json([
+                'error' => 'Medication name must be at least 2 characters',
+            ], 400);
+        }
+
+        try {
+            $dosageInfo = $this->medicationService->getDosageInfo($name);
+
+            return $this->json($dosageInfo);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Failed to fetch dosage information: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

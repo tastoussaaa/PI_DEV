@@ -182,7 +182,7 @@
                                     {% endif %}
 
                                     <div class="medicament-item-content">
-                                        {{ form_row(medicament_form.medicament) }}
+                                        {{ form_row(medicament_form.medicament, {'errors': false}) }}
                                         {{ form_row(medicament_form.dosage) }}
                                         {{ form_row(medicament_form.duree) }}
                                         {{ form_row(medicament_form.instructions) }}

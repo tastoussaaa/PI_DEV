@@ -115,6 +115,16 @@ public function showAll(Request $request, OrdonnanceRepository $repository): Res
             }
 
             if ($form->isValid()) {
+                // Filter out empty medicament entries before persisting
+                $medicaments = $Ordonnance->getMedicaments();
+                foreach ($medicaments as $medicament) {
+                    $medName = $medicament->getMedicament();
+                    if (empty($medName) || trim($medName) === '') {
+                        $Ordonnance->removeMedicament($medicament);
+                        $em->remove($medicament);
+                    }
+                }
+
                 $em->persist($Ordonnance);
                 $em->flush();
 
@@ -158,6 +168,16 @@ public function showAll(Request $request, OrdonnanceRepository $repository): Res
             }
 
             if ($form->isValid()) {
+                // Filter out empty medicament entries before persisting
+                $medicaments = $Ordonnance->getMedicaments();
+                foreach ($medicaments as $medicament) {
+                    $medName = $medicament->getMedicament();
+                    if (empty($medName) || trim($medName) === '') {
+                        $Ordonnance->removeMedicament($medicament);
+                        $em->remove($medicament);
+                    }
+                }
+
                 $em->flush();
 
                 return $this->redirectToRoute('Ordonnance_show_all');

@@ -5,6 +5,7 @@
 {% block stylesheets %}
     <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/ordonnance.css') }}">
 {% endblock %}
 
 {% block body %}
@@ -14,16 +15,17 @@
 
     <main class="portal__main">
 
-        <header class="portal__header">
-            <h1 class="portal__title">Toutes les ordonnances</h1>
-            <p class="portal__subtitle">Liste des ordonnances avec actions.</p>
+        <header class="portal__header" style="margin-bottom: 24px;">
+            <h1 class="portal__title" style="font-size: 28px; font-weight: 980; letter-spacing: -.6px;">Toutes les ordonnances</h1>
+            <p class="portal__subtitle" style="color: rgba(7,19,31,.60); margin-top: 6px;">Liste des ordonnances avec actions.</p>
         </header>
 
         <section class="portal__content">
-            <div style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-end">
-                <form method="get" style="display:flex;gap:8px;flex:1">
-                    <input type="text" name="search" placeholder="Search by medicament, consultation, or date..." value="{{ search }}" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;flex:1;font-size:14px">
-                    <select name="sort" style="padding:10px 12px;border:1px solid rgba(7,19,31,.10);border-radius:10px;font-size:14px">
+
+            <div class="search-bar">
+                <form method="get">
+                    <input type="text" name="search" placeholder="Rechercher par medicament, consultation ou date..." value="{{ search }}">
+                    <select name="sort">
                         <option value="date" {% if sort == 'date' %}selected{% endif %}>Le plus récent en premier</option>
                         <option value="medicament" {% if sort == 'medicament' %}selected{% endif %}>Médicaments de A à Z</option>
                         <option value="consultation" {% if sort == 'consultation' %}selected{% endif %}>Nom de la Consultation</option>
@@ -35,84 +37,105 @@
                 </form>
             </div>
 
-            <div class="portal__card">
-                <div class="box">
-                    {% if ordonnances is empty %}
-                        <p>Aucune ordonnance disponible.</p>
-                    {% else %}
-                        <table style="width:100%; border-collapse:collapse">
-                            <thead>
-                                <tr style="text-align:left; border-bottom:1px solid rgba(7,19,31,.08)">
-                                    <th>Medicament</th>
-                                    <th>Dosage</th>
-                                    <th>Durée</th>
-                                    <th>Consultation</th>
-                                    <th>Créé</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for o in ordonnances %}
-                                    <tr style="border-bottom:1px solid rgba(7,19,31,.06)">
-                                        <td>
-                                            {% if o.medicaments|length > 0 %}
-                                                {% set meds = [] %}
+            <div class="ordo-table-container">
+                {% if ordonnances is empty %}
+                    <div class="ordo-empty">
+                        <div class="ordo-empty-icon">📋</div>
+                        <p style="font-size: 16px; font-weight: 900;">Aucune ordonnance disponible</p>
+                        <p style="font-size: 14px; margin-top: 8px;">Créez une nouvelle ordonnance pour commencer.</p>
+                    </div>
+                {% else %}
+                    <table class="ordo-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Médicament</th>
+                                <th style="width: 15%;">Dosage</th>
+                                <th style="width: 12%;">Durée</th>
+                                <th style="width: 20%;">Consultation</th>
+                                <th style="width: 10%;">Créé</th>
+                                <th style="width: 18%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for o in ordonnances %}
+                                <tr>
+                                    <td>
+                                        {% if o.medicaments|length > 0 %}
+                                            <div class="medicament-list">
                                                 {% for med in o.medicaments %}
-                                                    {% set meds = meds|merge([med.medicament]) %}
+                                                    <span class="medicament-pill">{{ med.medicament }}</span>
                                                 {% endfor %}
-                                                {{ meds|join(', ') }}
-                                            {% else %}
-                                                {{ o.medicament ?: '—' }}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if o.medicaments|length > 0 %}
-                                                {% set dosages = [] %}
+                                            </div>
+                                        {% else %}
+                                            <span style="color: rgba(7,19,31,.40);">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if o.medicaments|length > 0 %}
+                                            <div class="medicament-list">
                                                 {% for med in o.medicaments %}
-                                                    {% set dosages = dosages|merge([med.dosage ?: '—']) %}
+                                                    <span class="medicament-pill medicament-pill--dosage">{{ med.dosage ?: '—' }}</span>
                                                 {% endfor %}
-                                                {{ dosages|join(', ') }}
-                                            {% else %}
-                                                {{ o.dosage ?: '—' }}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if o.medicaments|length > 0 %}
-                                                {% set durees = [] %}
+                                            </div>
+                                        {% else %}
+                                            {{ o.dosage ?: '—' }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if o.medicaments|length > 0 %}
+                                            <div class="medicament-list">
                                                 {% for med in o.medicaments %}
-                                                    {% set durees = durees|merge([med.duree ?: '—']) %}
+                                                    <span class="medicament-pill medicament-pill--duree">{{ med.duree ?: '—' }}</span>
                                                 {% endfor %}
-                                                {{ durees|join(', ') }}
-                                            {% else %}
-                                                {{ o.duree ?: '—' }}
-                                            {% endif %}
-                                        </td>
-                                        <td>
+                                            </div>
+                                        {% else %}
+                                            {{ o.duree ?: '—' }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if o.consultation %}
+                                            <div class="ordo-patient">
+                                                <span class="ordo-patient-name">{{ o.consultation.name }} {{ o.consultation.familyName }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span style="color: rgba(7,19,31,.40);">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if o.createdAt %}
+                                            <span class="ordo-badge ordo-badge--date">{{ o.createdAt|date('d/m/Y') }}</span>
+                                        {% else %}
+                                            <span style="color: rgba(7,19,31,.40);">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="ordo-actions">
                                             {% if o.consultation %}
-                                                {{ o.consultation.name }} {{ o.consultation.familyName }}
-                                            {% else %}
-                                                —
+                                                <a href="{{ path('download_consultation_pdf', {'consultationId': o.consultation.id}) }}" class="btn btn--ghost" title="Télécharger PDF" style="padding: 8px 10px; font-size: 14px;">
+                                                    📥
+                                                </a>
                                             {% endif %}
-                                        </td>
-                                        <td>{{ o.createdAt ? o.createdAt|date('Y-m-d') : '—' }}</td>
-                                        <td>
-                                            {% if o.consultation %}
-                                                <a href="{{ path('download_consultation_pdf', {'consultationId': o.consultation.id}) }}" class="btn btn--ghost" title="Télécharger PDF" style="padding:6px 10px;font-size:16px">📥</a>
-                                            {% endif %}
-                                            <a href="{{ path('Ordonnance_show', {'id': o.id}) }}" class="btn btn--ghost">Détails</a>
-                                            <a href="{{ path('Ordonnance_edit', {'id': o.id}) }}" class="btn btn--primary">Modifier</a>
-                                            <form method="post" action="{{ path('Ordonnance_delete', {'id': o.id}) }}" style="display:inline">
+                                            <a href="{{ path('Ordonnance_show', {'id': o.id}) }}" class="btn btn--ghost" style="padding: 8px 14px; font-size: 13px;">
+                                                Détails
+                                            </a>
+                                            <a href="{{ path('Ordonnance_edit', {'id': o.id}) }}" class="btn btn--primary" style="padding: 8px 14px; font-size: 13px;">
+                                                Modifier
+                                            </a>
+                                            <form method="post" action="{{ path('Ordonnance_delete', {'id': o.id}) }}" style="display: inline;">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ o.id) }}">
-                                                <button type="submit" class="btn btn--ghost" onclick="return confirm('Supprimer cette ordonnance?')">Supprimer</button>
+                                                <button type="submit" class="btn btn-delete" onclick="return confirm('Supprimer cette ordonnance?')">
+                                                    Supprimer
+                                                </button>
                                             </form>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% endif %}
-                </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
             </div>
+
         </section>
 
     </main>

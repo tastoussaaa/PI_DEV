@@ -48,6 +48,7 @@ class Ordonnance
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->medicaments = new ArrayCollection();
+        $this->medicament = null;
     }
 
     public function getId(): ?int

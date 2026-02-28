@@ -8,6 +8,7 @@ use App\Repository\AideSoignantRepository;
 use App\Repository\ConsultationRepository;
 use App\Repository\DemandeAideRepository;
 use App\Repository\MissionRepository;
+use App\Repository\ProduitRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,10 +18,197 @@ use App\Entity\Medecin;
 use App\Entity\AideSoignant;
 use App\Entity\DemandeAide;
 use App\Entity\Mission;
+use App\Entity\Patient;
+use App\Entity\Produit;
+use App\Form\ProduitType;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\String\Slugger\SluggerInterface;
+use App\Entity\Ressource;
+use App\Form\FormationType;
+use App\Form\RessourceType;
+
 use Doctrine\ORM\EntityManagerInterface;
 
 final class AdminController extends AbstractController
 {
+     #[Route('/admin/formation/{id}/edit', name: 'admin_formation_edit', methods: ['GET', 'POST'])]
+    public function editFormation(Request $request, Formation $formation, EntityManagerInterface $em): Response
+    {
+        $form = $this->createForm(FormationType::class, $formation, ['include_status' => true]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $em->flush();
+
+            $this->addFlash('success', "Formation mise à jour avec succès !");
+            return $this->redirectToRoute('admin_formations');
+        }
+
+        // Pass related ressources so the template can render the resources list
+        $ressources = $formation->getRessources();
+
+        return $this->render('admin/formation_edit.html.twig', [
+            'form' => $form->createView(),
+            'formation' => $formation,
+            'ressources' => $ressources,
+        ]);
+    }
+     #[Route('/admin/formation/{id}/resources', name: 'admin_formation_resources', methods: ['GET', 'POST'])]
+    public function formationResources(Formation $formation, Request $request, EntityManagerInterface $em): Response
+    {
+        $ressource = new Ressource();
+        $ressource->setFormation($formation);
+
+        $form = $this->createForm(RessourceType::class, $ressource);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+    $em->persist($ressource);
+    $em->flush();
+
+    $this->addFlash('ressource_success', [
+    'title' => $ressource->getTitle(),
+    'description' => $ressource->getDescription(),
+]);
+
+    return $this->redirectToRoute('admin_formation_resources', ['id' => $formation->getId()]);
+}
+
+        $ressources = $formation->getRessources();
+
+        return $this->render('admin/formation_resources.html.twig', [
+            'formation' => $formation,
+            'ressources' => $ressources,
+            'form' => $form->createView(),
+        ]);
+    }
+    #[Route('/admin/formation/{id}/ressource/new', name: 'admin_ressource_new')]
+public function new(Request $request, Formation $formation, EntityManagerInterface $em): Response
+{
+    $ressource = new Ressource();
+    $ressource->setFormation($formation);
+
+    $form = $this->createForm(RessourceType::class, $ressource);
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+
+        /** @var UploadedFile|null $pdfFile */
+        $pdfFile = $form->get('pdfFile')->getData();
+
+        if (!$pdfFile) {
+            $this->addFlash('error', 'Veuillez uploader un fichier PDF.');
+
+            return $this->render('admin/ressource_form.html.twig', [  // ✅ same template as edit
+                'form' => $form->createView(),
+                'formation' => $formation,
+                'ressource' => null,
+            ]);
+        }
+
+        $originalFilename = pathinfo($pdfFile->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeFilename = transliterator_transliterate(
+            'Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()',
+            $originalFilename
+        );
+        $newFilename = $safeFilename . '-' . uniqid() . '.' . $pdfFile->guessExtension();
+
+        $pdfDirectory = $this->getParameter('pdf_directory');
+        if (!is_dir($pdfDirectory)) {
+            mkdir($pdfDirectory, 0775, true);
+        }
+
+        $pdfFile->move($pdfDirectory, $newFilename);
+        $ressource->setFileName($newFilename);
+
+        $em->persist($ressource);
+        $em->flush();
+
+        $this->addFlash('success', 'Ressource ajoutée avec succès !');
+
+        return $this->redirectToRoute('admin_formation_resources', [
+            'id' => $formation->getId(),
+        ]);
+    }
+
+    // ✅ Use the dedicated form template, not the list page
+    return $this->render('admin/ressource_form.html.twig', [
+        'form' => $form->createView(),
+        'formation' => $formation,
+        'ressource' => null,  // null = creation mode, the template handles this already
+    ]);
+}
+
+    #[Route('/admin/ressource/{id}/edit', name: 'admin_ressource_edit')]
+    public function edit(
+        Ressource $ressource,
+        Request $request,
+        EntityManagerInterface $em
+    ): Response {
+
+        $form = $this->createForm(RessourceType::class, $ressource);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            $pdfFile = $form->get('pdfFile')->getData();
+
+            if ($pdfFile) {
+
+                // 🧹 Delete old file if exists
+                if ($ressource->getFileName()) {
+                    $oldPath = $this->getParameter('pdf_directory') . '/' . $ressource->getFileName();
+                    if (file_exists($oldPath)) {
+                        unlink($oldPath);
+                    }
+                }
+
+                $newFilename = uniqid() . '.' . $pdfFile->guessExtension();
+
+                $pdfFile->move(
+                    $this->getParameter('pdf_directory'),
+                    $newFilename
+                );
+
+                $ressource->setFileName($newFilename);
+            }
+
+            $em->flush();
+
+            $this->addFlash('success', 'Ressource modifiée avec succès !');
+
+            return $this->redirectToRoute('admin_formation_resources', [
+                'id' => $ressource->getFormation()->getId()
+            ]);
+        }
+
+        return $this->render('admin/ressource_form.html.twig', [
+            'form' => $form->createView(),
+            'formation' => $ressource->getFormation(),
+            'ressource' => $ressource
+        ]);
+    }
+
+
+    #[Route('/admin/ressource/{id}/delete', name: 'admin_ressource_delete', methods: ['POST'])]
+    public function deleteRessource(Request $request, Ressource $ressource, EntityManagerInterface $em): RedirectResponse
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('delete-ressource-' . $ressource->getId(), $token)) {
+            throw $this->createAccessDeniedException('CSRF token invalide.');
+        }
+
+        $formationId = $ressource->getFormation()->getId();
+        $em->remove($ressource);
+        $em->flush();
+
+        $this->addFlash('success', 'Ressource supprimée !');
+        return $this->redirectToRoute('admin_formation_resources', ['id' => $formationId]);
+    }
+
+
     #[Route('/admin/formations', name: 'admin_formations')]
     public function formations(FormationRepository $formationRepository)
     {

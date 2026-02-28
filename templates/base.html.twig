@@ -101,6 +101,18 @@
         {% endblock %}
     </head>
     <body>
+        {# Messages Flash (only standard types) #}
+        {% set standard_types = ['success', 'error', 'warning', 'info'] %}
+        <div class="flash-messages">
+            {% for type in standard_types %}
+                {% for message in app.flashes(type) %}
+                    <div class="alert alert--{{ type }}">
+                        {{ message }}
+                        <button class="alert__close" onclick="this.parentElement.style.display='none';">×</button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
         {# Messages Flash #}
         {% if app.flashes %}
             <div class="flash-messages">

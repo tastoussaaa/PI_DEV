@@ -1,40 +1,51 @@
 <?php
-// src/Controller/FormationConversation.php
-namespace App\Controller;
+namespace App\Conversation;
 
+use App\Bot\BotServiceLocator;
 use App\Repository\FormationRepository;
 use BotMan\BotMan\Messages\Conversations\Conversation;
 use BotMan\BotMan\Messages\Incoming\Answer;
 
 class FormationConversation extends Conversation
 {
-    // Remove repository from property
-    public function askCategory()
+    public function run(): void
     {
-        // inject repository here
-        $formationRepository = $this->getContainer()->get(\App\Repository\FormationRepository::class);
+        $this->askCategory();
+    }
 
-        $categories = $formationRepository->findAllCategories();
+    public function askCategory(): void
+    {
+        $this->ask('🔍 Quelle catégorie de formation recherchez-vous ?', function (Answer $answer) {
+            $category = trim($answer->getText());
 
-        $this->ask('Dans quelle catégorie ?', function ($answer) use ($formationRepository) {
-            $category = $answer->getText();
-            $formations = $formationRepository->findValidatedByCategory($category);
-            
+            /** @var FormationRepository $repo */
+            $repo = BotServiceLocator::get(FormationRepository::class);
+            $formations = $repo->findValidatedByCategory($category);
+
             if (empty($formations)) {
-                $this->say("Aucune formation trouvée pour '{$category}'.");
+                $this->say("❌ Aucune formation trouvée pour : *$category*");
             } else {
+                $this->say("✅ " . count($formations) . " formation(s) trouvée(s) :");
                 foreach ($formations as $f) {
-                    $this->say("📌 {$f->getTitle()} ({$f->getStartDate()->format('d/m/Y')})");
+                    $this->say("📌 {$f->getTitle()} ({$f->getCategory()})");
                 }
             }
 
-            $this->repeat();
+            // Ask again
+            $this->askAgain();
         });
     }
 
-    public function run()
+    private function askAgain(): void
     {
-        $this->say("✋ Bonjour ! Je peux vous aider à trouver une formation.");
-        $this->askCategory();
+        $this->ask('🔄 Voulez-vous chercher une autre catégorie ? (oui/non)', function (Answer $answer) {
+            $response = strtolower(trim($answer->getText()));
+
+            if (str_contains($response, 'oui') || str_contains($response, 'yes')) {
+                $this->askCategory();
+            } else {
+                $this->say('👋 Merci ! Bonne journée !');
+            }
+        });
     }
 }

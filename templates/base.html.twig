@@ -97,8 +97,7 @@
         {% block stylesheets %}
         {% endblock %}
 
-        {% block javascripts %}
-        {% endblock %}
+      
     </head>
     <body>
         {# Messages Flash (only standard types) #}
@@ -113,7 +112,8 @@
                 {% endfor %}
             {% endfor %}
         </div>
-
+  {% block javascripts %}
+        {% endblock %}
         {% block body %}{% endblock %}
     </body>
 </html>

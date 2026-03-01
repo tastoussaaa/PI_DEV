@@ -1,5 +1,6 @@
 # see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
+    session: true
     secret: '%env(APP_SECRET)%'
     profiler:
         enabled: true
@@ -10,9 +11,7 @@ framework:
         fallbacks: [en]
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
 
-    #esi: true
     #fragments: true
 
 when@test:

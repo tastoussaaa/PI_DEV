@@ -49,16 +49,6 @@ services:
         arguments:
             $apiKey: '%env(string:OPENAI_API_KEY)%'
 
-    # BotMan
-    App\Service\BotManFactory:
-        arguments:
-            $cacheDir: '%kernel.cache_dir%'
-            $container: '@service_container'
-
-    BotMan\BotMan\BotMan:
-        factory: ['@App\Service\BotManFactory', 'create']
-        public: true
-
     App\Repository\FormationRepository:
         public: true
     

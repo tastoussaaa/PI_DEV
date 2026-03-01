@@ -97,8 +97,7 @@
         {% block stylesheets %}
         {% endblock %}
 
-        {% block javascripts %}
-        {% endblock %}
+      
     </head>
     <body>
         {# Messages Flash (only standard types) #}
@@ -113,6 +112,8 @@
                 {% endfor %}
             {% endfor %}
         </div>
+  {% block javascripts %}
+        {% endblock %}
         {# Messages Flash #}
         {% if app.flashes %}
             <div class="flash-messages">

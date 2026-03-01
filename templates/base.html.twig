@@ -113,6 +113,8 @@
                 {% endfor %}
             {% endfor %}
         </div>
+  {% block javascripts %}
+        {% endblock %}
         {# Messages Flash #}
         {% if app.flashes %}
             <div class="flash-messages">

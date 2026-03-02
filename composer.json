@@ -13,16 +13,27 @@
         "doctrine/doctrine-migrations-bundle": "^3.7",
         "doctrine/orm": "^3.6",
         "dompdf/dompdf": "^3.1",
+<<<<<<< HEAD
+        "phpdocumentor/reflection-docblock": "^5.6",
+        "phpstan/phpdoc-parser": "^2.3",
+=======
         "google/apiclient": "^2.19",
+>>>>>>> 5c42e2f9c8f065578ea2c2cf78d2221bad17907a
         "symfony/asset": "7.4.*",
         "symfony/console": "7.4.*",
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2",
         "symfony/form": "7.4.*",
         "symfony/framework-bundle": "7.4.*",
+<<<<<<< HEAD
+        "symfony/google-mailer": "7.4.*",
+=======
+>>>>>>> 5c42e2f9c8f065578ea2c2cf78d2221bad17907a
         "symfony/http-client": "7.4.*",
         "symfony/mailer": "7.4.*",
         "symfony/mime": "7.4.*",
+        "symfony/property-access": "7.4.*",
+        "symfony/property-info": "7.4.*",
         "symfony/routing": "7.4.*",
         "symfony/runtime": "7.4.*",
         "symfony/security-bundle": "7.4.*",

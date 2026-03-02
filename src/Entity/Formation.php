@@ -21,7 +21,6 @@ class Formation
         self::STATUT_VALIDE,
         self::STATUT_REFUSE,
     ];
-    
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -49,17 +48,17 @@ class Formation
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $objective = null;
 
+    // ✅ Dates corrigées
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Assert\NotBlank(message: 'La date de début est obligatoire.')]
+    #[Assert\NotNull(message: 'La date de début est obligatoire.')]
     #[Assert\GreaterThanOrEqual(
         'now',
         message: 'La date de début doit être maintenant ou dans le futur.'
     )]
     private ?\DateTimeInterface $startDate = null;
 
-
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Assert\NotBlank(message: 'La date de fin est obligatoire.')]
+    #[Assert\NotNull(message: 'La date de fin est obligatoire.')]
     #[Assert\GreaterThan(
         propertyPath: 'startDate',
         message: 'La date de fin doit être après la date de début.'
@@ -96,10 +95,15 @@ class Formation
     public function __construct()
     {
         $this->aideSoignants = new ArrayCollection();
-        $this->statut = self::STATUT_EN_ATTENTE;
         $this->ressources = new ArrayCollection();
+        $this->statut = self::STATUT_EN_ATTENTE;
+
+        // ✅ Initialisation par défaut des dates pour éviter null
+        $this->startDate = new \DateTime();
+        $this->endDate = (new \DateTime())->modify('+1 hour');
     }
 
+    
     // -------- Getters & Setters --------
 
     public function getId(): ?int { return $this->id; }
@@ -154,13 +158,7 @@ class Formation
         return $this;
     }
 
-    /**
-     * @return Collection<int, Ressource>
-     */
-    public function getRessources(): Collection
-    {
-        return $this->ressources;
-    }
+    public function getRessources(): Collection { return $this->ressources; }
 
     public function addRessource(Ressource $ressource): static
     {
@@ -168,19 +166,16 @@ class Formation
             $this->ressources->add($ressource);
             $ressource->setFormation($this);
         }
-
         return $this;
     }
 
     public function removeRessource(Ressource $ressource): static
     {
         if ($this->ressources->removeElement($ressource)) {
-            // set the owning side to null (unless already changed)
             if ($ressource->getFormation() === $this) {
                 $ressource->setFormation(null);
             }
         }
-
         return $this;
     }
 }

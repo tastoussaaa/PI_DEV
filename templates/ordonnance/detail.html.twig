@@ -1,49 +1,10 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Détails des ordonnances{% endblock %}
+{% block title %}Ordonnance Details{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
-    <style>
-        .medicament-card {
-            border: 1px solid rgba(7, 19, 31, 0.06);
-            border-radius: 8px;
-            padding: 12px;
-            background: #f8f9fa;
-            margin-top: 8px;
-        }
-
-        .medicament-card h4 {
-            margin: 0 0 8px 0;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .medicament-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 8px;
-            font-size: 13px;
-        }
-
-        .medicament-detail-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .medicament-detail-label {
-            font-weight: 600;
-            color: var(--muted);
-            font-size: 12px;
-            margin-bottom: 2px;
-        }
-
-        .medicament-detail-value {
-            color: #333;
-            white-space: pre-line;
-        }
-    </style>
 {% endblock %}
 
 {% block body %}
@@ -60,51 +21,48 @@
 
     <main class="portal__main">
         <header class="portal__header">
-            <h1 class="portal__title">Détails des ordonnances</h1>
-            <p class="portal__subtitle">Informations sur la prescription</p>
+            <h1 class="portal__title">Ordonnance Details</h1>
+            <p class="portal__subtitle">Prescription information</p>
         </header>
 
         <section class="portal__content portal__card">
             <div class="card" style="display:flex;gap:18px;align-items:flex-start">
                 <div style="flex:1">
-                    {% if ordonnance.medicaments|length > 0 %}
-                        <h3 style="margin:0 0 12px">Médicaments prescrits</h3>
+                    {# Show all medicaments #}
+                    {% if ordonnance.medicaments is not empty %}
                         {% for medicament in ordonnance.medicaments %}
-                            <div class="medicament-card">
-                                <h4>{{ medicament.medicament }}</h4>
-                                <div class="medicament-details">
-                                    {% if medicament.dosage %}
-                                        <div class="medicament-detail-item">
-                                            <span class="medicament-detail-label">Dosage</span>
-                                            <span class="medicament-detail-value">{{ medicament.dosage }}</span>
-                                        </div>
-                                    {% endif %}
-                                    {% if medicament.duree %}
-                                        <div class="medicament-detail-item">
-                                            <span class="medicament-detail-label">Durée</span>
-                                            <span class="medicament-detail-value">{{ medicament.duree }}</span>
-                                        </div>
-                                    {% endif %}
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                                <h3 style="margin:0 0 8px">
+                                    {{ medicament.medicament ?: 'Non spécifié' }} 
+                                    <span style="color:var(--muted);font-weight:700">· {{ medicament.dosage ?: '—' }}</span>
+                                </h3>
+                                
+                                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">
+                                    <div>
+                                        <div class="section-title"><h2 style="font-size:14px;margin:0">Durée</h2></div>
+                                        <div style="margin-top:6px">{{ medicament.duree ?: '—' }}</div>
+                                    </div>
                                 </div>
+
                                 {% if medicament.instructions %}
-                                    <div style="margin-top:8px">
-                                        <div class="medicament-detail-label">Instructions</div>
-                                        <div class="medicament-detail-value">{{ medicament.instructions }}</div>
+                                    <div style="margin-top:14px">
+                                        <div class="section-title"><h2 style="font-size:14px;margin:0">Instructions</h2></div>
+                                        <div style="margin-top:8px;white-space:pre-line">{{ medicament.instructions }}</div>
                                     </div>
                                 {% endif %}
                             </div>
                         {% endfor %}
-                    {% elseif ordonnance.medicament %}
-                        {# Fallback for old ordonnances #}
-                        <h3 style="margin:0 0 8px">{{ ordonnance.medicament }} <span style="color:var(--muted);font-weight:700">· {{ ordonnance.dosage }}</span></h3>
+                    {% else %}
+                        {# Fallback for old data without medicaments collection #}
+                        <h3 style="margin:0 0 8px">{{ ordonnance.medicament ?: 'Non spécifié' }} <span style="color:var(--muted);font-weight:700">· {{ ordonnance.dosage ?: '—' }}</span></h3>
 
                         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">
                             <div>
-                                <div class="section-title"><h2 style="font-size:14px;margin:0">Durée</h2></div>
+                                <div class="section-title"><h2 style="font-size:14px;margin:0">Duration</h2></div>
                                 <div style="margin-top:6px">{{ ordonnance.duree ?: '—' }}</div>
                             </div>
                             <div>
-                                <div class="section-title"><h2 style="font-size:14px;margin:0">Créé le</h2></div>
+                                <div class="section-title"><h2 style="font-size:14px;margin:0">Created</h2></div>
                                 <div style="margin-top:6px">{{ ordonnance.createdAt ? ordonnance.createdAt|date('Y-m-d') : '—' }}</div>
                             </div>
                         </div>
@@ -112,15 +70,6 @@
                         <div style="margin-top:14px">
                             <div class="section-title"><h2 style="font-size:14px;margin:0">Instructions</h2></div>
                             <div style="margin-top:8px;white-space:pre-line">{{ ordonnance.instructions ?: '—' }}</div>
-                        </div>
-                    {% else %}
-                        <p>Aucun médicament prescrit.</p>
-                    {% endif %}
-
-                    {% if ordonnance.createdAt and ordonnance.medicaments|length > 0 %}
-                        <div style="margin-top:16px;padding:12px;background:#f0f4f8;border-radius:6px">
-                            <div class="medicament-detail-label">Date de création</div>
-                            <div style="margin-top:4px">{{ ordonnance.createdAt|date('d/m/Y à H:i') }}</div>
                         </div>
                     {% endif %}
                 </div>
@@ -138,14 +87,11 @@
                         </div>
 
                         <div style="margin-top:12px;display:flex;gap:8px;flex-direction:column">
-                            {% if ordonnance.consultation %}
-                                <a href="{{ path('download_consultation_pdf', {'consultationId': ordonnance.consultation.id}) }}" class="btn btn--primary" style="text-align:center">📥 Télécharger PDF</a>
-                            {% endif %}
-                            <a href="{{ path('Ordonnance_show_all') }}" class="btn btn--ghost">Retour</a>
-                            <a href="{{ path('Ordonnance_edit', {'id': ordonnance.id}) }}" class="btn btn--primary">Modifier</a>
-                            <form method="post" action="{{ path('Ordonnance_delete', {'id': ordonnance.id}) }}" onsubmit="return confirm('Supprimer cette ordonnance?')">
+                            <a href="{{ path('Ordonnance_show_all') }}" class="btn btn--ghost">Back</a>
+                            <a href="{{ path('Ordonnance_edit', {'id': ordonnance.id}) }}" class="btn btn--primary">Edit</a>
+                            <form method="post" action="{{ path('Ordonnance_delete', {'id': ordonnance.id}) }}" onsubmit="return confirm('Delete this ordonnance?')">
                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ ordonnance.id) }}">
-                                <button type="submit" class="btn btn--ghost">Supprimer</button>
+                                <button type="submit" class="btn btn--ghost">Delete</button>
                             </form>
                         </div>
                     </div>

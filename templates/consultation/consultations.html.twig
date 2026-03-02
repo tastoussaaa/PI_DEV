@@ -6,7 +6,11 @@
     <link rel="stylesheet" href="{{ asset('assets/css/medecin/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/consultation/form.css') }}">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+{% endblock %}
+
+{% block javascripts %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
         .view-toggle {
             display: flex;
@@ -148,6 +152,104 @@
         .full-width {
             grid-column: 1 / -1;
         }
+
+        /* Risk Badge Styles */
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            gap: 6px;
+        }
+
+        .risk-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .risk-low {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .risk-low::before {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .risk-moderate {
+            background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+            color: #9a3412;
+            border: 1px solid #f97316;
+        }
+
+        .risk-moderate::before {
+            background: #f97316;
+            box-shadow: 0 0 8px #f97316;
+        }
+
+        .risk-medium {
+            background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+            color: #9a3412;
+            border: 1px solid #f97316;
+        }
+
+        .risk-medium::before {
+            background: #f97316;
+            box-shadow: 0 0 8px #f97316;
+        }
+
+        .risk-high {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .risk-high::before {
+            background: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        .risk-critical {
+            background: linear-gradient(135deg, #fecaca 0%, #f87171 100%);
+            color: #7f1d1d;
+            border: 1px solid #dc2626;
+        }
+
+        .risk-critical::before {
+            background: #dc2626;
+            box-shadow: 0 0 8px #dc2626;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .risk-details {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .risk-score {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .risk-level {
+            font-size: 11px;
+            opacity: 0.9;
+        }
     </style>
 {% endblock %}
 
@@ -162,18 +264,12 @@
         <div class="portal__top">
             <div>
                 <h1 class="portal__title">Consultations</h1>
-                <p class="portal__subtitle">Gérer les consultations des patients — examiner, accepter ou refuser.</p>
+                <p class="portal__subtitle">Manage patient consultations — review, accept or decline.</p>
             </div>
 
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <div class="view-toggle">
-                    <button id="listViewBtn" class="active" data-view="list">📋 Liste</button>
-                    <button id="calendarViewBtn" data-view="calendar">📅 Calendrier</button>
-                </div>
-                {% if context == 'medecin' %}
-                    <a href="{{ path('consultation_new') }}" class="btn btn--primary">Nouvelle Consultation</a>
-                {% endif %}
-            </div>
+            {% if context == 'medecin' %}
+                <a href="{{ path('consultation_new') }}" class="btn btn--primary">New Consultation</a>
+            {% endif %}
         </div>
 
         <div class="portal__content">
@@ -266,34 +362,38 @@
                                             {% endif %}
                                             {% set r = riskScores[consultation.id] ?? null %}
                                             {% if r is not null %}
-                                                · Risk: {{ r.score }}/100 ({{ r.level }})
+                                                · <span class="risk-badge risk-{{ r.level|lower }}">{{ r.score }}/100 ({{ r.level }})</span>
                                             {% endif %}
                                         </div>
                                     </div>
                                     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                                         <a href="{{ path('consultation_show', {'id': consultation.id}) }}" class="btn btn--ghost">Details</a>
                                         {% if consultation.status == 'pending' %}
-                                            <div style="display:flex;gap:6px">
-                                                <form method="post" action="{{ path('medecin_consultation_accept', {'id': consultation.id}) }}">
-                                                    <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(19,184,194,.22),rgba(45,230,215,.22));border:1px solid rgba(19,184,194,.30);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✓ Accept</button>
-                                                </form>
-                                                <form method="post" action="{{ path('medecin_consultation_decline', {'id': consultation.id}) }}">
-                                                    <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(255,107,107,.16),rgba(255,150,107,.16));border:1px solid rgba(255,107,107,.25);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✕ Decline</button>
-                                                </form>
-                                            </div>
+                                            <span style="color:var(--muted)">⏳ Pending</span>
+                                        {% elseif consultation.status == 'accepted' %}
+                                            <span style="color:rgb(19,184,194)">✅ Accepted</span>
+                                        {% else %}
+                                            <span style="color:rgb(255,107,107)">❌ Declined</span>
                                         {% endif %}
                                     </div>
                                 </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- CALENDAR VIEW -->
-            <div class="calendar-container" id="calendarView">
-                <h3 style="margin-top: 0;">Calendrier des consultations</h3>
-                <div id="calendar"></div>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <a href="{{ path('consultation_show', {'id': consultation.id}) }}" class="btn btn--ghost">Details</a>
+                                    {% if consultation.status == 'pending' %}
+                                        <div style="display:flex;gap:6px">
+                                            <form method="post" action="{{ path('medecin_consultation_accept', {'id': consultation.id}) }}">
+                                                <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(19,184,194,.22),rgba(45,230,215,.22));border:1px solid rgba(19,184,194,.30);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✓ Accept</button>
+                                            </form>
+                                            <form method="post" action="{{ path('medecin_consultation_decline', {'id': consultation.id}) }}">
+                                                <button type="submit" class="btn" style="background:linear-gradient(135deg,rgba(255,107,107,.16),rgba(255,150,107,.16));border:1px solid rgba(255,107,107,.25);color:var(--text);font-weight:900;padding:10px 14px;border-radius:10px">✕ Decline</button>
+                                            </form>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
 
         </div>
@@ -303,7 +403,6 @@
 </div>
 </div>
 
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const listViewBtn = document.getElementById('listViewBtn');

@@ -146,4 +146,109 @@ class MedicationController extends AbstractController
             ], 500);
         }
     }
+
+    /**
+     * Get dosage information for a medication
+     * GET /api/medication/dosage?name=ibuprofen
+     */
+    #[Route('/dosage', name: 'medication_dosage', methods: ['GET'])]
+    public function getDosage(Request $request): JsonResponse
+    {
+        $name = $request->query->get('name', '');
+
+        if (strlen($name) < 2) {
+            return $this->json([
+                'error' => 'Medication name must be at least 2 characters',
+            ], 400);
+        }
+
+        try {
+            $dosageInfo = $this->medicationService->getDosageInfo($name);
+
+            return $this->json($dosageInfo);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Failed to fetch dosage information: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Lookup dosage for a medication (used in form)
+     * GET /medication/lookup?medicament=ibuprofen
+     */
+    #[Route('/lookup', name: 'medication_lookup', methods: ['GET'])]
+    public function lookup(Request $request): JsonResponse
+    {
+        $medicament = $request->query->get('medicament', '');
+
+        if (empty(trim($medicament))) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Veuillez entrer un nom de médicament',
+            ], 400);
+        }
+
+        try {
+            $dosageInfo = $this->medicationService->getDosageInfo($medicament);
+
+            if ($dosageInfo['found'] && !empty($dosageInfo['strengths'])) {
+                // Return the first strength as dosage
+                $firstStrength = $dosageInfo['strengths'][0];
+                return $this->json([
+                    'success' => true,
+                    'dosage' => $firstStrength['full_name'] ?? $firstStrength['strength'] . ' ' . $firstStrength['unit'],
+                    'duree' => '7 jours', // Default duration
+                ]);
+            }
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Aucune information de dosage trouvée pour ce médicament',
+            ]);
+        } catch (\Exception $e) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Erreur lors de la recherche: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate medication against RxNorm database
+     * GET /medication/validate?medicament=ibuprofen
+     */
+    #[Route('/validate', name: 'medication_validate', methods: ['GET'])]
+    public function validate(Request $request): JsonResponse
+    {
+        $medicament = $request->query->get('medicament', '');
+
+        if (empty(trim($medicament))) {
+            return $this->json([
+                'valid' => false,
+                'message' => 'Veuillez entrer un nom de médicament',
+            ], 400);
+        }
+
+        try {
+            $medications = $this->medicationService->searchMedications($medicament);
+
+            if (!empty($medications)) {
+                return $this->json([
+                    'valid' => true,
+                    'message' => 'Médicament trouvé dans la base RxNorm',
+                ]);
+            }
+
+            return $this->json([
+                'valid' => false,
+                'message' => 'Médicament non trouvé dans la base RxNorm',
+            ]);
+        } catch (\Exception $e) {
+            return $this->json([
+                'valid' => false,
+                'message' => 'Erreur lors de la validation: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

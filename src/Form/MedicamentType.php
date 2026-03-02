@@ -16,40 +16,41 @@ class MedicamentType extends AbstractType
         $builder
             ->add('medicament', TextType::class, [
                 'label' => 'Médicament',
-                'required' => true,
                 'row_attr' => ['class' => 'form__field'],
                 'attr' => [
-                    'class' => 'form__input',
-                    'placeholder' => 'ex: Amoxicilline',
-                ]
+                    'class' => 'form__input medicament-input', 
+                    'placeholder' => 'Nom du médicament',
+                    'autocomplete' => 'off'
+                ],
+                'required' => true,
             ])
             ->add('dosage', TextType::class, [
                 'label' => 'Dosage',
-                'required' => false,
                 'row_attr' => ['class' => 'form__field'],
                 'attr' => [
-                    'class' => 'form__input',
-                    'placeholder' => 'ex: 500mg',
-                ]
+                    'class' => 'form__input dosage-input', 
+                    'placeholder' => 'Ex: 500mg'
+                ],
+                'required' => true,
             ])
             ->add('duree', TextType::class, [
                 'label' => 'Durée',
-                'required' => false,
                 'row_attr' => ['class' => 'form__field'],
                 'attr' => [
-                    'class' => 'form__input',
-                    'placeholder' => 'ex: 7 jours',
-                ]
+                    'class' => 'form__input duree-input', 
+                    'placeholder' => 'Ex: 7 jours'
+                ],
+                'required' => true,
             ])
             ->add('instructions', TextareaType::class, [
                 'label' => 'Instructions',
-                'required' => false,
                 'row_attr' => ['class' => 'form__field'],
                 'attr' => [
-                    'class' => 'form__textarea',
+                    'class' => 'form__textarea instructions-input', 
                     'rows' => 2,
-                    'placeholder' => 'ex: Prendre 3 fois par jour avec nourriture',
-                ]
+                    'placeholder' => 'Comment prendre le médicament'
+                ],
+                'required' => false,
             ])
         ;
     }

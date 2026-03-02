@@ -3,10 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\MedicamentRepository;
-use App\Validator\ValidMedication;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MedicamentRepository::class)]
 class Medicament
@@ -16,25 +13,20 @@ class Medicament
     #[ORM\Column]
     private ?int $id = null;
 
-    #[Assert\NotBlank(message: 'Le médicament ne peut pas être vide')]
-    #[Assert\Length(max: 255, maxMessage: 'Le nom du médicament ne peut pas dépasser 255 caractères')]
-    #[ValidMedication]
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $medicament = null;
 
-    #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $dosage = null;
 
-    #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $duree = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $instructions = null;
 
-    #[ORM\ManyToOne(inversedBy: 'medicaments')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\ManyToOne(targetEntity: Ordonnance::class, inversedBy: 'medicaments')]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Ordonnance $ordonnance = null;
 
     public function getId(): ?int
@@ -50,7 +42,6 @@ class Medicament
     public function setMedicament(?string $medicament): static
     {
         $this->medicament = $medicament;
-
         return $this;
     }
 
@@ -62,7 +53,6 @@ class Medicament
     public function setDosage(?string $dosage): static
     {
         $this->dosage = $dosage;
-
         return $this;
     }
 
@@ -74,7 +64,6 @@ class Medicament
     public function setDuree(?string $duree): static
     {
         $this->duree = $duree;
-
         return $this;
     }
 
@@ -86,7 +75,6 @@ class Medicament
     public function setInstructions(?string $instructions): static
     {
         $this->instructions = $instructions;
-
         return $this;
     }
 
@@ -98,7 +86,6 @@ class Medicament
     public function setOrdonnance(?Ordonnance $ordonnance): static
     {
         $this->ordonnance = $ordonnance;
-
         return $this;
     }
 }

@@ -1,0 +1,131 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendrier des Formations{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    
+    {# FullCalendar #}
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+
+    <style>
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+            background-color: #f4f6f9;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .page-header h2 {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .calendar-card {
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        #calendar {
+            max-width: 100%;
+        }
+
+        .legend {
+            margin-top: 15px;
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+
+{% set navigation = [ 
+    {'name': 'Dashboard', 'path': path('app_medecin_dashboard'), 'icon': '🏠'},
+    {'name': 'Consultations', 'path': path('medecin_consultations'), 'icon': '🩺'},
+    {'name': 'Ordonnances', 'path': path('Ordonnance_new'), 'icon': '💊'},
+    {'name': 'Formations', 'path': path('medecin_formations'), 'icon': '📚'},
+    {'name': 'Nouvelle Formation', 'path': path('medecin_formation_new'), 'icon': '➕'},
+    {'name': 'Calendrier', 'path': path('formations_calendar'), 'icon': '📅'}
+    
+] %}
+
+<div class="dashboard-container">
+
+    {# Sidebar #}
+    {% include 'side_bar.html.twig' %}
+
+    <div class="main-content">
+
+        <div class="page-header">
+            <h2>📅 Calendrier des Formations</h2>
+        </div>
+
+        <div class="calendar-card">
+            <div id="calendar"></div>
+
+            <div class="legend">
+                <span><span class="legend-box" style="background:#28a745;"></span> Validée</span>
+                <span><span class="legend-box" style="background:#ffc107;"></span> En attente</span>
+                <span><span class="legend-box" style="background:#dc3545;"></span> Refusée</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'fr',
+        height: "auto",
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: '/api/formations/events',
+
+        eventClick: function(info) {
+            window.location.href = '/formations/' + info.event.id;
+        }
+    });
+
+    calendar.render();
+});
+</script>
+
+{% endblock %}

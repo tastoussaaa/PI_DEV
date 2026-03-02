@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Assistant Formation{% endblock %}
+
+{% block body %}
+<div style="margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif;">
+    <h1>Recherche de Formations</h1>
+    <p>Utilisez le chat en bas à droite pour trouver une formation.</p>
+</div>
+
+<script>
+var botmanWidget = {
+    frameEndpoint: '{{ path('botman_frame') }}',
+    title: 'Assistant Formation',
+    introMessage: "✋ Bonjour ! Je peux vous aider à trouver une formation.",
+    mainColor: '#18bfea',
+    bubbleBackground: '#18bfea',
+    aboutText: '',
+    bubbleAvatarUrl: '',
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/botman-web-widget@0/build/js/widget.js"></script>
+{% endblock %}

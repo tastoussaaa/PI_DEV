@@ -3,12 +3,11 @@
 namespace App\Entity;
 
 use App\Repository\OrdonnanceRepository;
-use App\Validator\ValidMedication;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: OrdonnanceRepository::class)]
 class Ordonnance
@@ -18,15 +17,12 @@ class Ordonnance
     #[ORM\Column]
     private ?int $id = null;
 
-    #[Assert\Length(max: 255)]
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $medicament = null;
+    #[ORM\Column(length: 255, nullable: false)]
+    private string $medicament = '';
 
-    #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $dosage = null;
 
-    #[Assert\Length(max: 255)]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $duree = null;
 
@@ -55,15 +51,14 @@ class Ordonnance
         return $this->id;
     }
 
-    public function getMedicament(): ?string
+    public function getMedicament(): string
     {
         return $this->medicament;
     }
 
-    public function setMedicament(?string $medicament): static
+    public function setMedicament(string $medicament): static
     {
         $this->medicament = $medicament;
-
         return $this;
     }
 
@@ -74,7 +69,7 @@ class Ordonnance
 
     public function setDosage(?string $dosage): static
     {
-        $this->dosage = $dosage;
+        $this->dosage = $dosage ?? '';
 
         return $this;
     }
@@ -86,7 +81,7 @@ class Ordonnance
 
     public function setDuree(?string $duree): static
     {
-        $this->duree = $duree;
+        $this->duree = $duree ?? '';
 
         return $this;
     }
@@ -98,7 +93,7 @@ class Ordonnance
 
     public function setInstructions(?string $instructions): static
     {
-        $this->instructions = $instructions;
+        $this->instructions = $instructions ?? '';
 
         return $this;
     }
@@ -108,7 +103,7 @@ class Ordonnance
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
 
@@ -148,7 +143,6 @@ class Ordonnance
     public function removeMedicament(Medicament $medicament): static
     {
         if ($this->medicaments->removeElement($medicament)) {
-            // set the owning side to null (unless already changed)
             if ($medicament->getOrdonnance() === $this) {
                 $medicament->setOrdonnance(null);
             }

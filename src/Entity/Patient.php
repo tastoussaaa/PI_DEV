@@ -74,6 +74,8 @@ class Patient
 
     #[ORM\Column(type: 'smallint', nullable: true)]
     private ?int $profilCompletionScore = null;
+    #[ORM\Column]
+    private bool $isActive = true;
 
     public function __construct()
     {
@@ -330,5 +332,17 @@ class Patient
     public function isProfileComplete(): bool
     {
         return $this->calculateCompletionScore() === 100;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
+
+        return $this;
     }
 }

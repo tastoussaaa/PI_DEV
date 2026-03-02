@@ -15,4 +15,6 @@ class MedicamentRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Medicament::class);
     }
+
+    // Add custom repository methods if needed
 }

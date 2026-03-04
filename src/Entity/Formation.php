@@ -28,7 +28,7 @@ class Formation
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Assert\NotBlank(message: 'Le titre est obligatoire.')]
     #[Assert\Length(
         min: 5,
@@ -38,7 +38,7 @@ class Formation
     )]
     private ?string $title = null;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Assert\NotBlank(message: 'La description est obligatoire.')]
     #[Assert\Length(
         min: 20,
@@ -49,7 +49,7 @@ class Formation
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $objective = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Assert\NotBlank(message: 'La date de début est obligatoire.')]
     #[Assert\GreaterThanOrEqual(
         'now',
@@ -58,7 +58,7 @@ class Formation
     private ?\DateTimeInterface $startDate = null;
 
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Assert\NotBlank(message: 'La date de fin est obligatoire.')]
     #[Assert\GreaterThan(
         propertyPath: 'startDate',
@@ -66,7 +66,7 @@ class Formation
     )]
     private ?\DateTimeInterface $endDate = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Assert\NotBlank(message: 'La catégorie est obligatoire.')]
     #[Assert\Length(
         max: 100,
@@ -125,6 +125,9 @@ class Formation
     public function getMedecin(): ?Medecin { return $this->medecin; }
     public function setMedecin(?Medecin $medecin): static { $this->medecin = $medecin; return $this; }
 
+    /**
+     * @return Collection<int, AideSoignant>
+     */
     public function getAideSoignants(): Collection { return $this->aideSoignants; }
 
     public function addAideSoignant(AideSoignant $aideSoignant): static

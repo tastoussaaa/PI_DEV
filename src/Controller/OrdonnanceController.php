@@ -99,7 +99,7 @@ class OrdonnanceController extends AbstractController
         $form = $this->createForm(OrdonnanceType::class, $Ordonnance);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted()) {
             // Manual server-side validation for each medicament using MedicationApiService
             if ($medService && $form->has('medicaments')) {
                 $medicamentsForm = $form->get('medicaments');
@@ -128,6 +128,13 @@ class OrdonnanceController extends AbstractController
                 }
             }
 
+            if (!$form->isValid()) {
+                return $this->render('ordonnance/new.html.twig', [
+                    'form' => $form->createView(),
+                    'navigation' => $this->getNavigation(),
+                ]);
+            }
+
             $em->persist($Ordonnance);
             $em->flush();
 
@@ -146,7 +153,7 @@ class OrdonnanceController extends AbstractController
         $form = $this->createForm(OrdonnanceType::class, $Ordonnance);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted()) {
             // Validate medicaments on edit as well
             if ($medService && $form->has('medicaments')) {
                 $medicamentsForm = $form->get('medicaments');
@@ -173,6 +180,13 @@ class OrdonnanceController extends AbstractController
                         'navigation' => $this->getNavigation(),
                     ]);
                 }
+            }
+
+            if (!$form->isValid()) {
+                return $this->render('ordonnance/edit.html.twig', [
+                    'form' => $form->createView(),
+                    'navigation' => $this->getNavigation(),
+                ]);
             }
 
             $em->flush();
@@ -205,6 +219,9 @@ class OrdonnanceController extends AbstractController
         ]);
     }
     
+    /**
+     * @return list<array{name: string, path: string, icon: string}>
+     */
     private function getNavigation(): array
     {
         return [

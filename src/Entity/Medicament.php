@@ -26,7 +26,7 @@ class Medicament
     private ?string $instructions = null;
 
     #[ORM\ManyToOne(targetEntity: Ordonnance::class, inversedBy: 'medicaments')]
-    #[ORM\JoinColumn(nullable: true)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Ordonnance $ordonnance = null;
 
     public function getId(): ?int

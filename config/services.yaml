@@ -62,3 +62,13 @@ services:
     App\Repository\FormationRepository:
         public: true
 
+    AhmedBhs\DoctrineDoctor\Analyzer\Integrity\TimestampableTraitAnalyzer:
+        autowire: true
+        autoconfigure: false
+        tags: []
+
+    AhmedBhs\DoctrineDoctor\Analyzer\Integrity\PrimaryKeyStrategyAnalyzer:
+        autowire: true
+        autoconfigure: false
+        tags: []
+

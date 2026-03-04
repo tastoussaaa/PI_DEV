@@ -55,7 +55,7 @@ class MedicationController extends AbstractController
         try {
             $details = $this->medicationService->getMedicationDetails($rxnormId);
 
-            if (empty($details)) {
+            if ($details['strengths'] === []) {
                 return $this->json([
                     'error' => 'Medication not found',
                 ], 404);
@@ -133,9 +133,9 @@ class MedicationController extends AbstractController
             if (!empty($medicineName) && $parsed['valid']) {
                 $isSafe = $this->medicationService->isSafeDosage($medicineName, $parsed);
                 $response['safe_dosage'] = $isSafe;
-                $response['message'] = $isSafe === null 
-                    ? 'Unknown medicine - cannot verify safety' 
-                    : ($isSafe ? 'Dosage is within safe limits' : 'WARNING: Dosage exceeds recommended limits');
+                $response['message'] = $isSafe
+                    ? 'Dosage is within safe limits'
+                    : 'WARNING: Dosage exceeds recommended limits';
             }
 
             return $this->json($response);

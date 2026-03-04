@@ -13,6 +13,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -40,6 +41,10 @@ class CreateUserAccountsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $helper = $this->getHelper('question');
+        if (!$helper instanceof QuestionHelper) {
+            throw new \RuntimeException('Question helper unavailable.');
+        }
+
         $type = $input->getArgument('type');
 
         if (!in_array($type, ['admin', 'patient', 'medecin'])) {
@@ -99,7 +104,7 @@ class CreateUserAccountsCommand extends Command
                 $admin->setUser($user);
                 // Split full name into nom and prenom
                 $nameParts = explode(' ', $fullName, 2);
-                $admin->setNom($nameParts[0] ?? $fullName);
+                $admin->setNom($nameParts[0]);
                 $admin->setPrenom($nameParts[1] ?? '');
                 $admin->setMdp($password); // Required field
                 

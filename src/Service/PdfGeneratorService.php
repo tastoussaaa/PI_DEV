@@ -169,7 +169,7 @@ class PdfGeneratorService
                 <div class="info-grid">
                     <div class="info-item">
                         <span class="info-label">Full Name</span>
-                        <span class="info-value">' . htmlspecialchars($patient->getName() . ' ' . $patient->getFamilyName()) . '</span>
+                        <span class="info-value">' . htmlspecialchars((string) ($patient->getFullName() ?: 'N/A')) . '</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Age</span>
@@ -196,7 +196,7 @@ class PdfGeneratorService
                 <div class="info-grid">
                     <div class="info-item">
                         <span class="info-label">Doctor</span>
-                        <span class="info-value">Dr. ' . htmlspecialchars($medecin->getName()) . '</span>
+                        <span class="info-value">Dr. ' . htmlspecialchars((string) ($medecin->getFullName() ?: 'N/A')) . '</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Specialty</span>
@@ -216,7 +216,7 @@ class PdfGeneratorService
             foreach ($ordonnances as $ordonnance) {
                 $medicaments = $ordonnance->getMedicaments();
                 
-                if ($medicaments && !$medicaments->isEmpty()) {
+                if (!$medicaments->isEmpty()) {
                     foreach ($medicaments as $medicament) {
                         $html .= '
                         <div class="medicament-card">

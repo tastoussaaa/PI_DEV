@@ -42,8 +42,9 @@ class FormationRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-
-
+    /**
+     * @return list<Formation>
+     */
     public function findValidated(): array
     {
         return $this->createQueryBuilder('f')
@@ -58,6 +59,9 @@ class FormationRepository extends ServiceEntityRepository
     }
 
 
+    /**
+     * @return list<Formation>
+     */
     public function findValidatedByCategory(?string $category = null, ?string $searchTerm = null): array
     {
         $qb = $this->createQueryBuilder('f')
@@ -80,6 +84,9 @@ class FormationRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * @return list<Formation>
+     */
     public function findVisibleForMedecin(Medecin $medecin, ?string $category = null, ?string $searchTerm = null): array
     {
         $qb = $this->createQueryBuilder('f')
@@ -103,6 +110,9 @@ class FormationRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * @return list<string>
+     */
     public function findAllCategories(): array
     {
         $result = $this->createQueryBuilder('f')
@@ -111,6 +121,9 @@ class FormationRepository extends ServiceEntityRepository
             ->getResult();
 
         // Flatten array of arrays to a simple array of strings
-        return array_map(fn($c) => $c['category'], $result);
+        return array_values(array_map(
+            static fn(array $categoryRow): string => (string) $categoryRow['category'],
+            $result
+        ));
     }
 }

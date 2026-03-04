@@ -468,7 +468,8 @@ final class MissionController extends BaseController
 
         $mission->setLatitudeCheckin($latitude);
         $mission->setLongitudeCheckin($longitude);
-        $mission->setCheckInAt(new \DateTime());
+        $checkInAt = new \DateTime();
+        $mission->setCheckInAt($checkInAt);
         $mission->setStatusVerification('PENDING');
 
         try {
@@ -487,7 +488,7 @@ final class MissionController extends BaseController
             'success' => true,
             'message' => 'Check-in enregistré avec succès.',
             'missionId' => $mission->getId(),
-            'checkInAt' => $mission->getCheckInAt()?->format(DATE_ATOM),
+            'checkInAt' => $checkInAt->format(DATE_ATOM),
             'statusVerification' => $mission->getStatusVerification(),
         ]);
     }

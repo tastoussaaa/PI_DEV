@@ -13,7 +13,7 @@ class Ressource
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $title = null;
 
     // 🔥 Description longue (TEXT au lieu de VARCHAR 255)

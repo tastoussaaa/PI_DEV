@@ -7,7 +7,6 @@ use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 
 class MedicationApiService
 {
-    private const OPENFDA_BASE_URL = 'https://api.fda.gov/drug/event.json';
     private const RXNORM_BASE_URL = 'https://rxnav.nlm.nih.gov/REST';
     
     public function __construct(private HttpClientInterface $httpClient) {}
@@ -15,6 +14,8 @@ class MedicationApiService
     /**
      * Search for medication by name using RxNorm API
      * Free and no API key required
+        *
+        * @return list<array{name: string, rxnorm_id: string, tty: string}>
      */
     public function searchMedications(string $medicineName): array
     {
@@ -54,6 +55,8 @@ class MedicationApiService
 
     /**
      * Get medication details including dosage strengths
+        *
+        * @return array{rxnorm_id: string, strengths: list<string>, related_drugs: list<string>}
      */
     public function getMedicationDetails(string $rxnormId): array
     {
@@ -84,13 +87,19 @@ class MedicationApiService
             return $details;
         } catch (HttpExceptionInterface $e) {
             error_log('RxNorm API Error: ' . $e->getMessage());
-            return [];
+            return [
+                'rxnorm_id' => $rxnormId,
+                'strengths' => [],
+                'related_drugs' => [],
+            ];
         }
     }
 
     /**
      * Check for drug interactions between two medications
      * Returns true if interaction found, false otherwise
+        *
+        * @return list<array{severity: string, description: string}>
      */
     public function checkDrugInteraction(string $rxnormId1, string $rxnormId2): array
     {
@@ -146,6 +155,8 @@ class MedicationApiService
 
     /**
      * Parse dosage string and extract quantity and unit
+        *
+        * @return array{quantity: float|null, unit: string|null, valid: bool}
      */
     public function parseDosage(string $dosage): array
     {
@@ -168,6 +179,8 @@ class MedicationApiService
     /**
      * Check if dosage is within safe limits
      * Basic validation - adjust per your medical standards
+        *
+        * @param array{quantity: float|null, unit: string|null, valid: bool} $parsedDosage
      */
     public function isSafeDosage(string $medicineName, array $parsedDosage): bool
     {
@@ -183,22 +196,26 @@ class MedicationApiService
         
         if (!isset($maxDosagesPerDay[$medicineLower])) {
             // Unknown medicine - cannot validate safety
-            return null;
+            return false;
         }
 
         $limits = $maxDosagesPerDay[$medicineLower];
         $unit = $parsedDosage['unit'] ?? '';
 
         if (isset($limits[$unit])) {
-            return $parsedDosage['quantity'] <= $limits[$unit];
+            $quantity = $parsedDosage['quantity'];
+
+            return is_numeric($quantity) && $quantity <= $limits[$unit];
         }
 
-        return null;
+        return false;
     }
 
     /**
      * Get dosage and instructions for a medication using RxNorm API
      * This searches for the medication and returns available strengths/dosages
+     *
+     * @return array<string, mixed>
      */
     public function getDosageInfo(string $medicineName): array
     {
@@ -289,6 +306,8 @@ class MedicationApiService
 
     /**
      * Get common dosage instructions for known medications
+        *
+        * @return list<string>
      */
     private function getCommonDosageInstructions(string $medicineName): array
     {

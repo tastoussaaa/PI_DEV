@@ -30,13 +30,16 @@ class Ordonnance
     private ?string $instructions = null;
 
     #[ORM\Column]
-    private ?\DateTimeImmutable $createdAt = null;
+    private \DateTimeImmutable $createdAt;
 
     #[Assert\NotBlank]
     #[ORM\ManyToOne(inversedBy: 'ordonnances')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Consultation $consultation = null;
 
+    /**
+     * @var Collection<int, Medicament>
+     */
     #[ORM\OneToMany(mappedBy: 'ordonnance', targetEntity: Medicament::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $medicaments;
 
@@ -98,7 +101,7 @@ class Ordonnance
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
@@ -142,11 +145,7 @@ class Ordonnance
 
     public function removeMedicament(Medicament $medicament): static
     {
-        if ($this->medicaments->removeElement($medicament)) {
-            if ($medicament->getOrdonnance() === $this) {
-                $medicament->setOrdonnance(null);
-            }
-        }
+        $this->medicaments->removeElement($medicament);
 
         return $this;
     }

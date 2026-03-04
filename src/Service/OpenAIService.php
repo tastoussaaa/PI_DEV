@@ -47,6 +47,8 @@ class OpenAIService
 
     /**
      * Comprehensive motif analysis with HARD validation
+        *
+        * @return array{enhanced: string, urgency: string, isValid: bool, message: string}
      */
     public function analyzeMotifComprehensive(string $motif): array
     {
@@ -120,6 +122,8 @@ class OpenAIService
 
     /**
      * Call OpenAI API using HTTP Client
+        *
+        * @param list<array{role: string, content: string}> $messages
      */
     private function callOpenAI(array $messages, int $maxTokens = 200, float $temperature = 0.5): string
     {
@@ -147,6 +151,8 @@ class OpenAIService
 
     /**
      * Fallback keyword-based urgency detection
+        *
+        * @return array{enhanced: string, urgency: string, isValid: bool, message: string}
      */
     private function fallbackAnalysis(string $motif): array
     {
@@ -188,6 +194,8 @@ class OpenAIService
 
     /**
      * Standard invalid response
+        *
+        * @return array{enhanced: string, urgency: string, isValid: bool, message: string}
      */
     private function invalidResponse(string $motif, string $message): array
     {

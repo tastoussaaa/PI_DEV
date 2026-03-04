@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Consultation;
+use App\Entity\User;
 use App\Form\ConsultationType;
 use App\Repository\ConsultationRepository;
 use App\Service\OpenAIService;
@@ -54,7 +55,7 @@ class ConsultationController extends AbstractController
         $navigation = [];
         
         // Set navigation based on user role
-        if ($user && method_exists($user, 'getRoles')) {
+        if ($user) {
             $roles = $user->getRoles();
             if (in_array('ROLE_ADMIN', $roles)) {
                 $navigation = [
@@ -102,11 +103,11 @@ class ConsultationController extends AbstractController
             $result = $this->openAIService->analyzeMotifComprehensive($motif);
             
             return $this->json([
-                'ok' => $result['isValid'] ?? true,
+                'ok' => $result['isValid'],
                 'original' => $motif,
-                'enhanced' => $result['enhanced'] ?? $motif,
-                'urgency' => $result['urgency'] ?? 'moderee',
-                'message' => $result['message'] ?? ''
+                'enhanced' => $result['enhanced'],
+                'urgency' => $result['urgency'],
+                'message' => $result['message']
             ]);
         } catch (\Exception $e) {
             return $this->json([
@@ -128,7 +129,7 @@ class ConsultationController extends AbstractController
 
             // If user is logged in, ensure consultation email is set to user's email
             $user = $this->getUser();
-            if ($user && !$consultation->getEmail()) {
+            if ($user instanceof User && !$consultation->getEmail()) {
                 try {
                     $email = $user->getEmail();
                     if ($email) {
@@ -181,7 +182,7 @@ class ConsultationController extends AbstractController
         $navigation = [];
         
         // Set navigation based on user role
-        if ($user && method_exists($user, 'getRoles')) {
+        if ($user) {
             $roles = $user->getRoles();
             if (in_array('ROLE_ADMIN', $roles)) {
                 $navigation = [
@@ -221,7 +222,7 @@ class ConsultationController extends AbstractController
         $navigation = [];
         
         // Set navigation based on user role
-        if ($user && method_exists($user, 'getRoles')) {
+        if ($user) {
             $roles = $user->getRoles();
             if (in_array('ROLE_ADMIN', $roles)) {
                 $navigation = [
